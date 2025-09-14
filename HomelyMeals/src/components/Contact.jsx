@@ -16,11 +16,16 @@ export default function Contact() {
 
         {/* Contact Form */}
         <form
-          action="mailto:shahmuttaqa@gmail.com"
+          action="https://formsubmit.co/shahmuttaqa@gmail.com"
           method="POST"
-          encType="text/plain"
           className="space-y-6 bg-white p-8 rounded-2xl shadow-lg border border-[#f5e9db] text-left"
         >
+          {/* Hidden Inputs for FormSubmit */}
+          <input type="hidden" name="_captcha" value="false" />
+          <input type="hidden" name="_subject" value="New message from HomelyMeals Contact Form" />
+          <input type="hidden" name="_template" value="table" />
+          <input type="hidden" name="_next" value="https://yourdomain.com/thanks" />
+
           {/* Name */}
           <div>
             <label className="block text-[#13271c] font-medium mb-2" htmlFor="name">
@@ -29,7 +34,7 @@ export default function Contact() {
             <input
               type="text"
               id="name"
-              name="Name"
+              name="name"
               required
               className="w-full px-4 py-3 rounded-lg border border-[#e0d6c8] bg-[#fff9e9] text-[#13271c] focus:outline-none focus:ring-2 focus:ring-[#c54218]"
               placeholder="Enter your name"
@@ -44,7 +49,7 @@ export default function Contact() {
             <input
               type="email"
               id="email"
-              name="Email"
+              name="email"
               required
               className="w-full px-4 py-3 rounded-lg border border-[#e0d6c8] bg-[#fff9e9] text-[#13271c] focus:outline-none focus:ring-2 focus:ring-[#c54218]"
               placeholder="Enter your email"
@@ -58,7 +63,7 @@ export default function Contact() {
             </label>
             <textarea
               id="message"
-              name="Message"
+              name="message"
               rows="4"
               required
               className="w-full px-4 py-3 rounded-lg border border-[#e0d6c8] bg-[#fff9e9] text-[#13271c] focus:outline-none focus:ring-2 focus:ring-[#c54218]"
