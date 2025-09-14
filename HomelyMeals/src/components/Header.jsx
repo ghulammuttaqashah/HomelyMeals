@@ -39,7 +39,7 @@ export default function Header() {
           rel="noopener noreferrer"
           className="hidden md:inline-block bg-[#c54218] hover:bg-[#a93513] text-white px-4 py-2 rounded-lg shadow-md cursor-pointer text-sm lg:text-base"
         >
-          Order on WhatsApp
+          Visit us on WhatsApp
         </a>
 
         {/* Mobile menu button */}
@@ -69,7 +69,7 @@ export default function Header() {
             rel="noopener noreferrer"
             className="block bg-[#c54218] hover:bg-[#a93513] text-white px-4 py-2 rounded-lg text-center cursor-pointer text-base sm:text-lg"
           >
-            Order on WhatsApp
+            Visit us on WhatsApp
           </a>
         </div>
       )}
