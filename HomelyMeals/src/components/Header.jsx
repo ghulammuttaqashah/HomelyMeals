@@ -25,7 +25,7 @@ export default function Header() {
             <button
               key={item}
               onClick={() => scrollToSection(item.toLowerCase())}
-              className="text-sm lg:text-base text-[#13271c] hover:text-[#c54218] transition"
+              className="text-sm lg:text-base text-[#13271c] hover:text-[#c54218] transition cursor-pointer"
             >
               {item.replace("WhyUs", "Why Us").replace("HowItWorks", "How It Works")}
             </button>
@@ -37,14 +37,14 @@ export default function Header() {
           href="https://wa.me/1234567890"
           target="_blank"
           rel="noopener noreferrer"
-          className="hidden md:inline-block bg-[#c54218] hover:bg-[#a93513] text-white px-4 py-2 rounded-lg shadow-md text-sm lg:text-base"
+          className="hidden md:inline-block bg-[#c54218] hover:bg-[#a93513] text-white px-4 py-2 rounded-lg shadow-md cursor-pointer text-sm lg:text-base"
         >
           Order on WhatsApp
         </a>
 
         {/* Mobile menu button */}
         <button
-          className="md:hidden text-[#c54218] text-2xl"
+          className="md:hidden text-[#c54218] text-2xl cursor-pointer"
           onClick={() => setMenuOpen(!menuOpen)}
         >
           ☰
@@ -58,7 +58,7 @@ export default function Header() {
             <button
               key={item}
               onClick={() => scrollToSection(item.toLowerCase())}
-              className="block w-full text-left text-base sm:text-lg text-[#13271c] hover:text-[#c54218]"
+              className="block w-full text-left text-base sm:text-lg text-[#13271c] hover:text-[#c54218] transition cursor-pointer"
             >
               {item.replace("WhyUs", "Why Us").replace("HowItWorks", "How It Works")}
             </button>
@@ -67,7 +67,7 @@ export default function Header() {
             href="https://wa.me/1234567890"
             target="_blank"
             rel="noopener noreferrer"
-            className="block bg-[#c54218] hover:bg-[#a93513] text-white px-4 py-2 rounded-lg text-center text-base sm:text-lg"
+            className="block bg-[#c54218] hover:bg-[#a93513] text-white px-4 py-2 rounded-lg text-center cursor-pointer text-base sm:text-lg"
           >
             Order on WhatsApp
           </a>
