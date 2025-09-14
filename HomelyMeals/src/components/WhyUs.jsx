@@ -7,18 +7,27 @@ export default function WhyUs() {
   ];
 
   return (
-    <section id="whyus" className="py-20 bg-gray-800">
-      <h3 className="text-3xl font-bold text-green-400 mb-10 text-center">
+    <section id="whyus" className="py-24 bg-[#fff9e9]">
+      {/* Title */}
+      <h3 className="text-4xl md:text-5xl font-extrabold text-[#c54218] text-center mb-12">
         Why Choose Us
       </h3>
-      <div className="grid md:grid-cols-4 gap-8 max-w-6xl mx-auto px-6 text-center">
+      <div className="w-20 h-1 bg-[#c54218] mx-auto mb-8 rounded-full"></div>
+
+      {/* Features Grid */}
+      <div className="grid md:grid-cols-4 sm:grid-cols-2 gap-8 max-w-6xl mx-auto px-6">
         {features.map((item, idx) => (
           <div
             key={idx}
-            className="bg-gray-900 p-6 rounded-xl shadow-lg hover:shadow-green-400/30 transition"
+            className="bg-white border border-[#f5e9db] p-8 rounded-xl shadow-md hover:shadow-lg hover:border-[#c54218] transition text-center"
           >
-            <div className="text-4xl mb-4">{item.icon}</div>
-            <p className="text-gray-200">{item.text}</p>
+            {/* Icon */}
+            <div className="text-5xl mb-4">{item.icon}</div>
+            
+            {/* Text */}
+            <p className="text-lg font-medium text-[#13271c]">
+              {item.text}
+            </p>
           </div>
         ))}
       </div>

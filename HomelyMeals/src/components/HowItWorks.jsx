@@ -1,25 +1,34 @@
 export default function HowItWorks() {
   const steps = [
-    { step: "1", text: "Browse meals shared on daily basis" },
+    { step: "1", text: "Browse meals shared on a daily basis" },
     { step: "2", text: "Place your order through WhatsApp" },
     { step: "3", text: "Get fresh food delivered" },
   ];
 
   return (
-    <section id="howitworks" className="py-20 max-w-6xl mx-auto px-6">
-      <h3 className="text-3xl font-bold text-green-400 mb-10 text-center">
+    <section id="howitworks" className="py-24 bg-[#fff9e9]">
+      {/* Title */}
+      <h3 className="text-4xl md:text-5xl font-extrabold text-[#c54218] text-center mb-12">
         How It Works
       </h3>
-      <div className="grid md:grid-cols-3 gap-8 text-center">
+      <div className="w-20 h-1 bg-[#c54218] mx-auto mb-8 rounded-full"></div>
+
+      {/* Steps */}
+      <div className="grid md:grid-cols-3 gap-10 max-w-6xl mx-auto px-6">
         {steps.map((item, idx) => (
           <div
             key={idx}
-            className="bg-gray-800 p-6 rounded-xl shadow-lg hover:shadow-green-400/30 transition"
+            className="bg-white border border-[#f5e9db] p-8 rounded-2xl shadow-md hover:shadow-lg hover:border-[#c54218] transition text-center"
           >
-            <div className="text-5xl font-bold text-green-400 mb-4">
+            {/* Step Number in Circle */}
+            <div className="flex items-center justify-center mx-auto w-16 h-16 rounded-full bg-[#c54218] text-white text-2xl font-bold mb-6">
               {item.step}
             </div>
-            <p className="text-gray-200">{item.text}</p>
+
+            {/* Step Text */}
+            <p className="text-lg font-medium text-[#13271c]">
+              {item.text}
+            </p>
           </div>
         ))}
       </div>

@@ -2,7 +2,7 @@ export default function Hero() {
   return (
     <section
       id="hero"
-      className="min-h-screen flex flex-col items-center justify-center text-center px-6"
+      className="h-[85vh] flex flex-col items-center justify-center text-center px-6"
       style={{ backgroundColor: "#c54218", color: "#fff9e9" }}
     >
       <h2 className="text-4xl md:text-6xl font-extrabold mb-6 drop-shadow-lg">
