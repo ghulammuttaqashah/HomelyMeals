@@ -1,6 +1,6 @@
 export default function HowItWorks() {
   const steps = [
-    { step: "1", text: "Browse meals menu (shared on WhatsApp)" },
+    { step: "1", text: "Browse meals shared on daily basis" },
     { step: "2", text: "Place your order through WhatsApp" },
     { step: "3", text: "Get fresh food delivered" },
   ];
