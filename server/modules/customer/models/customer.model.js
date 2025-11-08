@@ -9,7 +9,7 @@ const customerSchema = new mongoose.Schema({
     houseNo: { type: String, required: false },
     street: { type: String, required: [true,"street information is required."] },
     city: { type: String, default: "Sukkur" },
-    postalCode: { type: String, required: false }
+    postalCode: { type: String, default: "65200"}
   },
   registrationDate: { type: Date, default: Date.now },
   status: {
