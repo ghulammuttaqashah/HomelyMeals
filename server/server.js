@@ -6,7 +6,7 @@ import cors from "cors";
 import connectDB from "./shared/config/db.js";
 import { PORT } from "./shared/config/env.js";
 import cookieParser from "cookie-parser";
-import adminRoutes from "./modules/admin/routes/admin.routes.js";
+import adminRoutes from "./modules/admin/index.js";  
 
 import customerRoutes from "./modules/customer/index.js";
 import cookRoutes from "./modules/cook/index.js";
