@@ -1,3 +1,4 @@
+
 import { Customer } from "../models/customer.model.js";
 import { OTPVerification } from "../../../shared/models/otp.model.js";
 import { generateOtp } from "../../../shared/utils/generateOtp.js";
@@ -5,34 +6,43 @@ import { sendEmail } from "../../../shared/utils/sendEmail.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { JWT_SECRET, JWT_EXPIRES_IN } from "../../../shared/config/env.js";
+import { isValidEmail } from "../../../shared/utils/validateEmail.js";
+import { verifyEmailAPI } from "../../../shared/utils/verifyEmailAPI.js"; // ✅ new import
 
 /**
  * STEP 1: Request Signup OTP (Account not created yet)
  */
-import { isValidEmail } from "../../../shared/utils/validateEmail.js";
-
 export const signupRequest = async (req, res) => {
   const { name, email, contact, password, address } = req.body;
 
   try {
-    // 1️⃣ Validate email format
+    // 1️⃣ Validate email format first (basic regex)
     if (!isValidEmail(email)) {
       return res.status(400).json({ message: "Invalid email format" });
     }
 
-    // 2️⃣ Check if customer already exists
+    // 2️⃣ Verify using AbstractAPI
+    const emailCheck = await verifyEmailAPI(email);
+    if (!emailCheck.valid) {
+      return res.status(400).json({
+        message: `Invalid or unreachable email address: ${emailCheck.reason}`
+      });
+    }
+
+    // 3️⃣ Check if customer already exists
     const existingCustomer = await Customer.findOne({ email });
     if (existingCustomer) {
       return res.status(400).json({ message: "Customer already exists" });
     }
 
+    // 4️⃣ Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 3️⃣ Generate OTP
+    // 5️⃣ Generate OTP
     const otpCode = generateOtp();
-    const expiryTime = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    const expiryTime = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
 
-    // 4️⃣ Save OTP + temp data
+    // 6️⃣ Save OTP with temp data
     const otpEntry = new OTPVerification({
       email,
       otpCode,
@@ -40,14 +50,12 @@ export const signupRequest = async (req, res) => {
       expiryTime,
       tempData: { name, contact, password: hashedPassword, address }
     });
-
     await otpEntry.save();
 
-    // 5️⃣ Send OTP email
+    // 7️⃣ Send email safely
     try {
       await sendEmail(email, "Your OTP Code", `Your OTP for signup is ${otpCode}`);
     } catch (emailError) {
-      // if email fails, cleanup temp OTP entry
       await OTPVerification.deleteOne({ email, purpose: "signup" });
       return res.status(400).json({
         message: "Failed to send OTP. Please check your email address."
@@ -56,13 +64,14 @@ export const signupRequest = async (req, res) => {
 
     // ✅ Success
     return res.status(200).json({
-      message: "OTP sent to email. Please verify to complete signup."
+      message: "OTP sent successfully. Please verify to complete signup."
     });
   } catch (err) {
     console.error("Signup Request Error:", err);
     return res.status(500).json({ message: "Server error" });
   }
 };
+
 
 
 /**
