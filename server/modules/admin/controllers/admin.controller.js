@@ -14,8 +14,6 @@ import { JWT_SECRET, JWT_EXPIRES_IN } from "../../../shared/config/env.js";
 
 
 
-
-
 // TEMP route to create admin (for setup)
 export const createAdmin = async (req, res) => {
   try {

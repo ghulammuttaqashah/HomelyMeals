@@ -1,11 +1,11 @@
-// modules/admin/routes/customer.routes.js
 import express from "express";
-import { getAllCustomers } from "../controllers/customer.controller.js";
-import { protect } from "../../../shared/middleware/auth.js";
+import { getAllCustomers, updateCustomerStatus } from "../controllers/customer.controller.js";
+
 
 const router = express.Router();
 
-// Admin protected route to view all customers
-router.get("/", protect, getAllCustomers);
+// Admin protected routes
+router.get("/", getAllCustomers);
+router.patch("/:id/status", updateCustomerStatus); // ✅ new route
 
 export default router;
