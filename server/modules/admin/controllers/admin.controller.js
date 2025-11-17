@@ -5,7 +5,7 @@ import { generateOtp } from "../../../shared/utils/generateOtp.js";
 import { sendEmail } from "../../../shared/utils/sendEmail.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
-import { JWT_SECRET, JWT_EXPIRES_IN } from "../../../shared/config/env.js";
+import { JWT_SECRET } from "../../../shared/config/env.js";
 
 /**
  * STEP 1: Admin Sign-In Request — verify password, send OTP
@@ -104,7 +104,7 @@ export const verifyAdminSignInOtp = async (req, res) => {
 
     // Generate JWT
     const token = jwt.sign({ id: admin._id, role: "admin" }, JWT_SECRET, {
-      expiresIn: JWT_EXPIRES_IN
+      expiresIn: "20m"
     });
 
     // Set cookie
@@ -112,7 +112,7 @@ export const verifyAdminSignInOtp = async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "Strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      maxAge: 20 * 60 * 1000 // 20 mintutes
     });
 
     // Update last login

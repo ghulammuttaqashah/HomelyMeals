@@ -4,6 +4,7 @@ import { Customer } from "../../customer/models/customer.model.js";
  * GET /api/admin/customers
  * Protected: Admin only
  */
+
 export const getAllCustomers = async (req, res) => {
   try {
     const customers = await Customer.find().select("-password");
