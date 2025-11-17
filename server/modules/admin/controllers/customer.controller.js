@@ -28,7 +28,7 @@ export const updateCustomerStatus = async (req, res) => {
   const { status, reason } = req.body;
 
   try {
-    // 1️⃣ Validate input
+    // 1️⃣ Validate status value
     if (!["active", "suspended"].includes(status)) {
       return res.status(400).json({ message: "Invalid status value." });
     }
@@ -39,12 +39,26 @@ export const updateCustomerStatus = async (req, res) => {
       return res.status(404).json({ message: "Customer not found." });
     }
 
-    // 3️⃣ Update status and reason
+    // 3️⃣ Prevent updating to same status
+    if (customer.status === status) {
+      return res.status(400).json({
+        message: `Customer is already ${status}. No changes applied.`,
+      });
+    }
+
+    // 4️⃣ If suspending → reason is required
+    if (status === "suspended" && (!reason || reason.trim() === "")) {
+      return res.status(400).json({
+        message: "Suspension reason is required when suspending a customer.",
+      });
+    }
+
+    // 5️⃣ Update status + optional reason
     customer.status = status;
-    customer.statusReason = reason || "";
+    customer.statusReason = status === "suspended" ? reason : ""; // clear reason when active
     await customer.save();
 
-    // 4️⃣ Respond
+    // 6️⃣ Respond
     return res.status(200).json({
       message: `Customer ${status === "suspended" ? "suspended" : "activated"} successfully.`,
       customer: {
