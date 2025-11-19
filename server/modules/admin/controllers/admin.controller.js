@@ -104,7 +104,7 @@ export const verifyAdminSignInOtp = async (req, res) => {
 
     // Generate JWT
     const token = jwt.sign({ id: admin._id, role: "admin" }, JWT_SECRET, {
-      expiresIn: "20m"
+      expiresIn: "2m"
     });
 
     // Set cookie
@@ -112,7 +112,7 @@ export const verifyAdminSignInOtp = async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "Strict",
-      maxAge: 20 * 60 * 1000 // 20 mintutes
+      maxAge: 2 * 60 * 1000 // 20 mintutes
     });
 
     // Update last login
@@ -132,6 +132,58 @@ export const verifyAdminSignInOtp = async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
+
+
+
+/**
+ * RESEND OTP for Admin Sign-In
+ */
+export const resendAdminOtp = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    // Check if admin exists
+    const admin = await Admin.findOne({ email });
+    if (!admin) return res.status(400).json({ message: "Admin not found" });
+
+    // Generate new OTP
+    const otpCode = generateOtp();
+    const expiryTime = new Date(Date.now() + 5 * 60 * 1000); // 5 mins
+
+    // Update or create OTP entry
+    let otpEntry = await OTPVerification.findOne({
+      email,
+      purpose: "admin-signin",
+      isVerified: false
+    });
+
+    if (otpEntry) {
+      otpEntry.otpCode = otpCode;
+      otpEntry.expiryTime = expiryTime;
+    } else {
+      otpEntry = new OTPVerification({
+        email,
+        otpCode,
+        purpose: "admin-signin",
+        expiryTime
+      });
+    }
+
+    await otpEntry.save();
+
+    // Send OTP email
+    await sendEmail(email, "Admin Sign-In OTP (Resent)", `Your new OTP is: ${otpCode}`);
+
+    return res.status(200).json({
+      message: "New OTP sent successfully to admin email."
+    });
+  } catch (err) {
+    console.error("Resend Admin OTP Error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+
 
 /**
  * STEP 3: Admin Sign-Out — clear cookie

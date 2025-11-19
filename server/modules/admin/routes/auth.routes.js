@@ -2,7 +2,7 @@ import express from "express";
 import {
   adminSignInRequest,
   verifyAdminSignInOtp,
-  adminSignOut,createAdmin
+  adminSignOut,createAdmin,resendAdminOtp
 } from "../controllers/admin.controller.js";
 import { protect } from "../../../shared/middleware/auth.js";
 
@@ -10,6 +10,9 @@ const router = express.Router();
 
 // Step 1: Sign-In with password → get OTP
 router.post("/signin/request", adminSignInRequest);
+
+// 🔄 Resend OTP
+router.post("/signin/resend", resendAdminOtp);
 
 // Step 2: Verify OTP → set cookie + login
 router.post("/signin/verify", verifyAdminSignInOtp);
