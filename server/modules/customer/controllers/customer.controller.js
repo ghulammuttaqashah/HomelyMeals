@@ -78,7 +78,9 @@ export const signupRequest = async (req, res) => {
  * STEP 2: Verify OTP & Create Account
  */
 export const verifyOtpAndCreateAccount = async (req, res) => {
-  const { email, otpCode } = req.body;
+  const { email, otp } = req.body;
+  const otpCode = otp;
+  console.log("VERIFY BODY:", req.body);
 
   try {
     const otpEntry = await OTPVerification.findOne({
