@@ -104,7 +104,7 @@ export const verifyAdminSignInOtp = async (req, res) => {
 
     // Generate JWT
     const token = jwt.sign({ id: admin._id, role: "admin" }, JWT_SECRET, {
-      expiresIn: "2m"
+      expiresIn: "20m"
     });
 
     // Set cookie
@@ -112,7 +112,7 @@ export const verifyAdminSignInOtp = async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "Strict",
-      maxAge: 2 * 60 * 1000 // 20 mintutes
+      maxAge: 20 * 60 * 1000 // 20 mintutes
     });
 
     // Update last login
