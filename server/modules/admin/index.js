@@ -1,12 +1,13 @@
-// modules/admin/index.js
 import express from "express";
-import customerRoutes from "./routes/customer.routes.js"; // Admin view customers
-import authRoutes from "./routes/auth.routes.js";          // Admin signin/signout
+import customerRoutes from "./routes/customer.routes.js";
+import cookRoutes from "./routes/cook.routes.js";       // ✅ added
+import authRoutes from "./routes/auth.routes.js";
 import { protect } from "../../shared/middleware/auth.js";
 
 const router = express.Router();
 
-router.use("/auth", authRoutes);       // Admin authentication routes
-router.use("/customers",protect, customerRoutes); // Admin customer management routes
+router.use("/auth", authRoutes);
+router.use("/customers", protect, customerRoutes);
+router.use("/cooks", protect, cookRoutes);     // ✅ Admin controls cooks
 
 export default router;
