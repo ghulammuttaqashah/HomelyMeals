@@ -1,54 +1,42 @@
-// src/contexts/AuthContext.jsx
-import React, { createContext, useEffect, useState } from "react";
-import axios from "axios";
-
-import { getCookie, setCookie, removeCookie } from "../utils/cookies";
-
+import { createContext, useState, useContext } from "react";
 
 export const AuthContext = createContext();
 
-const AuthProvider = ({ children }) => {
+export function AuthProvider({ children }) {
+  // IMPORTANT: must be named "user" so ProtectedRoute can read it
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
 
-  // ✅ Check login status on mount
-  useEffect(() => {
-    const checkAuth = async () => {
-      const token = getCookie("token");
-      if (token) {
-        try {
-          const res = await axios.get("/api/customer/me", { withCredentials: true });
-          setUser(res.data.customer || res.data); // make sure structure matches backend
-        } catch {
-          setUser(null);
-        }
-      }
-      setLoading(false);
-    };
+  const login = async (email, password) => {
+    const res = await fetch("http://localhost:5000/api/cooks/auth/signin", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
 
-    checkAuth();
-  }, []);
+    const data = await res.json();
 
-  // ✅ Login function
-  const login = async (formData) => {
-    const res = await axios.post("/api/customer/signin", formData, { withCredentials: true });
-    setUser(res.data.customer);
-    // token is HttpOnly — backend sets it; frontend can just note existence
-    setCookie("token", "present"); 
+    if (res.ok) {
+      setUser(data.cook);     // store logged-in cook here
+      return { ok: true, cook: data.cook };
+    }
+
+    return { ok: false, message: data.message };
   };
 
-  // ✅ Logout function
-  const logout = async () => {
-    await axios.post("/api/customer/signout", {}, { withCredentials: true });
+  const logout = () => {
     setUser(null);
-    removeCookie("token");
   };
+
+  const refreshUser = (updated) => setUser(updated);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading, setUser }}>
+    <AuthContext.Provider value={{ user, login, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
-};
+}
 
-export default AuthProvider;
+export function useAuth() {
+  return useContext(AuthContext);
+}

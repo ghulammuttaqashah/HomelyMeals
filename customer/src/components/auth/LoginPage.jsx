@@ -47,10 +47,15 @@ export function LoginPage() {
       }
 
       if (role === "cook") {
-        setErrorMessage("Cook login is not implemented yet.");
-        setLoading(false);
-        return;
-      }
+  const response = await cookSignIn(email, password);
+
+  // Save token if needed
+  localStorage.setItem("cookToken", response.data.token);
+
+  // Navigate to cook dashboard
+  navigate("/cook/dashboard");
+}
+
     } catch (err) {
       console.log("Login Error:", err?.response?.data || err);
       setErrorMessage(err?.response?.data?.message || "Invalid credentials");

@@ -4,7 +4,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { X, Send, Bot, User as UserIcon } from 'lucide-react';
 
-export function Chatbot({ user, onClose }) {
+function Chatbot({ user, onClose }) {
   const [messages, setMessages] = useState([
     {
       id: '1',
@@ -28,60 +28,59 @@ export function Chatbot({ user, onClose }) {
   const generateBotResponse = (userMessage) => {
     const lowerMessage = userMessage.toLowerCase();
 
-    // Customer-specific responses
+    // Customer responses
     if (user.type === 'customer') {
       if (lowerMessage.includes('order') || lowerMessage.includes('buy')) {
-        return "To place an order, browse the available meals on your dashboard and click the 'Order Now' button on your favorite dish!";
+        return "To place an order, browse meals on your dashboard and click 'Order Now' on a dish you like!";
       }
       if (lowerMessage.includes('search') || lowerMessage.includes('find')) {
-        return "You can search for meals using the search bar on your dashboard. You can also filter by category, cuisine type, and sort by price or rating!";
+        return "Use the search bar on the dashboard to find meals. You can filter by price, rating & category.";
       }
       if (lowerMessage.includes('delivery') || lowerMessage.includes('shipping')) {
-        return "Delivery times vary by cook. You can see the preparation time on each meal card. Make sure your delivery address is updated in your profile!";
+        return "Delivery times vary by cook. Check preparation time on each meal card.";
       }
       if (lowerMessage.includes('payment') || lowerMessage.includes('pay')) {
-        return "We accept various payment methods including credit cards, debit cards, and digital wallets. Payment is processed securely at checkout.";
+        return "We support debit/credit cards and digital wallet payments.";
       }
     }
 
-    // Cook-specific responses
+    // Cook responses
     if (user.type === 'cook') {
       if (lowerMessage.includes('add') || lowerMessage.includes('create') || lowerMessage.includes('new meal')) {
-        return "To add a new meal, click the 'Add New Meal' button on your dashboard. Fill in all the details including name, description, price, and category!";
+        return "To add a new meal, click 'Add New Meal' in your dashboard and fill in the details.";
       }
       if (lowerMessage.includes('edit') || lowerMessage.includes('update')) {
-        return "You can edit any of your meals by clicking the 'Edit' button on the meal card. Don't forget to save your changes!";
+        return "Click the 'Edit' button on any meal card to modify its details.";
       }
       if (lowerMessage.includes('delete') || lowerMessage.includes('remove')) {
-        return "To delete a meal, click the trash icon on the meal card. Be careful - this action cannot be undone!";
+        return "Click the trash icon on a meal card to delete it — this cannot be undone!";
       }
       if (lowerMessage.includes('available') || lowerMessage.includes('hide') || lowerMessage.includes('show')) {
-        return "You can toggle meal availability using the 'Hide' or 'Show' button on each meal card. This controls whether customers can see and order your meal.";
+        return "Toggle meal availability using the Show/Hide button on each card.";
       }
     }
 
     // General responses
     if (lowerMessage.includes('profile') || lowerMessage.includes('account')) {
-      return "You can view and edit your profile by clicking the 'Profile' button in the header. Update your personal information, contact details, and preferences there.";
+      return "Go to your Profile page from the header to update your information.";
     }
     if (lowerMessage.includes('sentiment') || lowerMessage.includes('analytics')) {
-      return "Check out the Sentiment Analysis page to see customer feedback trends and insights about your experience on Homely Meals!";
+      return "Visit Sentiment Analysis in the dashboard to view customer feedback trends.";
     }
     if (lowerMessage.includes('help') || lowerMessage.includes('support')) {
-      return "I'm here to help! You can ask me about orders, meals, your profile, or any features of Homely Meals. What would you like to know?";
+      return "I'm here to help! Ask me anything about orders, meals, or your account.";
     }
     if (lowerMessage.includes('logout') || lowerMessage.includes('sign out')) {
-      return "To logout, click the 'Logout' button in the header. You'll be redirected to the login page.";
+      return "Click the Logout button in the header to exit your account.";
     }
     if (lowerMessage.includes('hi') || lowerMessage.includes('hello') || lowerMessage.includes('hey')) {
-      return "Hello! How can I assist you today? Feel free to ask me anything about Homely Meals!";
+      return "Hello! How can I help you today?";
     }
     if (lowerMessage.includes('thank')) {
-      return "You're welcome! Let me know if you need anything else. Happy cooking/eating! 😊";
+      return "You're welcome! Let me know if you need anything else 😊";
     }
 
-    // Default response
-    return "I'm not sure about that, but I can help you with orders, meal management, profile settings, and general questions about Homely Meals. What would you like to know?";
+    return "I'm not sure about that, but I can help with orders, meals, profile settings, and dashboard features.";
   };
 
   const handleSendMessage = () => {
@@ -135,7 +134,7 @@ export function Chatbot({ user, onClose }) {
               className={`flex gap-3 ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               {message.sender === 'bot' && (
-                <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
+                <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center">
                   <Bot className="w-5 h-5 text-orange-600" />
                 </div>
               )}
@@ -148,17 +147,13 @@ export function Chatbot({ user, onClose }) {
                 }`}
               >
                 <p className="text-sm">{message.text}</p>
-                <p
-                  className={`text-xs mt-1 ${
-                    message.sender === 'user' ? 'text-orange-100' : 'text-gray-500'
-                  }`}
-                >
+                <p className={`text-xs mt-1 ${message.sender === 'user' ? 'text-orange-100' : 'text-gray-500'}`}>
                   {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </p>
               </div>
 
               {message.sender === 'user' && (
-                <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
                   <UserIcon className="w-5 h-5 text-green-600" />
                 </div>
               )}
@@ -185,3 +180,5 @@ export function Chatbot({ user, onClose }) {
     </div>
   );
 }
+
+export default Chatbot;
