@@ -1,41 +1,90 @@
-import { createContext, useState, useEffect } from "react";
-import axiosInstance from "../api/axiosInstance";
+import {
+  createContext,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import {
+  customerSignIn,
+  customerSignOut,
+  getCustomerProfile,
+} from "../api/customer.api";
 
 export const AuthContext = createContext();
 
+const STORAGE_KEY = "homelyMeals.customer";
+
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    const cached = localStorage.getItem(STORAGE_KEY);
+    return cached ? JSON.parse(cached) : null;
+  });
   const [loading, setLoading] = useState(true);
 
-  // No auto-login because backend has no /customer/me route
-  useEffect(() => {
-    setLoading(false);
+  const persistUser = useCallback((customer) => {
+    if (customer) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(customer));
+    } else {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+    setUser(customer);
   }, []);
 
-  // Login
-  async function login(email, password) {
-    const res = await axiosInstance.post("/customer/signin", {
-      email,
-      password,
-    });
-
-    // { message, customer }
-    setUser(res.data.customer);
-  }
-
-  // Logout
-  async function logout() {
+  const fetchSession = useCallback(async () => {
     try {
-      await axiosInstance.post("/customer/signout"); // cookie cleared
-    } catch (err) {
-      console.warn("Logout error ignored:", err);
+      const { data } = await getCustomerProfile();
+      const profile = data?.customer ?? data;
+      persistUser(profile);
+      return profile;
+    } catch (error) {
+      if (error?.response?.status === 401) {
+        persistUser(null);
+      }
+      throw error;
     }
-    setUser(null);
-  }
+  }, [persistUser]);
 
-  return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
-      {children}
-    </AuthContext.Provider>
+  useEffect(() => {
+    fetchSession()
+      .catch((error) => {
+        if (error?.response?.status !== 401) {
+          console.warn("Customer session check failed:", error?.message || error);
+        }
+      })
+      .finally(() => setLoading(false));
+  }, [fetchSession]);
+
+  const login = useCallback(
+    async (email, password) => {
+      const { data } = await customerSignIn({ email, password });
+      const profile = data?.customer ?? null;
+      persistUser(profile);
+      return profile;
+    },
+    [persistUser]
   );
+
+  const logout = useCallback(async () => {
+    try {
+      await customerSignOut();
+    } catch (err) {
+      console.warn("Customer logout warning:", err?.message || err);
+    } finally {
+      persistUser(null);
+    }
+  }, [persistUser]);
+
+  const value = useMemo(
+    () => ({
+      user,
+      loading,
+      login,
+      logout,
+      refreshSession: fetchSession,
+    }),
+    [user, loading, login, logout, fetchSession]
+  );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

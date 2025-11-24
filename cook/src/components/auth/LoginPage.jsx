@@ -1,6 +1,7 @@
-// src/components/auth/LoginPage.jsx
+// src/components/auth/LoginPage.jsx  (COOK APP)
+// Dedicated cook authentication with clear routing + customer portal handoff
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
@@ -12,58 +13,67 @@ import {
   CardTitle,
 } from "../ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
-import { ChefHat, User } from "lucide-react";
-
-import { cookSignIn } from "../../api/cook.api";
+import { ChefHat, User, Eye, EyeOff } from "lucide-react";
+import { useAuth } from "../../contexts/AuthContext";
 
 function LoginPage() {
   const navigate = useNavigate();
+  const { user, login, resolveCookRoute } = useAuth();
 
-  const [customerEmail, setCustomerEmail] = useState("");
-  const [customerPassword, setCustomerPassword] = useState("");
-
-  const [cookEmail, setCookEmail] = useState("");
-  const [cookPassword, setCookPassword] = useState("");
-
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
-  const handleCustomerLogin = (e) => {
-    e.preventDefault();
-    window.location.href = "http://localhost:5173"; // 🔥 SWITCH TO CUSTOMER APP
+  const redirectBasedOnStatus = (profile) => {
+    const target = resolveCookRoute(
+      profile?.verificationStatus ?? profile?.verificationStatusNormalized
+    );
+    navigate(target, { replace: true });
   };
+
+  if (user) {
+    return (
+      <Navigate
+        to={resolveCookRoute(
+          user.verificationStatus ?? user.verificationStatusNormalized
+        )}
+        replace
+      />
+    );
+  }
 
   const handleCookLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
     setErrorMessage("");
+    setSuccessMessage("");
 
     try {
-      const payload = { email: cookEmail, password: cookPassword };
-      const res = await cookSignIn(payload);
-
-      if (res?.data?.cook) {
-        const cook = res.data.cook;
-        localStorage.setItem("cook", JSON.stringify(cook));
-
-        if (
-          cook.verificationStatus === "not_started" ||
-          cook.verificationStatus === "pending" ||
-          cook.verificationStatus === "rejected"
-        ) {
-          navigate("/cook/document-upload");
-        } else if (cook.verificationStatus === "approved") {
-          navigate("/cook/dashboard");
-        } else {
-          navigate("/cook/document-upload");
-        }
-
+      const cook = await login(email, password);
+      if (!cook) {
+        setErrorMessage("Unable to load profile. Please try again.");
         return;
       }
 
-      setErrorMessage(res?.data?.message || "Unexpected login response");
+      setSuccessMessage("Login successful! Redirecting...");
+
+      setTimeout(() => {
+        redirectBasedOnStatus(cook);
+      }, 700);
     } catch (err) {
-      setErrorMessage(err?.response?.data?.message || "Cook login failed");
+      const errorData = err?.response?.data;
+      console.error("Cook login error:", errorData || err);
+      if (
+        errorData?.message?.toLowerCase().includes("not found") ||
+        errorData?.message?.toLowerCase().includes("does not exist")
+      ) {
+        setErrorMessage("No account found with this email. Please sign up first.");
+      } else {
+        setErrorMessage("Incorrect email or password. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -82,7 +92,7 @@ function LoginPage() {
         <Card>
           <CardHeader>
             <CardTitle>Welcome Back</CardTitle>
-            <CardDescription>Login to your account</CardDescription>
+            <CardDescription>Login to your cook portal</CardDescription>
           </CardHeader>
 
           <CardContent>
@@ -90,18 +100,18 @@ function LoginPage() {
               <p className="text-red-600 text-center mb-4">{errorMessage}</p>
             )}
 
-            <Tabs defaultValue="customer" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
+            {successMessage && (
+              <p className="text-green-600 text-center mb-4">
+                {successMessage}
+              </p>
+            )}
 
-                {/* 🔥 SWITCH APP ON CLICK */}
-                <TabsTrigger
-                  value="customer"
-                  onClick={() => (window.location.href = "http://localhost:5173")}
-                >
+            <Tabs defaultValue="cook" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="customer">
                   <User className="w-4 h-4 mr-2" />
                   Customer
                 </TabsTrigger>
-
                 <TabsTrigger value="cook">
                   <ChefHat className="w-4 h-4 mr-2" />
                   Cook
@@ -109,38 +119,19 @@ function LoginPage() {
               </TabsList>
 
               <TabsContent value="customer">
-                <form onSubmit={handleCustomerLogin} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="customer-email">Email</Label>
-                    <Input
-                      id="customer-email"
-                      type="email"
-                      placeholder="customer@example.com"
-                      value={customerEmail}
-                      onChange={(e) => setCustomerEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="customer-password">Password</Label>
-                    <Input
-                      id="customer-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={customerPassword}
-                      onChange={(e) => setCustomerPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  <Button
-                    type="submit"
-                    className="w-full bg-orange-600 hover:bg-orange-700"
-                  >
-                    Login as Customer
-                  </Button>
-                </form>
+                <div className="space-y-3 py-8 text-center text-sm text-gray-600">
+                  <p>This portal is only for cooks.</p>
+                  <p>
+                    Looking for the customer experience?
+                    <br />
+                    <a
+                      href="http://localhost:5173/login"
+                      className="text-orange-600 underline"
+                    >
+                      Go to Customer Portal
+                    </a>
+                  </p>
+                </div>
               </TabsContent>
 
               <TabsContent value="cook">
@@ -150,23 +141,38 @@ function LoginPage() {
                     <Input
                       id="cook-email"
                       type="email"
-                      placeholder="cook@example.com"
-                      value={cookEmail}
-                      onChange={(e) => setCookEmail(e.target.value)}
+                      placeholder="example@gmail.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                       required
                     />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="cook-password">Password</Label>
-                    <Input
-                      id="cook-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={cookPassword}
-                      onChange={(e) => setCookPassword(e.target.value)}
-                      required
-                    />
+                    <div className="relative flex items-center">
+                      <Input
+                        id="cook-password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        className="pr-12"
+                      />
+                      <button
+                        type="button"
+                        aria-label="Toggle cook password visibility"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+                      >
+                        {showPassword ? (
+                          <EyeOff className="w-4 h-4" />
+                        ) : (
+                          <Eye className="w-4 h-4" />
+                        )}
+                      </button>
+                    </div>
                   </div>
 
                   <Button
@@ -180,16 +186,22 @@ function LoginPage() {
               </TabsContent>
             </Tabs>
 
-            <div className="mt-6 text-center">
+            <div className="mt-6 text-center space-y-2">
               <p className="text-gray-600">
                 Don't have an account?{" "}
                 <button
                   onClick={() => navigate("/signup")}
-                  className="text-orange-600 hover:underline"
+                  className="text-green-700 hover:underline"
                 >
                   Sign up
                 </button>
               </p>
+              <button
+                onClick={() => (window.location.href = "http://localhost:5173/")}
+                className="text-sm text-gray-500 hover:text-gray-700 underline"
+              >
+                Back to Home
+              </button>
             </div>
           </CardContent>
         </Card>

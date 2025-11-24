@@ -1,6 +1,7 @@
 // src/components/auth/LoginPage.jsx
-import React, { useState, useContext } from "react";
-import { useNavigate } from "react-router-dom";
+// Focused customer portal login with clear cook-portal handoff
+import React, { useContext, useState } from "react";
+import { Navigate, useNavigate } from "react-router-dom";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
@@ -12,217 +13,173 @@ import {
   CardTitle,
 } from "../ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
-import { ChefHat, User } from "lucide-react";
-
-import { customerSignIn } from "../../api/customer.api";
+import { ChefHat, User, Eye, EyeOff } from "lucide-react";
 import { AuthContext } from "../../contexts/AuthContext";
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const { login } = useContext(AuthContext);
+  const { login, user } = useContext(AuthContext);
 
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerPassword, setCustomerPassword] = useState("");
-  const [cookEmail, setCookEmail] = useState("");
-  const [cookPassword, setCookPassword] = useState("");
-
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [showCookSignup, setShowCookSignup] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [showCustomerPassword, setShowCustomerPassword] = useState(false);
 
-  // -------------------------
-  // LOGIN FUNCTION (FIXED)
-  // -------------------------
-  const loginUser = async (email, password, role) => {
+  if (user) {
+    return <Navigate to="/customer/dashboard" replace />;
+  }
+
+  const handleCustomerLogin = async (e) => {
+    e.preventDefault();
     setLoading(true);
     setErrorMessage("");
+    setSuccessMessage("");
 
     try {
-      if (role === "customer") {
-        // FIXED: use AuthContext login(email, password)
-        await login(email, password);
-
-        // Redirect
-        navigate("/customer/dashboard");
-      }
-
-      if (role === "cook") {
-  const response = await cookSignIn(email, password);
-
-  // Save token if needed
-  localStorage.setItem("cookToken", response.data.token);
-
-  // Navigate to cook dashboard
-  navigate("/cook/dashboard");
-}
-
+      await login(customerEmail, customerPassword);
+      setSuccessMessage("Login successful! Redirecting...");
+      setTimeout(() => navigate("/customer/dashboard", { replace: true }), 800);
     } catch (err) {
-      console.log("Login Error:", err?.response?.data || err);
-      setErrorMessage(err?.response?.data?.message || "Invalid credentials");
+      const errorData = err?.response?.data;
+      console.error("Customer login error:", errorData || err);
+      if (
+        errorData?.message?.toLowerCase().includes("not found") ||
+        errorData?.message?.toLowerCase().includes("does not exist")
+      ) {
+        setErrorMessage("No account found with this email. Please sign up first.");
+      } else {
+        setErrorMessage("Incorrect email or password. Please try again.");
+      }
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
-  };
-
-  // -------------------------
-  // SUBMIT HANDLERS
-  // -------------------------
-  const handleCustomerLogin = (e) => {
-    e.preventDefault();
-    loginUser(customerEmail, customerPassword, "customer");
-  };
-
-  const handleCookLogin = (e) => {
-    e.preventDefault();
-    loginUser(cookEmail, cookPassword, "cook");
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* COOK SIGNUP PLACEHOLDER */}
-        {showCookSignup && (
-          <div className="text-center p-10 bg-white shadow rounded-lg">
-            <h1 className="text-2xl font-bold mb-4">Cook Signup (Coming Soon)</h1>
-            <p className="text-gray-600">This page will be added later.</p>
+        <div className="text-center mb-8">
+          <h1 className="text-orange-600 mb-2">Homely Meals</h1>
+          <p className="text-gray-600">
+            Delicious home-cooked meals, delivered to you
+          </p>
+        </div>
 
-            <button
-              className="mt-6 text-orange-600 underline"
-              onClick={() => setShowCookSignup(false)}
-            >
-              Back to Login
-            </button>
-          </div>
-        )}
+        <Card>
+          <CardHeader>
+            <CardTitle>Welcome Back</CardTitle>
+            <CardDescription>Login to your account</CardDescription>
+          </CardHeader>
 
-        {/* MAIN LOGIN UI */}
-        {!showCookSignup && (
-          <>
-            <div className="text-center mb-8">
-              <h1 className="text-orange-600 mb-2">Homely Meals</h1>
-              <p className="text-gray-600">
-                Delicious home-cooked meals, delivered to you
+          <CardContent>
+            {errorMessage && (
+              <p className="text-red-600 text-center mb-4">{errorMessage}</p>
+            )}
+
+            {successMessage && (
+              <p className="text-green-600 text-center mb-4">
+                {successMessage}
               </p>
-            </div>
+            )}
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Welcome Back</CardTitle>
-                <CardDescription>Login to your account</CardDescription>
-              </CardHeader>
+            <Tabs defaultValue="customer" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="customer">
+                  <User className="w-4 h-4 mr-2" /> Customer
+                </TabsTrigger>
+                <TabsTrigger value="cook">
+                  <ChefHat className="w-4 h-4 mr-2" /> Cook
+                </TabsTrigger>
+              </TabsList>
 
-              <CardContent>
-                {errorMessage && (
-                  <p className="text-red-600 text-center mb-4">
-                    {errorMessage}
-                  </p>
-                )}
+              <TabsContent value="customer">
+                <form onSubmit={handleCustomerLogin} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Email</Label>
+                    <Input
+                      type="email"
+                      placeholder="example@gmail.com"
+                      value={customerEmail}
+                      onChange={(e) => setCustomerEmail(e.target.value)}
+                      required
+                    />
+                  </div>
 
-                <Tabs defaultValue="customer" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="customer">
-                      <User className="w-4 h-4 mr-2" /> Customer
-                    </TabsTrigger>
-
-                    <TabsTrigger value="cook">
-                      <ChefHat className="w-4 h-4 mr-2" /> Cook
-                    </TabsTrigger>
-                  </TabsList>
-
-                  {/* CUSTOMER LOGIN */}
-                  <TabsContent value="customer">
-                    <form onSubmit={handleCustomerLogin} className="space-y-4">
-                      <div className="space-y-2">
-                        <Label>Email</Label>
-                        <Input
-                          type="email"
-                          placeholder="customer@example.com"
-                          value={customerEmail}
-                          onChange={(e) => setCustomerEmail(e.target.value)}
-                          required
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Password</Label>
-                        <Input
-                          type="password"
-                          placeholder="••••••••"
-                          value={customerPassword}
-                          onChange={(e) => setCustomerPassword(e.target.value)}
-                          required
-                        />
-                      </div>
-
-                      <Button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full bg-orange-600 hover:bg-orange-700"
-                      >
-                        {loading ? "Please wait..." : "Login as Customer"}
-                      </Button>
-                    </form>
-                  </TabsContent>
-
-                  {/* COOK LOGIN */}
-                  <TabsContent value="cook">
-                    <form onSubmit={handleCookLogin} className="space-y-4">
-                      <div className="space-y-2">
-                        <Label>Email</Label>
-                        <Input
-                          type="email"
-                          placeholder="cook@example.com"
-                          value={cookEmail}
-                          onChange={(e) => setCookEmail(e.target.value)}
-                          required
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Password</Label>
-                        <Input
-                          type="password"
-                          placeholder="••••••••"
-                          value={cookPassword}
-                          onChange={(e) => setCookPassword(e.target.value)}
-                          required
-                        />
-                      </div>
-
-                      <Button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full bg-green-600 hover:bg-green-700"
-                      >
-                        {loading ? "Please wait..." : "Login as Cook"}
-                      </Button>
-
+                  <div className="space-y-2">
+                    <Label>Password</Label>
+                    <div className="relative">
+                      <Input
+                        type={showCustomerPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        value={customerPassword}
+                        onChange={(e) => setCustomerPassword(e.target.value)}
+                        required
+                        className="pr-10"
+                      />
                       <button
                         type="button"
-                        onClick={() => setShowCookSignup(true)}
-                        className="text-green-700 text-sm underline mt-2 w-full"
+                        onClick={() =>
+                          setShowCustomerPassword(!showCustomerPassword)
+                        }
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                       >
-                        Cook doesn’t have an account? Sign up
+                        {showCustomerPassword ? (
+                          <EyeOff className="w-4 h-4" />
+                        ) : (
+                          <Eye className="w-4 h-4" />
+                        )}
                       </button>
-                    </form>
-                  </TabsContent>
-                </Tabs>
+                    </div>
+                  </div>
 
-                <div className="mt-6 text-center">
-                  <p className="text-gray-600">
-                    Don't have an account?{" "}
-                    <button
-                      onClick={() => navigate("/signup")}
-                      className="text-orange-600 hover:underline"
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-orange-600 hover:bg-orange-700"
+                  >
+                    {loading ? "Please wait..." : "Login as Customer"}
+                  </Button>
+                </form>
+              </TabsContent>
+
+              <TabsContent value="cook">
+                <div className="space-y-3 py-8 text-center text-sm text-gray-600">
+                  <p>This portal is reserved for customers only.</p>
+                  <p>
+                    Are you a cook? Use the dedicated portal below:
+                    <br />
+                    <a
+                      href="http://localhost:5174/login"
+                      className="text-green-700 underline"
                     >
-                      Sign up
-                    </button>
+                      Go to Cook Portal
+                    </a>
                   </p>
                 </div>
-              </CardContent>
-            </Card>
-          </>
-        )}
+              </TabsContent>
+            </Tabs>
+
+            <div className="mt-6 text-center space-y-2">
+              <p className="text-gray-600">
+                Don't have an account?{" "}
+                <button
+                  onClick={() => navigate("/signup")}
+                  className="text-orange-600 hover:underline"
+                >
+                  Sign up
+                </button>
+              </p>
+              <button
+                onClick={() => navigate("/")}
+                className="text-sm text-gray-500 hover:text-gray-700 underline"
+              >
+                Back to Home
+              </button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

@@ -1,37 +1,25 @@
 // src/components/auth/SignupPage.jsx
-import React, { useState } from "react";
+// Updated: Fixed OTP messages, added resend OTP with 30s cooldown, neutral contact validation, back to home link
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../ui/tabs";
-import { User, ChefHat } from "lucide-react";
+import { User, ChefHat, Eye, EyeOff } from "lucide-react";
 
 import {
   cookSignupRequest,
   cookVerifyOtp,
-  cookSignIn
 } from "../../api/cook.api";
+import { useAuth } from "../../contexts/AuthContext";
 
-/**
- * SignupPage
- * - UI unchanged
- * - Customer tab: existing flow is kept (unchanged).
- * - Cook tab: wired to cook backend:
- *    - stage 1: POST /api/cooks/signup/request with { name,email,contact,password,address }
- *    - stage 2: POST /api/cooks/signup/verify with { email, otpCode }
- *
- * Fixes:
- *  - Controlled tabs (value) and guarded onValueChange to prevent switching tabs during OTP stage
- *  - Mark Send buttons as type="submit"
- *  - Add stage 3 "Account created" success view (instead of leaving blank page)
- */
 function SignupPage() {
   const navigate = useNavigate();
+  const { login } = useAuth();
 
-  // role is controlled value for Tabs
-  const [role, setRole] = useState("customer");
+  // Default to "cook" since this is the cook app
   const [stage, setStage] = useState(1); // 1 = enter details, 2 = verify OTP, 3 = success
 
   const [form, setForm] = useState({
@@ -42,30 +30,69 @@ function SignupPage() {
     houseNo: "",
     street: "",
     city: "Sukkur",
-    postalCode: "",
+    postalCode: "65200",
   });
 
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [resendCooldown, setResendCooldown] = useState(0);
 
-  const update = (field, value) =>
+  // Resend cooldown timer
+  useEffect(() => {
+    if (resendCooldown > 0) {
+      const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendCooldown]);
+
+  const update = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: "" }));
+    }
+  };
 
-  // CONTROLLED tab change: prevent switching when stage === 2 (OTP stage)
-  const handleTabChange = (newValue) => {
-    // if user is in OTP verification stage, don't allow switching role
-    if (stage === 2) return;
-    setRole(newValue);
-    // reset messages/states when switching roles
-    setStage(1);
-    setMessage("");
-    setOtp("");
+  // Validation functions
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validateContact = (contact) => {
+    // Pakistani phone number: +92XXXXXXXXXX (11 digits after +92) or 03XXXXXXXXX (10 digits starting with 03)
+    const cleaned = contact.replace(/\s+/g, "");
+    const plus92Pattern = /^\+92\d{10}$/;
+    const zero3Pattern = /^03\d{9}$/;
+    return plus92Pattern.test(cleaned) || zero3Pattern.test(cleaned);
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    
+    if (!form.email || !validateEmail(form.email)) {
+      newErrors.email = "Please enter a valid email address.";
+    }
+    
+    if (!form.contact || !validateContact(form.contact)) {
+      newErrors.contact = "Please enter a valid phone number.";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   // SEND OTP (for both customer and cook UI - but wired to cook endpoints when role === 'cook')
   const handleSendOtp = async (e) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+
     setLoading(true);
     setMessage("");
 
@@ -83,17 +110,10 @@ function SignupPage() {
     };
 
     try {
-      if (role === "cook") {
-        const res = await cookSignupRequest(payload);
-        setMessage(res?.data?.message || "OTP sent to your email/phone.");
-        setStage(2);
-      } else {
-        // customer flow: keep existing behavior (calls customer API) if you still want that
-        // If you prefer customer signup not implemented, replace the next line with:
-        // setMessage("Customer signup not implemented");
-        setMessage("Customer signup currently uses customer API (unchanged). OTP sent.");
-        setStage(2);
-      }
+      const res = await cookSignupRequest(payload);
+      setMessage(`OTP has been sent to your email: ${form.email}`);
+      setStage(2);
+      setResendCooldown(30);
     } catch (err) {
       setMessage(
         err?.response?.data?.message ||
@@ -111,49 +131,53 @@ function SignupPage() {
     setMessage("");
 
     try {
-      if (role === "cook") {
-        const res = await cookVerifyOtp({ email: form.email, otpCode: otp });
-        setMessage(res?.data?.message || "Verified successfully.");
-        // switch to success stage (show confirmation page inside component)
-        setStage(3);
-      } else {
-        // customer verify (kept as-is)
-        setMessage("Customer OTP verify: not changed by this update.");
-        setStage(3);
+      await cookVerifyOtp({ email: form.email, otpCode: otp });
+      setMessage(
+        "🎉 Congratulations — your account has been created successfully."
+      );
+      setStage(3);
+
+      try {
+        // Auto-login the newly created cook so the document flow starts immediately.
+        await login(form.email, form.password);
+        navigate("/cook/documents", { replace: true });
+      } catch (authError) {
+        console.warn("Auto-login after signup failed:", authError);
+        setMessage(
+          "Account created. Please login again to upload your documents."
+        );
       }
     } catch (err) {
-      setMessage(
-        err?.response?.data?.message ||
-          err?.message ||
-          "Error verifying OTP. Check code and try again."
-      );
+      setMessage("Invalid or expired OTP. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Optionally allow resending OTP (simple implementation)
+  // RESEND OTP
   const handleResendOtp = async () => {
+    if (resendCooldown > 0) return;
+
     setLoading(true);
     setMessage("");
+
+    const payload = {
+      name: form.name,
+      email: form.email,
+      contact: form.contact,
+      password: form.password,
+      address: {
+        houseNo: form.houseNo,
+        street: form.street,
+        city: form.city,
+        postalCode: form.postalCode,
+      },
+    };
+
     try {
-      if (role === "cook") {
-        const res = await cookSignupRequest({
-          name: form.name,
-          email: form.email,
-          contact: form.contact,
-          password: form.password,
-          address: {
-            houseNo: form.houseNo,
-            street: form.street,
-            city: form.city,
-            postalCode: form.postalCode,
-          },
-        });
-        setMessage(res?.data?.message || "OTP resent.");
-      } else {
-        setMessage("Customer OTP resent (using customer API).");
-      }
+      const res = await cookSignupRequest(payload);
+      setMessage(`OTP has been sent to your email: ${form.email}`);
+      setResendCooldown(30);
     } catch (err) {
       setMessage(err?.response?.data?.message || "Error resending OTP");
     } finally {
@@ -171,7 +195,7 @@ function SignupPage() {
 
           <CardContent>
             {/* Controlled tabs */}
-            <Tabs value={role} onValueChange={handleTabChange} className="w-full">
+            <Tabs defaultValue="cook" className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-4">
                 <TabsTrigger value="customer">
                   <User className="w-4 h-4 mr-2" />
@@ -183,149 +207,20 @@ function SignupPage() {
                 </TabsTrigger>
               </TabsList>
 
-              {/* CUSTOMER SIGNUP */}
               <TabsContent value="customer">
-                {stage === 1 && (
-                  <form onSubmit={handleSendOtp} className="space-y-4">
-                    {message && <p className="text-center text-red-600">{message}</p>}
-
-                    <div className="space-y-2">
-                      <Label>Name</Label>
-                      <Input
-                        value={form.name}
-                        onChange={(e) => update("name", e.target.value)}
-                        required
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Email</Label>
-                      <Input
-                        type="email"
-                        value={form.email}
-                        onChange={(e) => update("email", e.target.value)}
-                        required
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Password</Label>
-                      <Input
-                        type="password"
-                        value={form.password}
-                        onChange={(e) => update("password", e.target.value)}
-                        required
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Contact</Label>
-                      <Input
-                        value={form.contact}
-                        onChange={(e) => update("contact", e.target.value)}
-                        required
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>House No</Label>
-                      <Input
-                        value={form.houseNo}
-                        onChange={(e) => update("houseNo", e.target.value)}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Street</Label>
-                      <Input
-                        value={form.street}
-                        onChange={(e) => update("street", e.target.value)}
-                        required
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>City</Label>
-                      <Input
-                        value={form.city}
-                        onChange={(e) => update("city", e.target.value)}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Postal Code</Label>
-                      <Input
-                        value={form.postalCode}
-                        onChange={(e) => update("postalCode", e.target.value)}
-                        required
-                      />
-                    </div>
-
-                    <Button type="submit" className="w-full bg-orange-600" disabled={loading}>
-                      {loading ? "Sending OTP..." : "Send OTP"}
-                    </Button>
-                  </form>
-                )}
-
-                {stage === 2 && (
-                  <div className="space-y-4">
-                    <p className="text-center text-gray-700">
-                      OTP sent to <strong>{form.email}</strong>
-                    </p>
-
-                    {message && <p className="text-center text-red-600">{message}</p>}
-
-                    <Input
-                      placeholder="Enter OTP"
-                      value={otp}
-                      onChange={(e) => setOtp(e.target.value)}
-                    />
-
-                    <Button
-                      className="w-full bg-orange-600"
-                      onClick={handleVerifyOtp}
-                      disabled={loading}
+                <div className="p-6 text-center text-gray-600 space-y-3">
+                  <h2 className="text-lg font-semibold">Customer Signup</h2>
+                  <p>This cook portal cannot create customer accounts.</p>
+                  <p>
+                    Please switch to the customer app:{" "}
+                    <a
+                      href="http://localhost:5173/signup"
+                      className="text-orange-600 underline"
                     >
-                      {loading ? "Verifying..." : "Verify OTP"}
-                    </Button>
-
-                    <div className="flex justify-between">
-                      <button
-                        className="underline text-sm"
-                        onClick={() => {
-                          // allow user to go back to edit details (optional)
-                          setStage(1);
-                          setMessage("");
-                        }}
-                      >
-                        Edit details
-                      </button>
-
-                      <button
-                        className="underline text-sm"
-                        onClick={handleResendOtp}
-                        disabled={loading}
-                      >
-                        Resend OTP
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {stage === 3 && (
-                  <div className="space-y-4 text-center">
-                    <h3 className="text-lg font-semibold">Account Created</h3>
-                    <p className="text-sm text-gray-700">
-                      Your customer account for <strong>{form.email}</strong> has been created.
-                    </p>
-                    <Button
-                      className="w-full bg-orange-600"
-                      onClick={() => navigate("/login")}
-                    >
-                      Go to Login
-                    </Button>
-                  </div>
-                )}
+                      Go to Customer Portal
+                    </a>
+                  </p>
+                </div>
               </TabsContent>
 
               {/* COOK SIGNUP */}
@@ -335,7 +230,7 @@ function SignupPage() {
                     {message && <p className="text-center text-red-600">{message}</p>}
 
                     <div className="space-y-2">
-                      <Label>Name</Label>
+                      <Label>Name <span className="text-red-600">*</span></Label>
                       <Input
                         value={form.name}
                         onChange={(e) => update("name", e.target.value)}
@@ -344,32 +239,54 @@ function SignupPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label>Email</Label>
+                      <Label>Email <span className="text-red-600">*</span></Label>
                       <Input
                         type="email"
+                        placeholder="example@gmail.com"
                         value={form.email}
                         onChange={(e) => update("email", e.target.value)}
                         required
                       />
+                      {errors.email && (
+                        <p className="text-sm text-red-600">{errors.email}</p>
+                      )}
                     </div>
 
                     <div className="space-y-2">
-                      <Label>Password</Label>
-                      <Input
-                        type="password"
-                        value={form.password}
-                        onChange={(e) => update("password", e.target.value)}
-                        required
-                      />
+                      <Label>Password <span className="text-red-600">*</span></Label>
+                      <div className="relative flex items-center">
+                        <Input
+                          type={showPassword ? "text" : "password"}
+                          value={form.password}
+                          onChange={(e) => update("password", e.target.value)}
+                          required
+                          className="pr-12"
+                        />
+                        <button
+                          type="button"
+                          aria-label="Toggle password visibility"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+                        >
+                          {showPassword ? (
+                            <EyeOff className="w-4 h-4" />
+                          ) : (
+                            <Eye className="w-4 h-4" />
+                          )}
+                        </button>
+                      </div>
                     </div>
 
                     <div className="space-y-2">
-                      <Label>Contact</Label>
+                      <Label>Contact <span className="text-red-600">*</span></Label>
                       <Input
                         value={form.contact}
                         onChange={(e) => update("contact", e.target.value)}
                         required
                       />
+                      {errors.contact && (
+                        <p className="text-sm text-red-600">{errors.contact}</p>
+                      )}
                     </div>
 
                     <div className="space-y-2">
@@ -381,7 +298,7 @@ function SignupPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label>Street</Label>
+                      <Label>Street <span className="text-red-600">*</span></Label>
                       <Input
                         value={form.street}
                         onChange={(e) => update("street", e.target.value)}
@@ -390,15 +307,16 @@ function SignupPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label>City</Label>
+                      <Label>City <span className="text-red-600">*</span></Label>
                       <Input
                         value={form.city}
                         onChange={(e) => update("city", e.target.value)}
+                        required
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label>Postal Code</Label>
+                      <Label>Postal Code <span className="text-red-600">*</span></Label>
                       <Input
                         value={form.postalCode}
                         onChange={(e) => update("postalCode", e.target.value)}
@@ -414,17 +332,19 @@ function SignupPage() {
 
                 {stage === 2 && (
                   <div className="space-y-4">
-                    <p className="text-center text-gray-700">
-                      OTP sent to <strong>{form.email}</strong>
-                    </p>
-
-                    {message && <p className="text-center text-red-600">{message}</p>}
+                    {message && (
+                      <p className="text-center text-green-600 text-sm">{message}</p>
+                    )}
 
                     <Input
                       placeholder="Enter OTP"
                       value={otp}
                       onChange={(e) => setOtp(e.target.value)}
                     />
+
+                    {message && message.includes("Invalid") && (
+                      <p className="text-center text-red-600 text-sm">{message}</p>
+                    )}
 
                     <Button
                       className="w-full bg-green-600"
@@ -446,11 +366,13 @@ function SignupPage() {
                       </button>
 
                       <button
-                        className="underline text-sm"
+                        className="underline text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                         onClick={handleResendOtp}
-                        disabled={loading}
+                        disabled={loading || resendCooldown > 0}
                       >
-                        Resend OTP
+                        {resendCooldown > 0 
+                          ? `Resend OTP (${resendCooldown}s)` 
+                          : "Resend OTP"}
                       </button>
                     </div>
                   </div>
@@ -460,11 +382,11 @@ function SignupPage() {
                   <div className="space-y-4 text-center">
                     <h3 className="text-lg font-semibold">Account Created</h3>
                     <p className="text-sm text-gray-700">
-                      Your cook account for <strong>{form.email}</strong> has been created.
+                      {message}
                     </p>
                     <Button
                       className="w-full bg-green-600"
-                      onClick={() => navigate("/login")}
+                      onClick={() => navigate("/cook/login")}
                     >
                       Go to Login
                     </Button>
@@ -473,13 +395,21 @@ function SignupPage() {
               </TabsContent>
             </Tabs>
 
-            <div className="mt-4 text-center">
+            <div className="mt-4 text-center space-y-2">
               <button
-                onClick={() => navigate("/login")}
+                onClick={() => navigate("/cook/login")}
                 className="text-orange-600 underline"
               >
                 Already have an account? Login
               </button>
+              <div>
+                <button
+                  onClick={() => window.location.href = "http://localhost:5173/"}
+                  className="text-sm text-gray-500 hover:text-gray-700 underline"
+                >
+                  Back to Home
+                </button>
+              </div>
             </div>
           </CardContent>
         </Card>

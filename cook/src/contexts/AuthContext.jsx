@@ -1,40 +1,142 @@
-import { createContext, useState, useContext } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import { cookSignIn, cookSignOut } from "../api/cook.api";
 
 export const AuthContext = createContext();
 
+const STORAGE_KEY = "cook";
+
+// --- Verification helpers shared across cook flows ---
+export const normalizeVerificationStatus = (status) => {
+  if (!status) return "not_submitted";
+
+  const normalized = String(status).toLowerCase();
+
+  if (normalized === "not_started") return "not_submitted";
+  if (normalized === "submitted") return "pending";
+  if (normalized === "verified") return "approved";
+
+  return normalized;
+};
+
+export const resolveCookRoute = (status) => {
+  const normalized = normalizeVerificationStatus(status);
+  return normalized === "approved" ? "/cook/dashboard" : "/cook/documents";
+};
+
+const readCachedCook = () => {
+  const cached = localStorage.getItem(STORAGE_KEY);
+  if (!cached) return null;
+
+  try {
+    return JSON.parse(cached);
+  } catch {
+    return null;
+  }
+};
+
+const enrichCookProfile = (cook) => {
+  if (!cook) return null;
+  const verificationStatusNormalized = normalizeVerificationStatus(
+    cook.verificationStatus || cook.verificationStatusNormalized
+  );
+
+  return {
+    ...cook,
+    verificationStatusNormalized,
+  };
+};
+
 export function AuthProvider({ children }) {
-  // IMPORTANT: must be named "user" so ProtectedRoute can read it
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    const cached = readCachedCook();
+    return cached ? enrichCookProfile(cached) : null;
+  });
+  const [loading, setLoading] = useState(true);
 
-  const login = async (email, password) => {
-    const res = await fetch("http://localhost:5000/api/cooks/auth/signin", {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
+  const persistUser = useCallback((cook) => {
+    const enriched = enrichCookProfile(cook);
 
-    const data = await res.json();
+    if (enriched) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(enriched));
+    } else {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+    setUser(enriched);
+  }, []);
 
-    if (res.ok) {
-      setUser(data.cook);     // store logged-in cook here
-      return { ok: true, cook: data.cook };
+  const fetchSession = useCallback(async () => {
+    const cached = readCachedCook();
+
+    if (!cached) {
+      persistUser(null);
+      return null;
     }
 
-    return { ok: false, message: data.message };
-  };
+    persistUser(cached);
+    return enrichCookProfile(cached);
+  }, [persistUser]);
 
-  const logout = () => {
-    setUser(null);
-  };
+  useEffect(() => {
+    fetchSession().finally(() => setLoading(false));
+  }, [fetchSession]);
 
-  const refreshUser = (updated) => setUser(updated);
-
-  return (
-    <AuthContext.Provider value={{ user, login, logout, refreshUser }}>
-      {children}
-    </AuthContext.Provider>
+  const login = useCallback(
+    async (email, password) => {
+      const { data } = await cookSignIn({ email, password });
+      const profile = enrichCookProfile(data?.cook ?? null);
+      persistUser(profile);
+      return profile;
+    },
+    [persistUser]
   );
+
+  const logout = useCallback(async () => {
+    try {
+      await cookSignOut();
+    } catch (err) {
+      console.warn("Cook logout warning:", err?.message || err);
+    } finally {
+      persistUser(null);
+    }
+  }, [persistUser]);
+
+  const updateVerificationStatus = useCallback((nextStatus) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+
+      const merged = {
+        ...prev,
+        verificationStatus: nextStatus,
+      };
+
+      const enriched = enrichCookProfile(merged);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(enriched));
+
+      return enriched;
+    });
+  }, []);
+
+  const value = useMemo(
+    () => ({
+      user,
+      loading,
+      login,
+      logout,
+      refreshSession: fetchSession,
+      updateVerificationStatus,
+      resolveCookRoute,
+    }),
+    [user, loading, login, logout, fetchSession, updateVerificationStatus]
+  );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
