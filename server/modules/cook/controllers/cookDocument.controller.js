@@ -6,7 +6,7 @@ import { Cook } from "../models/cook.model.js";
  * Protected route
  */
 export const submitDocuments = async (req, res) => {
-  const cookId = req.user.id; // from protect middleware
+  const cookId = req.user._id; // from protect middleware
   const { cnicFront, cnicBack, kitchenPhotos, sfaLicense, other } = req.body;
 
   try {
