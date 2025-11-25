@@ -12,6 +12,7 @@ import { User, ChefHat, Eye, EyeOff } from "lucide-react";
 import {
   cookSignupRequest,
   cookVerifyOtp,
+  cookResendOtp,
 } from "../../api/cook.api";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -19,18 +20,24 @@ function SignupPage() {
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  // Default to "cook" since this is the cook app
-  const [stage, setStage] = useState(1); // 1 = enter details, 2 = verify OTP, 3 = success
+  // Initialize state from sessionStorage if available
+  const [stage, setStage] = useState(() => {
+    const saved = sessionStorage.getItem('cookSignupStage');
+    return saved ? parseInt(saved) : 1;
+  });
 
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    password: "",
-    contact: "",
-    houseNo: "",
-    street: "",
-    city: "Sukkur",
-    postalCode: "65200",
+  const [form, setForm] = useState(() => {
+    const saved = sessionStorage.getItem('cookSignupForm');
+    return saved ? JSON.parse(saved) : {
+      name: "",
+      email: "",
+      password: "",
+      contact: "",
+      houseNo: "",
+      street: "",
+      city: "Sukkur",
+      postalCode: "65200",
+    };
   });
 
   const [otp, setOtp] = useState("");
@@ -38,6 +45,26 @@ function SignupPage() {
   const [message, setMessage] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
+
+  // Save stage and form to sessionStorage whenever they change
+  useEffect(() => {
+    sessionStorage.setItem('cookSignupStage', stage.toString());
+  }, [stage]);
+
+  useEffect(() => {
+    if (stage === 2) {
+      // Only save form data when on OTP stage
+      sessionStorage.setItem('cookSignupForm', JSON.stringify(form));
+    }
+  }, [form, stage]);
+
+  // Clear sessionStorage when signup is complete or user navigates away
+  useEffect(() => {
+    if (stage === 3) {
+      sessionStorage.removeItem('cookSignupStage');
+      sessionStorage.removeItem('cookSignupForm');
+    }
+  }, [stage]);
 
   const update = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -149,22 +176,9 @@ function SignupPage() {
     setLoading(true);
     setMessage("");
 
-    const payload = {
-      name: form.name,
-      email: form.email,
-      contact: form.contact,
-      password: form.password,
-      address: {
-        houseNo: form.houseNo,
-        street: form.street,
-        city: form.city,
-        postalCode: form.postalCode,
-      },
-    };
-
     try {
-      const res = await cookSignupRequest(payload);
-      setMessage(`OTP has been sent to your email: ${form.email}`);
+      await cookResendOtp({ email: form.email });
+      setMessage(`OTP has been resent to your email: ${form.email}`);
     } catch (err) {
       setMessage(err?.response?.data?.message || "Error resending OTP");
     } finally {
@@ -380,19 +394,15 @@ function SignupPage() {
                       {loading ? "Verifying..." : "Verify OTP"}
                     </Button>
 
-                    <div className="flex justify-between">
+                    <div className="text-center">
                       <button
-                        className="underline text-sm"
-                        onClick={() => {
-                          setStage(1);
-                          setMessage("");
-                          setOtp("");
-                        }}
+                        type="button"
+                        onClick={handleResendOtp}
+                        disabled={loading}
+                        className="text-sm text-green-600 hover:underline disabled:opacity-50"
                       >
-                        Edit details
+                        Didn't receive OTP? Resend
                       </button>
-
-
                     </div>
                   </div>
                 )}

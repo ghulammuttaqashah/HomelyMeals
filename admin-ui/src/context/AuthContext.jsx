@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { login as loginRequest, resendOtp, verifyOtp as verifyOtpRequest, logout as logoutRequest } from '../api/auth'
-import { getCustomers } from '../api/customers'
+import { checkSession } from '../api/customers'
 import { setUnauthorizedHandler } from '../api/axios'
 
 const AuthContext = createContext(null)
@@ -10,7 +10,10 @@ const AuthContext = createContext(null)
 export const AuthProvider = ({ children }) => {
   const navigate = useNavigate()
   const [admin, setAdmin] = useState(null)
-  const [pendingEmail, setPendingEmail] = useState('')
+  const [pendingEmail, setPendingEmail] = useState(() => {
+    // Restore pendingEmail from sessionStorage on mount
+    return sessionStorage.getItem('adminPendingEmail') || ''
+  })
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [checkingSession, setCheckingSession] = useState(false)
   const isLoggingOut = useRef(false)
@@ -19,6 +22,7 @@ export const AuthProvider = ({ children }) => {
     setAdmin(null)
     setIsAuthenticated(false)
     setPendingEmail('')
+    sessionStorage.removeItem('adminPendingEmail')
   }, [])
 
   const login = useCallback(
@@ -43,6 +47,7 @@ export const AuthProvider = ({ children }) => {
       setAdmin(data?.admin ?? { email })
       setIsAuthenticated(true)
       setPendingEmail('')
+      sessionStorage.removeItem('adminPendingEmail')
     },
     [],
   )
@@ -91,13 +96,25 @@ export const AuthProvider = ({ children }) => {
     
     setCheckingSession(true)
     try {
-      await getCustomers()
+      const data = await checkSession()
+      // Update admin info if returned
+      if (data?.admin) {
+        setAdmin(data.admin)
+      }
       setIsAuthenticated(true)
       return true
     } catch (error) {
-      // Silently fail - this is expected when not authenticated
-      resetState()
-      return false
+      // Only reset state if it's a 401 (unauthorized)
+      // Other errors (network, 500, etc.) should not log user out
+      if (error?.response?.status === 401) {
+        resetState()
+        return false
+      }
+      
+      // For other errors, assume user might still be authenticated
+      // but there's a temporary issue
+      console.warn('Session check failed (non-auth error):', error.message)
+      return isAuthenticated // Return current auth state
     } finally {
       setCheckingSession(false)
     }

@@ -186,3 +186,55 @@ export const cookSignout = async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
+
+
+/**
+ * Resend OTP for Cook Signup
+ */
+export const resendSignupOtp = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    // Check if there's a pending OTP for this email
+    const existingOtp = await OTPVerification.findOne({
+      email,
+      purpose: "cook-signup",
+      isVerified: false
+    });
+
+    if (!existingOtp) {
+      return res.status(400).json({ 
+        message: "No pending signup found. Please start signup process again." 
+      });
+    }
+
+    // Generate new OTP
+    const otpCode = generateOtp();
+    const expiryTime = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+
+    // Update existing OTP entry
+    existingOtp.otpCode = otpCode;
+    existingOtp.expiryTime = expiryTime;
+    await existingOtp.save();
+
+    // Send email
+    try {
+      await sendEmail(email, "Your OTP Code (Resent)", `Your new OTP for signup is ${otpCode}`);
+    } catch (emailError) {
+      return res.status(400).json({
+        message: "Failed to send OTP. Please try again."
+      });
+    }
+
+    return res.status(200).json({
+      message: "OTP resent successfully. Please check your email."
+    });
+  } catch (err) {
+    console.error("Resend Cook OTP Error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};

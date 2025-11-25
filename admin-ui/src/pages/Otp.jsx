@@ -14,8 +14,17 @@ const Otp = () => {
   const [resending, setResending] = useState(false)
   const inputRefs = useRef([])
 
+  // Save pendingEmail to sessionStorage when it changes
   useEffect(() => {
-    if (!pendingEmail) {
+    if (pendingEmail) {
+      sessionStorage.setItem('adminPendingEmail', pendingEmail)
+    }
+  }, [pendingEmail])
+
+  // Check for pendingEmail in sessionStorage on mount
+  useEffect(() => {
+    const savedEmail = sessionStorage.getItem('adminPendingEmail')
+    if (!pendingEmail && !savedEmail) {
       navigate('/login', { replace: true })
     }
   }, [pendingEmail, navigate])

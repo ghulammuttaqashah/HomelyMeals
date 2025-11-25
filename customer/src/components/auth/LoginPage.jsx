@@ -43,14 +43,25 @@ export function LoginPage() {
       setTimeout(() => navigate("/customer/dashboard", { replace: true }), 800);
     } catch (err) {
       const errorData = err?.response?.data;
-      console.error("Customer login error:", errorData || err);
-      if (
+      
+      // Check for suspended account (403 status)
+      if (err?.response?.status === 403) {
+        const reason = errorData?.reason || "Please contact support for more information.";
+        setErrorMessage(`Account is suspended. Reason: ${reason}`);
+        console.log("Login blocked: Account suspended");
+      } else if (
         errorData?.message?.toLowerCase().includes("not found") ||
         errorData?.message?.toLowerCase().includes("does not exist")
       ) {
         setErrorMessage("No account found with this email. Please sign up first.");
+        console.log("Login failed: Account not found");
+      } else if (errorData?.message?.toLowerCase().includes("suspended")) {
+        const reason = errorData?.reason || "Please contact support for more information.";
+        setErrorMessage(`Account is suspended. Reason: ${reason}`);
+        console.log("Login blocked: Account suspended");
       } else {
         setErrorMessage("Incorrect email or password. Please try again.");
+        console.log("Login failed: Invalid credentials");
       }
     } finally {
       setLoading(false);

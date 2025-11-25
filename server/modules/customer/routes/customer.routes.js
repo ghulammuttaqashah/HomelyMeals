@@ -3,7 +3,9 @@ import {
   signupRequest,
   verifyOtpAndCreateAccount,
   signIn,
-  signOut,getAllMealsForCustomer
+  signOut,
+  getAllMealsForCustomer,
+  resendSignupOtp
 } from "../controllers/customer.controller.js";
 import { protect } from "../../../shared/middleware/auth.js"; // optional if you need protected routes
 
@@ -14,6 +16,9 @@ router.post("/signup/request", signupRequest);
 
 // STEP 2: Verify OTP and create account
 router.post("/signup/verify", verifyOtpAndCreateAccount);
+
+// Resend OTP
+router.post("/signup/resend", resendSignupOtp);
 
 // STEP 3: Sign-in (sets JWT cookie)
 router.post("/signin", signIn);

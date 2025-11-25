@@ -70,7 +70,10 @@ export const updateCookStatus = async (req, res) => {
 
   } catch (err) {
     console.error("Update Cook Status Error:", err);
-    return res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ 
+      message: "Server error",
+      error: err.message 
+    });
   }
 };
 

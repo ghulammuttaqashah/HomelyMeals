@@ -12,6 +12,9 @@ export const cookSignupRequest = (data) => API.post("/signup/request", data);
 // Step 2 — Verify OTP (backend expects { email, otpCode })
 export const cookVerifyOtp = (data) => API.post("/signup/verify", data);
 
+// Resend OTP
+export const cookResendOtp = (data) => API.post("/signup/resend", data);
+
 // Step 3 — Sign In
 export const cookSignIn = (data) => API.post("/signin", data);
 

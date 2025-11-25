@@ -276,11 +276,16 @@ const ViewDocuments = () => {
     setSubmitting(true)
     try {
       await approveAllCookDocuments(cookId)
-      toast.success('All documents approved')
+      toast.success('All submitted documents approved successfully')
       loadDocuments()
     } catch (error) {
       const message = error.response?.data?.message || 'Unable to approve all documents'
-      toast.error(message)
+      // Show more helpful error message
+      if (message.includes('not submitted')) {
+        toast.error(message, { duration: 5000 })
+      } else {
+        toast.error(message)
+      }
     } finally {
       setSubmitting(false)
     }
@@ -395,6 +400,39 @@ const ViewDocuments = () => {
             </div>
           </div>
         </div>
+
+        {/* Document Summary */}
+        {documents.length > 0 && (
+          <div className="rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 p-4 border border-blue-200">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600">
+                  <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-blue-900">Document Summary</p>
+                  <p className="text-xs text-blue-700">{documents.length} document{documents.length !== 1 ? 's' : ''} submitted</p>
+                </div>
+              </div>
+              <div className="flex gap-4 text-xs">
+                <div className="flex items-center gap-1.5">
+                  <div className="h-3 w-3 rounded-full bg-emerald-500"></div>
+                  <span className="text-slate-700">{documents.filter(d => d.status === 'approved').length} Approved</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="h-3 w-3 rounded-full bg-blue-500"></div>
+                  <span className="text-slate-700">{documents.filter(d => d.status === 'submitted').length} Pending</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="h-3 w-3 rounded-full bg-red-500"></div>
+                  <span className="text-slate-700">{documents.filter(d => d.status === 'rejected').length} Rejected</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Document Carousel */}
         {documents.length ? (

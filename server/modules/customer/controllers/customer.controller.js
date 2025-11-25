@@ -80,7 +80,6 @@ export const signupRequest = async (req, res) => {
 export const verifyOtpAndCreateAccount = async (req, res) => {
   const { email, otp } = req.body;
   const otpCode = otp;
-  console.log("VERIFY BODY:", req.body);
 
   try {
     const otpEntry = await OTPVerification.findOne({
@@ -196,25 +195,33 @@ import {Cook} from "../../cook/models/cook.model.js";
 // Get all meals for customers (with cook name)
 export const getAllMealsForCustomer = async (req, res) => {
   try {
-    // Populate cook info (only name)
+    // Populate cook info (name and status)
     const meals = await Meal.find()
       .populate({
         path: "cookId",
-        select: "name",   // or select: "fullName"
+        select: "name status verificationStatus",
       })
       .sort({ createdAt: -1 });
 
-    const formatted = meals.map(m => ({
-      mealId: m._id,
-      name: m.name,
-      description: m.description,
-      price: m.price,
-      category: m.category,
-      availability: m.availability,
-      itemImage: m.itemImage,
-      cookName: m.cookId?.name || "Unknown Cook",
-      createdAt: m.createdAt,
-    }));
+    // Filter out meals from suspended or non-approved cooks
+    const formatted = meals
+      .filter(m => {
+        // Only show meals from active and approved cooks
+        return m.cookId && 
+               m.cookId.status === "active" && 
+               m.cookId.verificationStatus === "approved";
+      })
+      .map(m => ({
+        mealId: m._id,
+        name: m.name,
+        description: m.description,
+        price: m.price,
+        category: m.category,
+        availability: m.availability,
+        itemImage: m.itemImage,
+        cookName: m.cookId?.name || "Unknown Cook",
+        createdAt: m.createdAt,
+      }));
 
     res.status(200).json({
       success: true,
@@ -227,5 +234,57 @@ export const getAllMealsForCustomer = async (req, res) => {
       success: false,
       message: "Failed to fetch meals",
     });
+  }
+};
+
+
+/**
+ * Resend OTP for Customer Signup
+ */
+export const resendSignupOtp = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    // Check if there's a pending OTP for this email
+    const existingOtp = await OTPVerification.findOne({
+      email,
+      purpose: "signup",
+      isVerified: false
+    });
+
+    if (!existingOtp) {
+      return res.status(400).json({ 
+        message: "No pending signup found. Please start signup process again." 
+      });
+    }
+
+    // Generate new OTP
+    const otpCode = generateOtp();
+    const expiryTime = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+
+    // Update existing OTP entry
+    existingOtp.otpCode = otpCode;
+    existingOtp.expiryTime = expiryTime;
+    await existingOtp.save();
+
+    // Send email
+    try {
+      await sendEmail(email, "Your OTP Code (Resent)", `Your new OTP for signup is ${otpCode}`);
+    } catch (emailError) {
+      return res.status(400).json({
+        message: "Failed to send OTP. Please try again."
+      });
+    }
+
+    return res.status(200).json({
+      message: "OTP resent successfully. Please check your email."
+    });
+  } catch (err) {
+    console.error("Resend OTP Error:", err);
+    return res.status(500).json({ message: "Server error" });
   }
 };

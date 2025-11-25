@@ -1,7 +1,10 @@
 import express from "express";
 import {
   signupRequest,
-  verifyOtpAndCreateAccount, cookSignin, cookSignout
+  verifyOtpAndCreateAccount,
+  cookSignin,
+  cookSignout,
+  resendSignupOtp
 } from "../controllers/cookAuth.controller.js";
 import { protect } from "../../../shared/middleware/auth.js";
 
@@ -12,6 +15,9 @@ router.post("/signup/request", signupRequest);
 
 // Step 2: Verify OTP → create account
 router.post("/signup/verify", verifyOtpAndCreateAccount);
+
+// Resend OTP
+router.post("/signup/resend", resendSignupOtp);
 
 // Step 3: Login
 router.post("/signin", cookSignin);

@@ -10,6 +10,12 @@ export const submitDocuments = async (req, res) => {
   const { cnicFront, cnicBack, kitchenPhotos, sfaLicense, other } = req.body;
 
   try {
+    // 0️⃣ Verify cook exists
+    const cook = await Cook.findById(cookId);
+    if (!cook) {
+      return res.status(404).json({ message: "Cook not found" });
+    }
+
     // 1️⃣ Validate required documents
     if (!cnicFront || !cnicBack) {
       return res.status(400).json({
@@ -66,8 +72,7 @@ export const submitDocuments = async (req, res) => {
     await cookDoc.save();
 
     // Update cook verificationStatus to pending if not started
-    const cook = await Cook.findById(cookId);
-    if (cook.verificationStatus === "not_started") {
+    if (cook.verificationStatus === "not_started" || cook.verificationStatus === "not_submitted") {
       cook.verificationStatus = "pending";
       await cook.save();
     }

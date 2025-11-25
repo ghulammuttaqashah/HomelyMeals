@@ -102,17 +102,20 @@ export const verifyAdminSignInOtp = async (req, res) => {
     const admin = await Admin.findOne({ email });
     if (!admin) return res.status(404).json({ message: "Admin not found" });
 
-    // Generate JWT
-    const token = jwt.sign({ id: admin._id, role: "admin" }, JWT_SECRET, {
-      expiresIn: "20m"
+    // Generate JWT (2 hours)
+    const JWT_EXPIRY_HOURS = 2;
+    const token = jwt.sign({ id: admin._id }, JWT_SECRET, {
+      expiresIn: `${JWT_EXPIRY_HOURS}h`
     });
 
-    // Set cookie
-    res.cookie("token", token, {
+    // Set cookie (2 hours - must match JWT expiry)
+    // Use admin-specific cookie name to avoid conflicts with cook/customer
+    res.cookie("adminToken", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "Strict",
-      maxAge: 20 * 60 * 1000 // 20 mintutes
+      sameSite: "Lax", // Changed from "Strict" to "Lax" for better compatibility
+      path: "/", // Explicitly set path
+      maxAge: JWT_EXPIRY_HOURS * 60 * 60 * 1000 // 2 hours in milliseconds
     });
 
     // Update last login
@@ -190,14 +193,56 @@ export const resendAdminOtp = async (req, res) => {
  */
 export const adminSignOut = async (req, res) => {
   try {
-    res.clearCookie("token", {
+    res.clearCookie("adminToken", {
       httpOnly: true,
-      sameSite: "Strict",
+      sameSite: "Lax", // Must match the cookie settings
+      path: "/", // Must match the cookie settings
       secure: process.env.NODE_ENV === "production"
     });
     return res.status(200).json({ message: "Admin signed out successfully" });
   } catch (err) {
     console.error("Admin Sign-Out Error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+/**
+ * Check if admin session is valid (lightweight endpoint for session verification)
+ */
+export const checkSession = async (req, res) => {
+  try {
+    // If we reach here, the protect middleware has already validated the token
+    const admin = await Admin.findById(req.user._id).select('name email');
+    
+    if (!admin) {
+      return res.status(401).json({ message: "Admin not found" });
+    }
+
+    // Get token info for debugging
+    const token = req.cookies?.token;
+    let tokenInfo = null;
+    if (token) {
+      const decoded = jwt.decode(token);
+      const now = Math.floor(Date.now() / 1000);
+      const timeLeft = decoded.exp - now;
+      tokenInfo = {
+        expiresIn: Math.floor(timeLeft / 60) + ' minutes',
+        issuedAt: new Date(decoded.iat * 1000).toISOString(),
+        expiresAt: new Date(decoded.exp * 1000).toISOString()
+      };
+    }
+
+    return res.status(200).json({
+      message: "Session valid",
+      admin: {
+        id: admin._id,
+        name: admin.name,
+        email: admin.email
+      },
+      tokenInfo // Include token info for debugging
+    });
+  } catch (err) {
+    console.error("Check Session Error:", err);
     return res.status(500).json({ message: "Server error" });
   }
 };

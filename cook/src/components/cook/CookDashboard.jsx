@@ -289,7 +289,7 @@ export function CookDashboard({ user, onNavigate, onLogout, onOpenChatbot }) {
             <CardHeader className="pb-3">
               <CardDescription>Total Revenue</CardDescription>
               <CardTitle className="text-orange-600">
-                PKR {myMeals.reduce((acc, m) => acc + (m.price || 0), 0).toFixed(0)}
+                N/A
               </CardTitle>
             </CardHeader>
           </Card>

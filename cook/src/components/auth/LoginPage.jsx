@@ -65,14 +65,25 @@ function LoginPage() {
       }, 700);
     } catch (err) {
       const errorData = err?.response?.data;
-      console.error("Cook login error:", errorData || err);
-      if (
+      
+      // Check for suspended account (403 status)
+      if (err?.response?.status === 403) {
+        const reason = errorData?.reason || "Please contact support for more information.";
+        setErrorMessage(`Account is suspended. Reason: ${reason}`);
+        console.log("Login blocked: Cook account suspended");
+      } else if (
         errorData?.message?.toLowerCase().includes("not found") ||
         errorData?.message?.toLowerCase().includes("does not exist")
       ) {
         setErrorMessage("No account found with this email. Please sign up first.");
+        console.log("Login failed: Cook account not found");
+      } else if (errorData?.message?.toLowerCase().includes("suspended")) {
+        const reason = errorData?.reason || "Please contact support for more information.";
+        setErrorMessage(`Account is suspended. Reason: ${reason}`);
+        console.log("Login blocked: Cook account suspended");
       } else {
         setErrorMessage("Incorrect email or password. Please try again.");
+        console.log("Login failed: Invalid credentials");
       }
     } finally {
       setLoading(false);

@@ -5,6 +5,11 @@ export const getCustomers = async () => {
   return data
 }
 
+export const checkSession = async () => {
+  const { data } = await api.get('/api/admin/auth/session')
+  return data
+}
+
 export const updateCustomerStatus = async (id, payload) => {
   if (!id) {
     throw new Error('Customer ID is required')

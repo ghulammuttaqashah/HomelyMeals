@@ -2,7 +2,10 @@ import express from "express";
 import {
   adminSignInRequest,
   verifyAdminSignInOtp,
-  adminSignOut,createAdmin,resendAdminOtp
+  adminSignOut,
+  createAdmin,
+  resendAdminOtp,
+  checkSession
 } from "../controllers/admin.controller.js";
 import { protect } from "../../../shared/middleware/auth.js";
 
@@ -18,7 +21,10 @@ router.post("/signin/resend", resendAdminOtp);
 router.post("/signin/verify", verifyAdminSignInOtp);
 
 // Step 3: Sign-Out (clear token cookie)
-router.post("/signout",protect, adminSignOut);
+router.post("/signout", protect, adminSignOut);
+
+// Check session validity (lightweight)
+router.get("/session", protect, checkSession);
 
 router.post("/create", createAdmin); 
 

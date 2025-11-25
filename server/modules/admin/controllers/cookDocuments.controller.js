@@ -18,25 +18,27 @@ export const getCooksWithSubmittedDocs = async (req, res) => {
     })
       .populate("cookId", "name email contact address verificationStatus");
 
-    const result = docs.map((doc) => ({
-      cook: {
-        id: doc.cookId._id,
-        name: doc.cookId.name,
-        email: doc.cookId.email,
-        contact: doc.cookId.contact,
-        address: doc.cookId.address,
-        verificationStatus: doc.cookId.verificationStatus,
-      },
-      documents: {
-        cnicFront: doc.cnicFront,
-        cnicBack: doc.cnicBack,
-        kitchenPhotos: doc.kitchenPhotos,
-        sfaLicense: doc.sfaLicense,
-        other: doc.other,
-        verifiedByAdmin: doc.verifiedByAdmin,
-        verifiedAt: doc.verifiedAt,
-      }
-    }));
+    const result = docs
+      .filter((doc) => doc.cookId) // Filter out documents where cook was deleted
+      .map((doc) => ({
+        cook: {
+          id: doc.cookId._id,
+          name: doc.cookId.name,
+          email: doc.cookId.email,
+          contact: doc.cookId.contact,
+          address: doc.cookId.address,
+          verificationStatus: doc.cookId.verificationStatus,
+        },
+        documents: {
+          cnicFront: doc.cnicFront,
+          cnicBack: doc.cnicBack,
+          kitchenPhotos: doc.kitchenPhotos,
+          sfaLicense: doc.sfaLicense,
+          other: doc.other,
+          verifiedByAdmin: doc.verifiedByAdmin,
+          verifiedAt: doc.verifiedAt,
+        }
+      }));
 
     return res.status(200).json({
       message: "Cooks with submitted documents retrieved successfully.",
@@ -59,6 +61,10 @@ export const getCookDocumentsById = async (req, res) => {
 
     if (!doc) {
       return res.status(404).json({ message: "Documents not found for this cook" });
+    }
+
+    if (!doc.cookId) {
+      return res.status(404).json({ message: "Cook not found (may have been deleted)" });
     }
 
     const result = {
@@ -119,12 +125,14 @@ export const approveDocument = async (req, res) => {
       }
 
       target[index].status = "approved";
+      target[index].rejectedReason = null; // Clear rejection reason
     } else {
       if (target.status === "approved") {
         return res.status(400).json({ message: "Document already approved" });
       }
 
       target.status = "approved";
+      target.rejectedReason = null; // Clear rejection reason
     }
 
     // 🔥 FIX: Save admin info
@@ -199,6 +207,26 @@ export const approveAllDocuments = async (req, res) => {
     const doc = await CookDocument.findOne({ cookId });
     if (!doc) return res.status(404).json({ message: "Documents not found" });
 
+    // Validate that required documents are submitted
+    if (!doc.cnicFront || doc.cnicFront.status === "not_submitted") {
+      return res.status(400).json({ 
+        message: "Cannot approve: CNIC Front is not submitted" 
+      });
+    }
+
+    if (!doc.cnicBack || doc.cnicBack.status === "not_submitted") {
+      return res.status(400).json({ 
+        message: "Cannot approve: CNIC Back is not submitted" 
+      });
+    }
+
+    if (!doc.kitchenPhotos || doc.kitchenPhotos.length === 0 || 
+        doc.kitchenPhotos.every(p => p.status === "not_submitted")) {
+      return res.status(400).json({ 
+        message: "Cannot approve: At least one kitchen photo must be submitted" 
+      });
+    }
+
     const fields = [
       "cnicFront",
       "cnicBack",
@@ -211,20 +239,28 @@ export const approveAllDocuments = async (req, res) => {
       const target = doc[field];
 
       if (Array.isArray(target)) {
-        target.forEach((item) => (item.status = "approved"));
+        target.forEach((item) => {
+          if (item.status !== "not_submitted") {
+            item.status = "approved";
+            item.rejectedReason = null; // Clear any previous rejection reason
+          }
+        });
       } else {
-        if (target) target.status = "approved";
+        if (target && target.status !== "not_submitted") {
+          target.status = "approved";
+          target.rejectedReason = null; // Clear any previous rejection reason
+        }
       }
     });
 
     doc.verifiedByAdmin = req.user._id;
-doc.verifiedAt = new Date();
+    doc.verifiedAt = new Date();
 
     await doc.save();
     await updateCookVerificationStatus(cookId);
 
     return res.status(200).json({
-      message: "All documents approved",
+      message: "All submitted documents approved successfully",
       document: doc,
     });
   } catch (err) {
@@ -237,32 +273,63 @@ const updateCookVerificationStatus = async (cookId) => {
   const doc = await CookDocument.findOne({ cookId });
   if (!doc) return;
 
-  const allDocs = [
+  // Define REQUIRED documents (must be submitted and approved)
+  const requiredDocs = [
     doc.cnicFront,
     doc.cnicBack,
-    doc.sfaLicense,
-    doc.other,
-    ...doc.kitchenPhotos,
-  ].filter(Boolean);
+  ];
 
-  const statuses = allDocs.map((d) => d.status);
+  // Kitchen photos: at least one must be approved
+  const kitchenPhotos = doc.kitchenPhotos || [];
 
-  if (statuses.every((s) => s === "not_submitted")) {
+  // Check if all required docs exist and are submitted
+  const allRequiredSubmitted = requiredDocs.every(
+    (d) => d && d.status !== "not_submitted"
+  );
+
+  const hasKitchenPhoto = kitchenPhotos.length > 0 && 
+    kitchenPhotos.some((p) => p.status !== "not_submitted");
+
+  // If nothing is submitted yet
+  if (!allRequiredSubmitted && !hasKitchenPhoto) {
     await Cook.findByIdAndUpdate(cookId, { verificationStatus: "not_submitted" });
     return;
   }
 
-  if (statuses.includes("rejected")) {
+  // Check if ANY REQUIRED document is rejected
+  const anyRequiredRejected = requiredDocs.some((d) => d && d.status === "rejected");
+  const anyKitchenPhotoRejected = kitchenPhotos.some((p) => p.status === "rejected");
+
+  if (anyRequiredRejected || anyKitchenPhotoRejected) {
     await Cook.findByIdAndUpdate(cookId, { verificationStatus: "rejected" });
     return;
   }
 
-  if (statuses.includes("submitted")) {
+  // Check if any REQUIRED document is still pending
+  const anyRequiredPending = requiredDocs.some(
+    (d) => d && d.status === "submitted"
+  );
+  const anyKitchenPhotoPending = kitchenPhotos.some((p) => p.status === "submitted");
+
+  if (anyRequiredPending || anyKitchenPhotoPending) {
     await Cook.findByIdAndUpdate(cookId, { verificationStatus: "pending" });
     return;
   }
 
-  if (statuses.every((s) => s === "approved")) {
+  // Check if ALL REQUIRED documents are approved
+  const allRequiredApproved = requiredDocs.every(
+    (d) => d && d.status === "approved"
+  );
+
+  const hasApprovedKitchenPhoto = kitchenPhotos.length > 0 && 
+    kitchenPhotos.some((p) => p.status === "approved");
+
+  // ✅ APPROVED: All required docs + at least one kitchen photo approved
+  if (allRequiredApproved && hasApprovedKitchenPhoto) {
     await Cook.findByIdAndUpdate(cookId, { verificationStatus: "approved" });
+    return;
   }
+
+  // Default to pending if we can't determine
+  await Cook.findByIdAndUpdate(cookId, { verificationStatus: "pending" });
 };

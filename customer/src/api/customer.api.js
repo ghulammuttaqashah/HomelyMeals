@@ -12,6 +12,9 @@ export const requestSignupOtp = (data) =>
 export const verifySignupOtp = (data) =>
   axiosInstance.post("/customer/signup/verify", data);
 
+export const resendSignupOtp = (data) =>
+  axiosInstance.post("/customer/signup/resend", data);
+
 // Note: /customer/me endpoint doesn't exist in backend
 // User data is stored in localStorage after login
 export const getCustomerProfile = () => {

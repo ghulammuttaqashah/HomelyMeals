@@ -17,6 +17,7 @@ const cookDocumentSchema = new mongoose.Schema(
         default: "not_submitted",
       },
       uploadedAt: { type: Date, default: null },
+      rejectedReason: { type: String, default: null },
     },
 
     cnicBack: {
@@ -27,6 +28,7 @@ const cookDocumentSchema = new mongoose.Schema(
         default: "not_submitted",
       },
       uploadedAt: { type: Date, default: null },
+      rejectedReason: { type: String, default: null },
     },
 
     /** KITCHEN PHOTOS (MULTIPLE) */
@@ -39,6 +41,7 @@ const cookDocumentSchema = new mongoose.Schema(
           default: "not_submitted",
         },
         uploadedAt: { type: Date, default: null },
+        rejectedReason: { type: String, default: null },
       },
     ],
 
@@ -51,6 +54,7 @@ const cookDocumentSchema = new mongoose.Schema(
         default: "not_submitted",
       },
       uploadedAt: { type: Date, default: null },
+      rejectedReason: { type: String, default: null },
     },
 
     other: {
@@ -61,6 +65,7 @@ const cookDocumentSchema = new mongoose.Schema(
         default: "not_submitted",
       },
       uploadedAt: { type: Date, default: null },
+      rejectedReason: { type: String, default: null },
     },
 
     /** ADMIN VERIFICATION */
