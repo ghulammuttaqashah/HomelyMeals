@@ -30,7 +30,7 @@ app.get("/", (req, res) => {
 
 app.use("/api/admin", adminRoutes);
 app.use("/api/customer", customerRoutes);
-app.use("/api/cooks", cookRoutes);
+app.use("/api/cook", cookRoutes);
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
