@@ -18,7 +18,7 @@ import {
   useAuth,
 } from "../../contexts/AuthContext";
 
-const DOCUMENT_SUBMIT_URL = "http://localhost:5000/api/cooks/documents/submit";
+const DOCUMENT_SUBMIT_URL = "http://localhost:5000/api/cook/documents/submit";
 const DASHBOARD_ROUTE = "/cook/dashboard";
 
 const formatStatusLabel = (status) =>
