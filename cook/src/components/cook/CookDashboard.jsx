@@ -1,3 +1,4 @@
+// cook/src/components/cook/CookDashboard.jsx
 import { useState, useEffect } from 'react';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
@@ -10,10 +11,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { LogOut, User, MessageCircle, BarChart3, Plus, Edit, Trash2, Star, Clock, DollarSign } from 'lucide-react';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
 
+/**
+ * CookDashboard
+ *
+ * Notes on backend compatibility:
+ * - Tries to fetch meals from `GET /api/cooks/meals` (with credentials).
+ *   If backend does not implement this, it falls back to localStorage.
+ * - For add/update/delete it attempts POST/PUT/DELETE endpoints and falls back to localStorage
+ *   if the requests fail.
+ *
+ * The UI and all props are kept exactly as in your original file:
+ *   props: { user, onNavigate, onLogout, onOpenChatbot }
+ */
 export function CookDashboard({ user, onNavigate, onLogout, onOpenChatbot }) {
   const [meals, setMeals] = useState([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingMeal, setEditingMeal] = useState(null);
+  const [loading, setLoading] = useState(false);
+
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -25,44 +40,145 @@ export function CookDashboard({ user, onNavigate, onLogout, onOpenChatbot }) {
     servings: '1',
   });
 
+  // helper: cook id might be user.id or user._id depending on backend
+  const cookId = user?.id || user?._id || null;
+
   useEffect(() => {
     loadMeals();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const loadMeals = () => {
-    const storedMeals = JSON.parse(localStorage.getItem('meals') || '[]');
-    setMeals(storedMeals);
+  // Attempt to load meals from backend, fallback to localStorage
+  const loadMeals = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/cooks/meals', {
+        method: 'GET',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        // expect data.meals (adjust if your API returns different shape)
+        if (Array.isArray(data?.meals)) {
+          setMeals(data.meals);
+          // sync to localStorage too (optional)
+          localStorage.setItem('meals', JSON.stringify(data.meals));
+          setLoading(false);
+          return;
+        }
+      }
+      // If not ok / endpoint doesn't exist, fallback
+      throw new Error('Backend fetch failed or not implemented');
+    } catch (err) {
+      // fallback to localStorage
+      const storedMeals = JSON.parse(localStorage.getItem('meals') || '[]');
+      setMeals(storedMeals);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const myMeals = meals.filter(meal => meal.cookId === user.id);
+  // Filter meals for this cook
+  const myMeals = meals.filter(meal => meal.cookId === cookId);
 
-  const handleAddMeal = (e) => {
+  // Utility: try backend then fallback to localStorage for create
+  const createMeal = async (newMeal) => {
+    try {
+      const res = await fetch('/api/cooks/meals', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newMeal),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        // expect backend returns created meal
+        return data.meal || newMeal;
+      }
+      throw new Error('Create endpoint returned error');
+    } catch (err) {
+      // fallback - persist locally
+      const existing = JSON.parse(localStorage.getItem('meals') || '[]');
+      const updated = [...existing, newMeal];
+      localStorage.setItem('meals', JSON.stringify(updated));
+      return newMeal;
+    }
+  };
+
+  const updateMealBackend = async (updatedMeal) => {
+    try {
+      const res = await fetch(`/api/cooks/meals/${updatedMeal.id}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedMeal),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        return data.meal || updatedMeal;
+      }
+      throw new Error('Update endpoint returned error');
+    } catch (err) {
+      // fallback
+      const existing = JSON.parse(localStorage.getItem('meals') || '[]');
+      const updated = existing.map(m => (m.id === updatedMeal.id ? updatedMeal : m));
+      localStorage.setItem('meals', JSON.stringify(updated));
+      return updatedMeal;
+    }
+  };
+
+  const deleteMealBackend = async (mealId) => {
+    try {
+      const res = await fetch(`/api/cooks/meals/${mealId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (res.ok) return true;
+      throw new Error('Delete endpoint returned error');
+    } catch (err) {
+      const existing = JSON.parse(localStorage.getItem('meals') || '[]');
+      const updated = existing.filter(m => m.id !== mealId);
+      localStorage.setItem('meals', JSON.stringify(updated));
+      return true;
+    }
+  };
+
+  // Handlers (preserve your UI behavior)
+  const handleAddMeal = async (e) => {
     e.preventDefault();
-    
+
     const newMeal = {
       id: Date.now().toString(),
-      cookId: user.id,
-      cookName: user.name,
+      cookId,
+      cookName: user?.name || 'Chef',
       name: formData.name,
       description: formData.description,
-      price: parseFloat(formData.price),
+      price: Number(parseFloat(formData.price) || 0),
       category: formData.category,
       cuisine: formData.cuisine,
       image: formData.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400',
       rating: 0,
       prepTime: formData.prepTime,
-      servings: parseInt(formData.servings),
+      servings: parseInt(formData.servings) || 1,
       available: true,
     };
 
-    const updatedMeals = [...meals, newMeal];
-    localStorage.setItem('meals', JSON.stringify(updatedMeals));
+    // try backend, otherwise local
+    const created = await createMeal(newMeal);
+
+    // update UI
+    const updatedMeals = [...meals, created];
     setMeals(updatedMeals);
+    localStorage.setItem('meals', JSON.stringify(updatedMeals)); // keep local copy
     setIsAddDialogOpen(false);
     resetForm();
   };
 
-  const handleUpdateMeal = (e) => {
+  const handleUpdateMeal = async (e) => {
     e.preventDefault();
     if (!editingMeal) return;
 
@@ -70,48 +186,60 @@ export function CookDashboard({ user, onNavigate, onLogout, onOpenChatbot }) {
       ...editingMeal,
       name: formData.name,
       description: formData.description,
-      price: parseFloat(formData.price),
+      price: Number(parseFloat(formData.price) || 0),
       category: formData.category,
       cuisine: formData.cuisine,
       image: formData.image || editingMeal.image,
       prepTime: formData.prepTime,
-      servings: parseInt(formData.servings),
+      servings: parseInt(formData.servings) || 1,
     };
 
-    const updatedMeals = meals.map(m => m.id === editingMeal.id ? updatedMeal : m);
-    localStorage.setItem('meals', JSON.stringify(updatedMeals));
+    const resultMeal = await updateMealBackend(updatedMeal);
+
+    const updatedMeals = meals.map(m => (m.id === resultMeal.id ? resultMeal : m));
     setMeals(updatedMeals);
+    localStorage.setItem('meals', JSON.stringify(updatedMeals));
     setEditingMeal(null);
     resetForm();
   };
 
-  const handleDeleteMeal = (mealId) => {
-    if (confirm('Are you sure you want to delete this meal?')) {
-      const updatedMeals = meals.filter(m => m.id !== mealId);
-      localStorage.setItem('meals', JSON.stringify(updatedMeals));
-      setMeals(updatedMeals);
-    }
+  const handleDeleteMeal = async (mealId) => {
+    if (!confirm('Are you sure you want to delete this meal?')) return;
+    await deleteMealBackend(mealId);
+    const updatedMeals = meals.filter(m => m.id !== mealId);
+    setMeals(updatedMeals);
+    localStorage.setItem('meals', JSON.stringify(updatedMeals));
   };
 
-  const toggleAvailability = (mealId) => {
-    const updatedMeals = meals.map(m => 
+  const toggleAvailability = async (mealId) => {
+    const updatedMeals = meals.map(m =>
       m.id === mealId ? { ...m, available: !m.available } : m
     );
-    localStorage.setItem('meals', JSON.stringify(updatedMeals));
+
+    // optimistic update locally
     setMeals(updatedMeals);
+    localStorage.setItem('meals', JSON.stringify(updatedMeals));
+
+    // try updating backend (PUT)
+    const target = updatedMeals.find(m => m.id === mealId);
+    try {
+      await updateMealBackend(target);
+    } catch (err) {
+      // already persisted locally as fallback
+    }
   };
 
   const startEditing = (meal) => {
     setEditingMeal(meal);
     setFormData({
-      name: meal.name,
-      description: meal.description,
-      price: meal.price.toString(),
-      category: meal.category,
-      cuisine: meal.cuisine,
-      image: meal.image,
-      prepTime: meal.prepTime,
-      servings: meal.servings.toString(),
+      name: meal.name || '',
+      description: meal.description || '',
+      price: (meal.price ?? '').toString(),
+      category: meal.category || 'Main Course',
+      cuisine: meal.cuisine || '',
+      image: meal.image || '',
+      prepTime: meal.prepTime || '',
+      servings: (meal.servings ?? 1).toString(),
     });
   };
 
@@ -128,6 +256,7 @@ export function CookDashboard({ user, onNavigate, onLogout, onOpenChatbot }) {
     });
   };
 
+  // render (kept identical to your UI)
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-orange-50">
       {/* Header */}
@@ -136,13 +265,13 @@ export function CookDashboard({ user, onNavigate, onLogout, onOpenChatbot }) {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-green-600">Cook Dashboard</h1>
-              <p className="text-gray-600">Welcome, Chef {user.name}!</p>
+              <p className="text-gray-600">Welcome, Chef {user?.name || 'Chef'}!</p>
             </div>
             <div className="flex gap-2">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => onNavigate('sentiment')}
+                onClick={() => onNavigate?.('sentiment')}
               >
                 <BarChart3 className="w-4 h-4 mr-2" />
                 Sentiment
@@ -150,7 +279,7 @@ export function CookDashboard({ user, onNavigate, onLogout, onOpenChatbot }) {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={onOpenChatbot}
+                onClick={() => onOpenChatbot?.()}
               >
                 <MessageCircle className="w-4 h-4 mr-2" />
                 Chat
@@ -158,7 +287,7 @@ export function CookDashboard({ user, onNavigate, onLogout, onOpenChatbot }) {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => onNavigate('profile')}
+                onClick={() => onNavigate?.('profile')}
               >
                 <User className="w-4 h-4 mr-2" />
                 Profile
@@ -166,7 +295,7 @@ export function CookDashboard({ user, onNavigate, onLogout, onOpenChatbot }) {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={onLogout}
+                onClick={() => onLogout?.()}
               >
                 <LogOut className="w-4 h-4 mr-2" />
                 Logout
@@ -198,8 +327,8 @@ export function CookDashboard({ user, onNavigate, onLogout, onOpenChatbot }) {
             <CardHeader className="pb-3">
               <CardDescription>Avg Rating</CardDescription>
               <CardTitle className="text-yellow-600">
-                {myMeals.length > 0 
-                  ? (myMeals.reduce((acc, m) => acc + m.rating, 0) / myMeals.length).toFixed(1)
+                {myMeals.length > 0
+                  ? (myMeals.reduce((acc, m) => acc + (m.rating || 0), 0) / myMeals.length).toFixed(1)
                   : '0.0'} ★
               </CardTitle>
             </CardHeader>
@@ -208,19 +337,19 @@ export function CookDashboard({ user, onNavigate, onLogout, onOpenChatbot }) {
             <CardHeader className="pb-3">
               <CardDescription>Total Revenue</CardDescription>
               <CardTitle className="text-orange-600">
-                ${myMeals.reduce((acc, m) => acc + m.price, 0).toFixed(2)}
+                ${myMeals.reduce((acc, m) => acc + (m.price || 0), 0).toFixed(2)}
               </CardTitle>
             </CardHeader>
           </Card>
         </div>
 
-        {/* My Meals Section */}  
+        {/* My Meals Section */}
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-gray-800">My Meals ({myMeals.length})</h2>
 
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-green-600 hover:bg-green-700" onClick={() => resetForm()}>
+              <Button className="bg-green-600 hover:bg-green-700" onClick={() => { resetForm(); setIsAddDialogOpen(true); }}>
                 <Plus className="w-4 h-4 mr-2" />
                 Add New Meal
               </Button>
@@ -398,7 +527,7 @@ export function CookDashboard({ user, onNavigate, onLogout, onOpenChatbot }) {
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-1">
                       <DollarSign className="w-5 h-5 text-green-600" />
-                      <span className="text-green-600">{meal.price.toFixed(2)}</span>
+                      <span className="text-green-600">{(meal.price || 0).toFixed(2)}</span>
                     </div>
 
                     <Badge variant="outline" className="text-xs">
@@ -563,3 +692,5 @@ export function CookDashboard({ user, onNavigate, onLogout, onOpenChatbot }) {
     </div>
   );
 }
+
+export default CookDashboard;

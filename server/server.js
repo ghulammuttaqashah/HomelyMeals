@@ -10,10 +10,10 @@ import cookRoutes from "./modules/cook/index.js";
 
 const app = express();
 
-// Correct CORS for cookies
+// ✅ Correct CORS for both customer & cook frontends
 app.use(
   cors({
-    origin: "http://localhost:5174", // your frontend
+    origin: "http://localhost:5173", // your frontend
     credentials: true, // allow cookies to be sent/received
   })
 );

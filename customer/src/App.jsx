@@ -10,6 +10,7 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 import LoginPage from "./components/auth/LoginPage";
 import SignupPage from "./components/auth/SignupPage";
 
+import { LandingPage } from "./components/LandingPage";
 import { CustomerDashboard } from "./components/customer/CustomerDashboard";
 import { CustomerProfile } from "./components/customer/CustomerProfile";
 
@@ -33,6 +34,7 @@ function App() {
   return (
     <Routes>
       {/* PUBLIC ROUTES */}
+      <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
 
@@ -74,7 +76,6 @@ function App() {
       />
 
       {/* DEFAULT ROUTES */}
-      <Route path="/" element={<Navigate to="/customer/dashboard" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

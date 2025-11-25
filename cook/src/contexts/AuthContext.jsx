@@ -1,54 +1,144 @@
-// src/contexts/AuthContext.jsx
-import React, { createContext, useEffect, useState } from "react";
-import axios from "axios";
-
-import { getCookie, setCookie, removeCookie } from "../utils/cookies";
-
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import { cookSignIn, cookSignOut } from "../api/cook.api";
 
 export const AuthContext = createContext();
 
-const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+const STORAGE_KEY = "cook";
 
-  // ✅ Check login status on mount
-  useEffect(() => {
-    const checkAuth = async () => {
-      const token = getCookie("token");
-      if (token) {
-        try {
-          const res = await axios.get("/api/customer/me", { withCredentials: true });
-          setUser(res.data.customer || res.data); // make sure structure matches backend
-        } catch {
-          setUser(null);
-        }
-      }
-      setLoading(false);
-    };
+// --- Verification helpers shared across cook flows ---
+export const normalizeVerificationStatus = (status) => {
+  if (!status) return "not_submitted";
 
-    checkAuth();
-  }, []);
+  const normalized = String(status).toLowerCase();
 
-  // ✅ Login function
-  const login = async (formData) => {
-    const res = await axios.post("/api/customer/signin", formData, { withCredentials: true });
-    setUser(res.data.customer);
-    // token is HttpOnly — backend sets it; frontend can just note existence
-    setCookie("token", "present"); 
-  };
+  if (normalized === "not_started") return "not_submitted";
+  if (normalized === "submitted") return "pending";
+  if (normalized === "verified") return "approved";
 
-  // ✅ Logout function
-  const logout = async () => {
-    await axios.post("/api/customer/signout", {}, { withCredentials: true });
-    setUser(null);
-    removeCookie("token");
-  };
-
-  return (
-    <AuthContext.Provider value={{ user, login, logout, loading, setUser }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return normalized;
 };
 
-export default AuthProvider;
+export const resolveCookRoute = (status) => {
+  const normalized = normalizeVerificationStatus(status);
+  return normalized === "approved" ? "/cook/dashboard" : "/cook/documents";
+};
+
+const readCachedCook = () => {
+  const cached = localStorage.getItem(STORAGE_KEY);
+  if (!cached) return null;
+
+  try {
+    return JSON.parse(cached);
+  } catch {
+    return null;
+  }
+};
+
+const enrichCookProfile = (cook) => {
+  if (!cook) return null;
+  const verificationStatusNormalized = normalizeVerificationStatus(
+    cook.verificationStatus || cook.verificationStatusNormalized
+  );
+
+  return {
+    ...cook,
+    verificationStatusNormalized,
+  };
+};
+
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(() => {
+    const cached = readCachedCook();
+    return cached ? enrichCookProfile(cached) : null;
+  });
+  const [loading, setLoading] = useState(true);
+
+  const persistUser = useCallback((cook) => {
+    const enriched = enrichCookProfile(cook);
+
+    if (enriched) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(enriched));
+    } else {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+    setUser(enriched);
+  }, []);
+
+  const fetchSession = useCallback(async () => {
+    const cached = readCachedCook();
+
+    if (!cached) {
+      persistUser(null);
+      return null;
+    }
+
+    persistUser(cached);
+    return enrichCookProfile(cached);
+  }, [persistUser]);
+
+  useEffect(() => {
+    fetchSession().finally(() => setLoading(false));
+  }, [fetchSession]);
+
+  const login = useCallback(
+    async (email, password) => {
+      const { data } = await cookSignIn({ email, password });
+      const profile = enrichCookProfile(data?.cook ?? null);
+      persistUser(profile);
+      return profile;
+    },
+    [persistUser]
+  );
+
+  const logout = useCallback(async () => {
+    try {
+      await cookSignOut();
+    } catch (err) {
+      console.warn("Cook logout warning:", err?.message || err);
+    } finally {
+      persistUser(null);
+    }
+  }, [persistUser]);
+
+  const updateVerificationStatus = useCallback((nextStatus) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+
+      const merged = {
+        ...prev,
+        verificationStatus: nextStatus,
+      };
+
+      const enriched = enrichCookProfile(merged);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(enriched));
+
+      return enriched;
+    });
+  }, []);
+
+  const value = useMemo(
+    () => ({
+      user,
+      loading,
+      login,
+      logout,
+      refreshSession: fetchSession,
+      updateVerificationStatus,
+      resolveCookRoute,
+    }),
+    [user, loading, login, logout, fetchSession, updateVerificationStatus]
+  );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth() {
+  return useContext(AuthContext);
+}
