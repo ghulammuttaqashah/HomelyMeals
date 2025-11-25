@@ -12,17 +12,20 @@ export const protect = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded; 
+
+    // Only attach ID — nothing else
+    req.user = {
+      _id: decoded.id || decoded._id,   // normalize ID
+    };
+
     next();
   } catch (err) {
-    // ⏳ If token expired
     if (err.name === "TokenExpiredError") {
       return res.status(401).json({
-        message: "Session expired. Please sign in again."
+        message: "Session expired. Please sign in again.",
       });
     }
 
-    // ❌ Any other token error
     return res.status(401).json({ message: "Invalid token" });
   }
 };

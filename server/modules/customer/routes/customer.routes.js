@@ -3,7 +3,7 @@ import {
   signupRequest,
   verifyOtpAndCreateAccount,
   signIn,
-  signOut
+  signOut,getAllMealsForCustomer
 } from "../controllers/customer.controller.js";
 import { protect } from "../../../shared/middleware/auth.js"; // optional if you need protected routes
 
@@ -19,6 +19,7 @@ router.post("/signup/verify", verifyOtpAndCreateAccount);
 router.post("/signin", signIn);
 
 // STEP 4: Sign-out (clears cookie)
-router.post("/signout", protect, signOut); // can protect or leave open — up to you
+router.post("/signout", protect, signOut); 
+router.get("/meals",protect, getAllMealsForCustomer);// can protect or leave open — up to you
 
 export default router;

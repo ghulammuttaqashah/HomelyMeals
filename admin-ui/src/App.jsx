@@ -4,9 +4,10 @@ import Login from './pages/Login'
 import Otp from './pages/Otp'
 import Dashboard from './pages/Dashboard'
 import Customers from './pages/Customers'
-import Cooks from './pages/Cooks'
-import CookStatus from './pages/CookStatus'
-import CookVerification from './pages/CookVerification'
+import Cooks from './pages/cooks'
+import CookStatus from './pages/cooks/status'
+import CookVerification from './pages/cooks/verification'
+import CookDocumentViewer from './pages/cooks/verification/ViewDocuments'
 import { AuthProvider } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 
@@ -54,6 +55,14 @@ const App = () => {
             element={
               <ProtectedRoute>
                 <CookVerification />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/cooks/verification/:cookId"
+            element={
+              <ProtectedRoute>
+                <CookDocumentViewer />
               </ProtectedRoute>
             }
           />

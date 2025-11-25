@@ -1,25 +1,25 @@
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
-import ProtectedLayout from '../components/ProtectedLayout'
-import { getCustomers, updateCustomerStatus } from '../api/customers'
-import Loader from '../components/Loader'
-import ProgressBar from '../components/ProgressBar'
-import BackButton from '../components/BackButton'
-import SuspensionModal from '../components/SuspensionModal'
-import StatusManagementTable from '../components/StatusManagementTable'
+import ProtectedLayout from '../../../components/ProtectedLayout'
+import { getCooks, updateCookStatus } from '../../../api/cooks'
+import Loader from '../../../components/Loader'
+import ProgressBar from '../../../components/ProgressBar'
+import BackButton from '../../../components/BackButton'
+import SuspensionModal from '../../../components/SuspensionModal'
+import StatusManagementTable from '../../../components/StatusManagementTable'
 
-const Customers = () => {
-  const [customers, setCustomers] = useState([])
+const CookStatus = () => {
+  const [cooks, setCooks] = useState([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const [modalState, setModalState] = useState({ open: false, customer: null })
+  const [modalState, setModalState] = useState({ open: false, cook: null })
   const [reason, setReason] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [updatingId, setUpdatingId] = useState(null)
   const [error, setError] = useState(null)
   const [retryCount, setRetryCount] = useState(0)
 
-  const fetchCustomers = async (showRefreshing = false) => {
+  const fetchCooks = async (showRefreshing = false) => {
     if (showRefreshing) {
       setRefreshing(true)
     } else {
@@ -28,11 +28,11 @@ const Customers = () => {
     setError(null)
     
     try {
-      const data = await getCustomers()
-      setCustomers(Array.isArray(data) ? data : data?.customers || [])
+      const data = await getCooks()
+      setCooks(Array.isArray(data) ? data : data?.cooks || [])
       setRetryCount(0)
     } catch (error) {
-      const message = error.response?.data?.message || 'Failed to load customers'
+      const message = error.response?.data?.message || 'Failed to load cooks'
       setError(message)
       if (!showRefreshing) {
         toast.error(message)
@@ -44,54 +44,53 @@ const Customers = () => {
   }
 
   useEffect(() => {
-    fetchCustomers()
+    fetchCooks()
   }, [])
 
   const handleRetry = () => {
     setRetryCount((prev) => prev + 1)
-    fetchCustomers()
+    fetchCooks()
   }
 
-  const openModal = (customer) => {
+  const openModal = (cook) => {
     setReason('')
-    setModalState({ open: true, customer })
+    setModalState({ open: true, cook })
   }
 
   const closeModal = () => {
-    setModalState({ open: false, customer: null })
+    setModalState({ open: false, cook: null })
   }
 
-  const handleStatusChange = async (customer, action) => {
-    const customerId = customer._id || customer.id
-    if (!customerId) {
-      toast.error('Customer ID is missing')
+  const handleStatusChange = async (cook, action) => {
+    const cookId = cook._id || cook.id
+    if (!cookId) {
+      toast.error('Cook ID is missing')
       return
     }
     const desiredStatus = action === 'suspend' ? 'suspended' : 'active'
     const payload = { status: desiredStatus }
     if (desiredStatus === 'suspended') {
-      openModal(customer)
+      openModal(cook)
       return
     }
     
     // Optimistic update
-    const previousCustomers = [...customers]
-    setCustomers((prev) =>
+    const previousCooks = [...cooks]
+    setCooks((prev) =>
       prev.map((c) => {
         const id = c._id || c.id
-        return id === customerId ? { ...c, status: desiredStatus, statusReason: null } : c
+        return id === cookId ? { ...c, status: desiredStatus, statusReason: null } : c
       })
     )
     
-    setUpdatingId(customerId)
+    setUpdatingId(cookId)
     try {
-      await updateCustomerStatus(customerId, payload)
-      toast.success(`Customer ${desiredStatus}`)
-      // Refresh to ensure consistency
-      fetchCustomers(true)
+      await updateCookStatus(cookId, payload)
+      toast.success(`Cook ${desiredStatus}`)
+      fetchCooks(true)
     } catch (error) {
       // Revert optimistic update
-      setCustomers(previousCustomers)
+      setCooks(previousCooks)
       const message = error.response?.data?.message || 'Update failed'
       toast.error(message)
     } finally {
@@ -100,36 +99,36 @@ const Customers = () => {
   }
 
   const confirmSuspension = async () => {
-    if (!modalState.customer) return
-    const customerId = modalState.customer._id || modalState.customer.id
-    if (!customerId) {
-      toast.error('Customer ID is missing')
+    if (!modalState.cook) return
+    const cookId = modalState.cook._id || modalState.cook.id
+    if (!cookId) {
+      toast.error('Cook ID is missing')
       closeModal()
       return
     }
     
     // Optimistic update
-    const previousCustomers = [...customers]
-    setCustomers((prev) =>
+    const previousCooks = [...cooks]
+    setCooks((prev) =>
       prev.map((c) => {
         const id = c._id || c.id
-        return id === customerId ? { ...c, status: 'suspended', statusReason: reason } : c
+        return id === cookId ? { ...c, status: 'suspended', statusReason: reason } : c
       })
     )
     closeModal()
     
     setSubmitting(true)
     try {
-      await updateCustomerStatus(customerId, { status: 'suspended', reason })
-      toast.success('Customer suspended')
-      fetchCustomers(true)
+      await updateCookStatus(cookId, { status: 'suspended', reason })
+      toast.success('Cook suspended')
+      fetchCooks(true)
     } catch (error) {
       // Revert optimistic update
-      setCustomers(previousCustomers)
-      const message = error.response?.data?.message || 'Unable to suspend customer'
+      setCooks(previousCooks)
+      const message = error.response?.data?.message || 'Unable to suspend cook'
       toast.error(message)
       // Reopen modal on error
-      openModal(modalState.customer)
+      openModal(modalState.cook)
     } finally {
       setSubmitting(false)
     }
@@ -138,19 +137,19 @@ const Customers = () => {
 
 
   return (
-    <ProtectedLayout title="Customers">
+    <ProtectedLayout title="Manage Cook Status">
       <ProgressBar isLoading={loading || refreshing} />
       <div className="rounded-lg bg-white shadow-sm border border-gray-200">
         <div className="border-b border-gray-200 bg-gray-50 px-6 py-4">
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-3">
               <BackButton />
-              <p className="text-sm font-medium text-gray-600">Manage customer access levels</p>
+              <p className="text-sm font-medium text-gray-600">Manage cook account status</p>
             </div>
             {!loading && (
               <button
                 type="button"
-                onClick={() => fetchCustomers(true)}
+                onClick={() => fetchCooks(true)}
                 disabled={refreshing}
                 className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
               >
@@ -172,16 +171,16 @@ const Customers = () => {
           </div>
         </div>
         <StatusManagementTable
-          data={customers}
+          data={cooks}
           loading={loading}
           error={error}
           updatingId={updatingId}
           onStatusChange={handleStatusChange}
           onRetry={handleRetry}
           retryCount={retryCount}
-          entityType="customer"
+          entityType="cook"
         />
-        {refreshing && !loading && customers.length > 0 && (
+        {refreshing && !loading && cooks.length > 0 && (
           <div className="border-t border-slate-100 bg-slate-50/50 px-6 py-3 text-center">
             <div className="flex items-center justify-center gap-2 text-xs text-slate-500">
               <Loader size="sm" />
@@ -193,8 +192,8 @@ const Customers = () => {
 
       <SuspensionModal
         isOpen={modalState.open}
-        entityName={modalState.customer?.name}
-        entityType="customer"
+        entityName={modalState.cook?.name}
+        entityType="cook"
         reason={reason}
         onReasonChange={setReason}
         onConfirm={confirmSuspension}
@@ -205,4 +204,4 @@ const Customers = () => {
   )
 }
 
-export default Customers
+export default CookStatus

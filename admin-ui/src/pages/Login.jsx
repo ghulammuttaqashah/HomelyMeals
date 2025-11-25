@@ -40,12 +40,12 @@ const Login = () => {
     <div className="flex min-h-screen flex-col bg-gradient-to-br from-slate-50 via-white to-slate-100">
       <Header showNav={false} />
       <div className="flex flex-1 items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="rounded-2xl bg-white p-8 shadow-xl ring-1 ring-slate-200/50 transition-all hover:shadow-2xl">
+        <div className="w-full max-w-md">
+          <div className="rounded-lg bg-white p-8 shadow-sm border border-gray-200">
             <div className="mb-8 text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-brand-100">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-orange-100">
                 <svg
-                  className="h-8 w-8 text-brand-600"
+                  className="h-8 w-8 text-orange-600"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -58,14 +58,14 @@ const Login = () => {
                   />
                 </svg>
               </div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-brand-600">Admin Portal</p>
-              <h1 className="mt-3 text-2xl font-bold text-slate-900">Sign in to continue</h1>
-              <p className="mt-2 text-sm text-slate-500">Enter your credentials to receive OTP</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-orange-600">Admin Portal</p>
+              <h1 className="mt-3 text-2xl font-bold text-orange-600">Sign in to continue</h1>
+              <p className="mt-2 text-sm text-gray-600">Enter your credentials to receive OTP</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
-                <label htmlFor="email" className="block text-sm font-medium text-slate-700">
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                   Email address
                 </label>
                 <div className="relative">
@@ -76,7 +76,7 @@ const Login = () => {
                     required
                     value={formData.email}
                     onChange={handleChange}
-                    className="w-full rounded-xl border-2 border-slate-200 bg-slate-50 px-4 py-3 text-sm transition-all focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-brand-100"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
                     placeholder="admin@example.com"
                   />
                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
@@ -98,7 +98,7 @@ const Login = () => {
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="password" className="block text-sm font-medium text-slate-700">
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                   Password
                 </label>
                 <div className="relative">
@@ -109,7 +109,7 @@ const Login = () => {
                     required
                     value={formData.password}
                     onChange={handleChange}
-                    className="w-full rounded-xl border-2 border-slate-200 bg-slate-50 px-4 py-3 pr-12 text-sm transition-all focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-brand-100"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 pr-12 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
                     placeholder="Enter your password"
                   />
                   <button
@@ -149,9 +149,9 @@ const Login = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="group relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-brand-600 to-brand-700 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-brand-500/30 transition-all hover:from-brand-700 hover:to-brand-800 hover:shadow-xl hover:shadow-brand-500/40 focus:outline-none focus:ring-4 focus:ring-brand-200 disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full rounded-lg bg-orange-600 px-6 py-3.5 text-sm font-semibold text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <span className="relative z-10 flex items-center justify-center gap-2">
+                <span className="flex items-center justify-center gap-2">
                   {loading ? (
                     <>
                       <Loader size="sm" className="text-white" />
@@ -161,7 +161,6 @@ const Login = () => {
                     'Send OTP'
                   )}
                 </span>
-                <div className="absolute inset-0 bg-gradient-to-r from-brand-700 to-brand-800 opacity-0 transition-opacity group-hover:opacity-100" />
               </button>
             </form>
           </div>

@@ -133,12 +133,12 @@ const Otp = () => {
     <div className="flex min-h-screen flex-col bg-gradient-to-br from-slate-50 via-white to-slate-100">
       <Header showNav={false} />
       <div className="flex flex-1 items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="rounded-2xl bg-white p-8 shadow-xl ring-1 ring-slate-200/50 transition-all hover:shadow-2xl">
+        <div className="w-full max-w-md">
+          <div className="rounded-lg bg-white p-8 shadow-sm border border-gray-200">
             <div className="mb-8 text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-brand-100">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-orange-100">
                 <svg
-                  className="h-8 w-8 text-brand-600"
+                  className="h-8 w-8 text-orange-600"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -151,18 +151,18 @@ const Otp = () => {
                   />
                 </svg>
               </div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-brand-600">Verify OTP</p>
-              <h1 className="mt-3 text-2xl font-bold text-slate-900">Check your inbox</h1>
+              <p className="text-xs font-semibold uppercase tracking-wider text-orange-600">Verify OTP</p>
+              <h1 className="mt-3 text-2xl font-bold text-orange-600">Check your inbox</h1>
               {pendingEmail && (
-                <p className="mt-2 text-sm text-slate-500">
-                  We sent a 6-digit code to <span className="font-medium text-slate-700">{pendingEmail}</span>
+                <p className="mt-2 text-sm text-gray-600">
+                  We sent a 6-digit code to <span className="font-medium text-gray-900">{pendingEmail}</span>
                 </p>
               )}
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <label htmlFor="otp-inputs" className="mb-3 block text-sm font-medium text-slate-700">
+                <label htmlFor="otp-inputs" className="mb-3 block text-sm font-medium text-gray-700">
                   Enter verification code
                 </label>
                 <div
@@ -180,7 +180,7 @@ const Otp = () => {
                       value={digit}
                       onChange={(e) => handleChange(index, e.target.value)}
                       onKeyDown={(e) => handleKeyDown(index, e)}
-                      className="h-14 w-full rounded-xl border-2 border-slate-200 bg-slate-50 text-center text-2xl font-bold text-slate-900 transition-all focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-brand-100 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="h-14 w-full rounded-lg border border-gray-300 bg-white text-center text-2xl font-bold text-gray-900 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:cursor-not-allowed disabled:opacity-50"
                       disabled={loading}
                     />
                   ))}
@@ -190,9 +190,9 @@ const Otp = () => {
               <button
                 type="submit"
                 disabled={loading || otp.join('').length !== 6}
-                className="group relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-brand-600 to-brand-700 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-brand-500/30 transition-all hover:from-brand-700 hover:to-brand-800 hover:shadow-xl hover:shadow-brand-500/40 focus:outline-none focus:ring-4 focus:ring-brand-200 disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full rounded-lg bg-orange-600 px-6 py-3.5 text-sm font-semibold text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <span className="relative z-10 flex items-center justify-center gap-2">
+                <span className="flex items-center justify-center gap-2">
                   {loading ? (
                     <>
                       <Loader size="sm" className="text-white" />
@@ -202,17 +202,16 @@ const Otp = () => {
                     'Verify & Continue'
                   )}
                 </span>
-                <div className="absolute inset-0 bg-gradient-to-r from-brand-700 to-brand-800 opacity-0 transition-opacity group-hover:opacity-100" />
               </button>
             </form>
 
             <div className="mt-6 text-center">
-              <p className="mb-3 text-sm text-slate-500">Didn't receive the code?</p>
+              <p className="mb-3 text-sm text-gray-600">Didn't receive the code?</p>
               <button
                 type="button"
                 onClick={handleResend}
                 disabled={resending || loading}
-                className="text-sm font-semibold text-brand-600 transition-colors hover:text-brand-700 disabled:cursor-not-allowed disabled:text-slate-400"
+                className="text-sm font-semibold text-orange-600 disabled:cursor-not-allowed disabled:text-gray-400"
               >
                 {resending ? (
                   <span className="flex items-center justify-center gap-2">

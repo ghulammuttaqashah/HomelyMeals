@@ -190,3 +190,42 @@ export const signOut = async (req, res) => {
 };
 
 
+import Meal from "../../cook/models/cookMeal.model.js";
+import {Cook} from "../../cook/models/cook.model.js";
+
+// Get all meals for customers (with cook name)
+export const getAllMealsForCustomer = async (req, res) => {
+  try {
+    // Populate cook info (only name)
+    const meals = await Meal.find()
+      .populate({
+        path: "cookId",
+        select: "name",   // or select: "fullName"
+      })
+      .sort({ createdAt: -1 });
+
+    const formatted = meals.map(m => ({
+      mealId: m._id,
+      name: m.name,
+      description: m.description,
+      price: m.price,
+      category: m.category,
+      availability: m.availability,
+      itemImage: m.itemImage,
+      cookName: m.cookId?.name || "Unknown Cook",
+      createdAt: m.createdAt,
+    }));
+
+    res.status(200).json({
+      success: true,
+      count: formatted.length,
+      meals: formatted
+    });
+  } catch (error) {
+    console.error("Get meals error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch meals",
+    });
+  }
+};

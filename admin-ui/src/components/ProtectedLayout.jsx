@@ -12,7 +12,7 @@ const ProtectedLayout = ({ children, title }) => {
       <Header showNav={true} />
       <main className="mx-auto flex-1 w-full max-w-7xl px-4 py-8 lg:px-6">
         {title && (
-          <h2 className="mb-6 text-3xl font-bold text-slate-900 animate-in fade-in slide-in-from-top-2 duration-300">
+          <h2 className="mb-6 text-3xl font-bold text-orange-600">
             {title}
           </h2>
         )}
