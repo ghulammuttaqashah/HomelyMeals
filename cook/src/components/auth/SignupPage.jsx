@@ -201,7 +201,7 @@ function SignupPage() {
                   <p>
                     Please switch to the customer app:{" "}
                     <a
-                      href="http://localhost:5173/signup"
+                      href="http://localhost:5174/signup"
                       className="text-orange-600 underline"
                     >
                       Go to Customer Portal
@@ -423,7 +423,7 @@ function SignupPage() {
               </button>
               <div>
                 <button
-                  onClick={() => window.location.href = "http://localhost:5173/"}
+                  onClick={() => window.location.href = "http://localhost:5174/"}
                   className="text-sm text-gray-500 hover:text-gray-700 underline"
                 >
                   Back to Home

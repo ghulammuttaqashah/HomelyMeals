@@ -387,7 +387,7 @@ export function SignupPage() {
                   <p>
                     Please use the dedicated cook app:{" "}
                     <a
-                      href="http://localhost:5174/signup"
+                      href="http://localhost:5175/signup"
                       className="text-green-700 underline"
                     >
                       Go to Cook Portal

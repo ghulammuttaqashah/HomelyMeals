@@ -125,7 +125,7 @@ function LoginPage() {
                     Looking for the customer experience?
                     <br />
                     <a
-                      href="http://localhost:5173/login"
+                      href="http://localhost:5174/login"
                       className="text-orange-600 underline"
                     >
                       Go to Customer Portal
@@ -199,7 +199,7 @@ function LoginPage() {
                 </button>
               </p>
               <button
-                onClick={() => (window.location.href = "http://localhost:5173/")}
+                onClick={() => (window.location.href = "http://localhost:5174/")}
                 className="text-sm text-gray-500 hover:text-gray-700 underline"
               >
                 Back to Home
