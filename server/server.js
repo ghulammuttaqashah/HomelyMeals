@@ -10,11 +10,25 @@ import cookRoutes from "./modules/cook/index.js";
 
 const app = express();
 
-// ✅ Correct CORS for both customer & cook frontends
+// ✅ FIXED: Allow BOTH customer (5173) and cook (5174)
+const allowedOrigins = [
+  "http://localhost:5173",  // customer frontend
+  "http://localhost:5174",  // cook frontend
+  "http://localhost:5175",  // admin frontend (if you use it)
+];
+
 app.use(
   cors({
-    origin: "http://localhost:5173", // your frontend
-    credentials: true, // allow cookies to be sent/received
+    origin: function (origin, callback) {
+      // allow requests with no origin (e.g. mobile apps or curl)
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.log("❌ CORS blocked:", origin);
+        callback(new Error("CORS blocked"));
+      }
+    },
+    credentials: true, // allow cookies/token
   })
 );
 
@@ -28,10 +42,12 @@ app.get("/", (req, res) => {
   res.send("Homely Meals API is working!");
 });
 
+// Routes
 app.use("/api/admin", adminRoutes);
 app.use("/api/customer", customerRoutes);
 app.use("/api/cook", cookRoutes);
 
+// Start Server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });

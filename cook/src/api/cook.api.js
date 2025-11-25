@@ -2,7 +2,7 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "http://localhost:5000/api/cooks/auth", // <-- matches backend mounting: /api/cooks -> router.use("/auth", ...)
+  baseURL: "http://localhost:5000/api/cook/auth", // <-- matches backend mounting: /api/cooks -> router.use("/auth", ...)
   withCredentials: true,
 });
 

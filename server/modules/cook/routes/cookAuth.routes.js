@@ -16,7 +16,7 @@ router.post("/signup/verify", verifyOtpAndCreateAccount);
 // Step 3: Login
 router.post("/signin", cookSignin);
 
-// Step 4: Logout
-router.post("/signout", protect, cookSignout);
+// Step 4: Logout (no auth required to allow cleanup)
+router.post("/signout", cookSignout);
 
 export default router;

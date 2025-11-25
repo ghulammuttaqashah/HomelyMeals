@@ -18,8 +18,10 @@ router.post("/signup/verify", verifyOtpAndCreateAccount);
 // STEP 3: Sign-in (sets JWT cookie)
 router.post("/signin", signIn);
 
-// STEP 4: Sign-out (clears cookie)
-router.post("/signout", protect, signOut); 
-router.get("/meals",protect, getAllMealsForCustomer);// can protect or leave open — up to you
+// STEP 4: Sign-out (clears cookie - no auth required to allow cleanup)
+router.post("/signout", signOut); 
+
+// Get all meals (public endpoint - no authentication required)
+router.get("/meals", getAllMealsForCustomer);
 
 export default router;

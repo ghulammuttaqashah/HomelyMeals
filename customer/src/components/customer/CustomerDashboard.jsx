@@ -6,8 +6,8 @@ import { Input } from '../ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { LogOut, User, MessageCircle, BarChart3, Search, Star, Clock, DollarSign, ChefHat } from 'lucide-react';
-import { ImageWithFallback } from '../figma/ImageWithFallback';
+import { LogOut, User, MessageCircle, BarChart3, Star, ChefHat, Search } from 'lucide-react';
+import { ImageWithFallback } from '../ui/image-with-fallback';
 
 export function CustomerDashboard({ user, onLogout }) {
   const navigate = useNavigate();
@@ -15,47 +15,69 @@ export function CustomerDashboard({ user, onLogout }) {
   const [meals, setMeals] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
-  const [cuisineFilter, setCuisineFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('name');
+  const [sortBy, setSortBy] = useState('price-low');
 
   useEffect(() => {
-    const storedMeals = localStorage.getItem('meals');
-    if (!storedMeals) {
-      const mockMeals = [
-        // ... your mock data (unchanged) ...
-      ];
-      localStorage.setItem('meals', JSON.stringify(mockMeals));
-      setMeals(mockMeals);
-    } else {
-      setMeals(JSON.parse(storedMeals));
-    }
+    // Load meals from database via API
+    const loadMealsFromAPI = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/customer/meals', {
+          method: 'GET',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Customer Dashboard: Loaded meals from API:', data); // Debug
+          if (data.success && Array.isArray(data.meals)) {
+            setMeals(data.meals);
+          } else {
+            console.log('Customer Dashboard: Invalid response format'); // Debug
+            setMeals([]);
+          }
+        } else {
+          console.error('Customer Dashboard: Failed to load meals, status:', response.status);
+          setMeals([]);
+        }
+      } catch (error) {
+        console.error('Customer Dashboard: Error loading meals:', error);
+        setMeals([]);
+      }
+    };
+    
+    loadMealsFromAPI();
   }, []);
 
+  // Filter and sort meals
   const filteredMeals = meals
     .filter(meal => {
-      const matchesSearch =
-        meal.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        meal.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        meal.cookName.toLowerCase().includes(searchQuery.toLowerCase());
+      // Search filter
+      const matchesSearch = searchQuery === '' || 
+        meal.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        meal.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        meal.category?.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      // Category filter
       const matchesCategory = categoryFilter === 'all' || meal.category === categoryFilter;
-      const matchesCuisine = cuisineFilter === 'all' || meal.cuisine === cuisineFilter;
-      return matchesSearch && matchesCategory && matchesCuisine && meal.available;
+      
+      // Availability filter
+      const isAvailable = meal.availability === 'Available';
+      
+      return matchesSearch && matchesCategory && isAvailable;
     })
     .sort((a, b) => {
       switch (sortBy) {
         case 'price-low':
-          return a.price - b.price;
+          return (a.price || 0) - (b.price || 0);
         case 'price-high':
-          return b.price - a.price;
-        case 'rating':
-          return b.rating - a.rating;
+          return (b.price || 0) - (a.price || 0);
         default:
-          return a.name.localeCompare(b.name);
+          return (a.price || 0) - (b.price || 0);
       }
     });
 
-  const categories = ['all', ...Array.from(new Set(meals.map(m => m.category)))];
-  const cuisines = ['all', ...Array.from(new Set(meals.map(m => m.cuisine)))];
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-green-50">
@@ -67,15 +89,15 @@ export function CustomerDashboard({ user, onLogout }) {
               <p className="text-gray-600">Welcome back, {user?.name}!</p>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => navigate('/sentiment')}>
+              <Button variant="outline" size="sm" disabled className="cursor-not-allowed opacity-60">
                 <BarChart3 className="w-4 h-4 mr-2" />
-                Sentiment
+                Sentiment Analysis
               </Button>
-              <Button variant="outline" size="sm" onClick={() => navigate('/chatbot')}>
+              <Button variant="outline" size="sm" disabled className="cursor-not-allowed opacity-60">
                 <MessageCircle className="w-4 h-4 mr-2" />
                 Chat
               </Button>
-              <Button variant="outline" size="sm" onClick={() => navigate('/customer/profile')}>
+              <Button variant="outline" size="sm" disabled className="cursor-not-allowed opacity-60">
                 <User className="w-4 h-4 mr-2" />
                 Profile
               </Button>
@@ -94,21 +116,19 @@ export function CustomerDashboard({ user, onLogout }) {
           <Card>
             <CardHeader className="pb-3">
               <CardDescription>Available Meals</CardDescription>
-              <CardTitle className="text-orange-600">{meals.filter(m => m.available).length}</CardTitle>
+              <CardTitle className="text-orange-600">N/A</CardTitle>
             </CardHeader>
           </Card>
           <Card>
             <CardHeader className="pb-3">
               <CardDescription>Active Cooks</CardDescription>
-              <CardTitle className="text-green-600">{new Set(meals.map(m => m.cookId)).size}</CardTitle>
+              <CardTitle className="text-green-600">N/A</CardTitle>
             </CardHeader>
           </Card>
           <Card>
             <CardHeader className="pb-3">
               <CardDescription>Avg Rating</CardDescription>
-              <CardTitle className="text-yellow-600">
-                {(meals.reduce((acc, m) => acc + m.rating, 0) / (meals.length || 1)).toFixed(1)} ★
-              </CardTitle>
+              <CardTitle className="text-yellow-600">N/A</CardTitle>
             </CardHeader>
           </Card>
         </div>
@@ -116,20 +136,20 @@ export function CustomerDashboard({ user, onLogout }) {
         {/* Search / Filters */}
         <Card className="mb-8">
           <CardHeader>
-            <CardTitle>Find Your Perfect Meal</CardTitle>
+            <CardTitle>Filter Meals</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <Input
-                placeholder="Search meals, cuisines, or cooks..."
+                placeholder="Search meals by name, description, or category..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm text-gray-600 mb-2 block">Category</label>
                 <Select value={categoryFilter} onValueChange={setCategoryFilter}>
@@ -137,42 +157,24 @@ export function CustomerDashboard({ user, onLogout }) {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {categories.map(cat => (
-                      <SelectItem key={cat} value={cat}>
-                        {cat === 'all' ? 'All Categories' : cat}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="all">All Categories</SelectItem>
+                    <SelectItem value="main course">Main Course</SelectItem>
+                    <SelectItem value="beverages">Beverages</SelectItem>
+                    <SelectItem value="starter">Starter</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div>
-                <label className="text-sm text-gray-600 mb-2 block">Cuisine</label>
-                <Select value={cuisineFilter} onValueChange={setCuisineFilter}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {cuisines.map(cuisine => (
-                      <SelectItem key={cuisine} value={cuisine}>
-                        {cuisine === 'all' ? 'All Cuisines' : cuisine}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <label className="text-sm text-gray-600 mb-2 block">Sort By</label>
+                <label className="text-sm text-gray-600 mb-2 block">Sort By Price</label>
                 <Select value={sortBy} onValueChange={setSortBy}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="name">Name (A-Z)</SelectItem>
                     <SelectItem value="price-low">Price (Low to High)</SelectItem>
                     <SelectItem value="price-high">Price (High to Low)</SelectItem>
-                    <SelectItem value="rating">Rating (Highest)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -193,10 +195,10 @@ export function CustomerDashboard({ user, onLogout }) {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredMeals.map(meal => (
-              <Card key={meal.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+              <Card key={meal._id || meal.id} className="overflow-hidden hover:shadow-lg transition-shadow">
                 <div className="relative h-48">
                   <ImageWithFallback
-                    src={meal.image}
+                    src={meal.itemImage || meal.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400'}
                     alt={meal.name}
                     className="w-full h-full object-cover"
                   />
@@ -211,7 +213,7 @@ export function CustomerDashboard({ user, onLogout }) {
                       <CardTitle className="text-gray-800">{meal.name}</CardTitle>
                       <CardDescription className="flex items-center gap-1 mt-1">
                         <ChefHat className="w-3 h-3" />
-                        {meal.cookName}
+                        {meal.cookName || meal.cookId?.name || 'Chef'}
                       </CardDescription>
                     </div>
                     <div className="flex items-center gap-1 text-yellow-500">
@@ -222,22 +224,13 @@ export function CustomerDashboard({ user, onLogout }) {
                 </CardHeader>
 
                 <CardContent>
-                  <p className="text-gray-600 text-sm mb-4">{meal.description}</p>
-
-                  <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-4 h-4" />
-                      {meal.prepTime}
-                    </div>
-                    <div>
-                      {meal.servings} {meal.servings === 1 ? 'serving' : 'servings'}
-                    </div>
-                  </div>
+                  {meal.description && (
+                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">{meal.description}</p>
+                  )}
 
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1">
-                      <DollarSign className="w-5 h-5 text-green-600" />
-                      <span className="text-green-600">{meal.price.toFixed(2)}</span>
+                      <span className="text-green-600 font-semibold">PKR {meal.price.toFixed(0)}</span>
                     </div>
                     <Badge variant="outline" className="text-xs">
                       {meal.cuisine}

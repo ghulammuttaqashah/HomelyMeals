@@ -12,5 +12,14 @@ export const requestSignupOtp = (data) =>
 export const verifySignupOtp = (data) =>
   axiosInstance.post("/customer/signup/verify", data);
 
-export const getCustomerProfile = () =>
-  axiosInstance.get("/customer/me"); // protected — backend should verify cookie
+// Note: /customer/me endpoint doesn't exist in backend
+// User data is stored in localStorage after login
+export const getCustomerProfile = () => {
+  // Return cached user from localStorage instead of API call
+  const cached = localStorage.getItem("homelyMeals.customer");
+  return Promise.resolve({ data: { customer: cached ? JSON.parse(cached) : null } });
+};
+
+// Get all meals from database (protected route)
+export const getAllMeals = () =>
+  axiosInstance.get("/customer/meals");

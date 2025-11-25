@@ -145,12 +145,13 @@ function LoginPage() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
+                      className="focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
                     />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="cook-password">Password</Label>
-                    <div className="relative flex items-center">
+                    <div className="relative">
                       <Input
                         id="cook-password"
                         type={showPassword ? "text" : "password"}
@@ -158,18 +159,19 @@ function LoginPage() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
-                        className="pr-12"
+                        className="pr-12 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
                       />
                       <button
                         type="button"
-                        aria-label="Toggle cook password visibility"
+                        aria-label="Toggle password visibility"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+                        style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', right: '12px' }}
+                        className="text-slate-400 hover:text-slate-600 z-10"
                       >
                         {showPassword ? (
-                          <EyeOff className="w-4 h-4" />
+                          <EyeOff className="h-5 w-5" />
                         ) : (
-                          <Eye className="w-4 h-4" />
+                          <Eye className="h-5 w-5" />
                         )}
                       </button>
                     </div>

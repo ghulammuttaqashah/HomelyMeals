@@ -272,7 +272,7 @@ export default function DocumentUploadPage() {
     try {
       await logout();
     } finally {
-      navigate("/cook/login", { replace: true });
+      navigate("/", { replace: true });
     }
   };
 
@@ -282,9 +282,19 @@ export default function DocumentUploadPage() {
       <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-green-50 via-white to-orange-50">
         <div className="w-full max-w-2xl">
           <div className="mb-8">
-            <div className="text-center">
-              <h1 className="text-orange-600 mb-2 text-4xl font-bold">Homely Meals</h1>
-              <p className="text-gray-600 text-lg">Document Verification</p>
+            <div className="flex items-start justify-between">
+              <div className="text-center flex-1">
+                <h1 className="text-orange-600 mb-2 text-4xl font-bold">Homely Meals</h1>
+                <p className="text-gray-600 text-lg">Document Verification</p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="ml-4"
+                onClick={handleLogout}
+              >
+                Logout
+              </Button>
             </div>
           </div>
           
@@ -298,15 +308,6 @@ export default function DocumentUploadPage() {
                 Your documents are under review. Please check back later.
               </CardDescription>
             </CardHeader>
-            <CardContent className="flex justify-center">
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={handleLogout}
-              >
-                Logout
-              </Button>
-            </CardContent>
           </Card>
         </div>
       </div>
@@ -325,9 +326,19 @@ export default function DocumentUploadPage() {
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-green-50 via-white to-orange-50">
       <div className="w-full max-w-2xl">
         <div className="mb-8">
-          <div className="text-center">
-            <h1 className="text-orange-600 mb-2 text-4xl font-bold">Homely Meals</h1>
-            <p className="text-gray-600 text-lg">Document Verification</p>
+          <div className="flex items-start justify-between">
+            <div className="text-center flex-1">
+              <h1 className="text-orange-600 mb-2 text-4xl font-bold">Homely Meals</h1>
+              <p className="text-gray-600 text-lg">Document Verification</p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="ml-4"
+              onClick={handleLogout}
+            >
+              Logout
+            </Button>
           </div>
         </div>
 

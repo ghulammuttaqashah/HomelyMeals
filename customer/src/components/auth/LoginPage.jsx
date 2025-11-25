@@ -104,6 +104,7 @@ export function LoginPage() {
                       value={customerEmail}
                       onChange={(e) => setCustomerEmail(e.target.value)}
                       required
+                      className="focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
                     />
                   </div>
 
@@ -116,19 +117,21 @@ export function LoginPage() {
                         value={customerPassword}
                         onChange={(e) => setCustomerPassword(e.target.value)}
                         required
-                        className="pr-10"
+                        className="pr-12 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
                       />
                       <button
                         type="button"
+                        aria-label="Toggle password visibility"
                         onClick={() =>
                           setShowCustomerPassword(!showCustomerPassword)
                         }
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', right: '12px' }}
+                        className="text-slate-400 hover:text-slate-600 z-10"
                       >
                         {showCustomerPassword ? (
-                          <EyeOff className="w-4 h-4" />
+                          <EyeOff className="h-5 w-5" />
                         ) : (
-                          <Eye className="w-4 h-4" />
+                          <Eye className="h-5 w-5" />
                         )}
                       </button>
                     </div>

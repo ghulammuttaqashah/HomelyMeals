@@ -8,8 +8,8 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { LogOut, User, MessageCircle, BarChart3, Plus, Edit, Trash2, Star, Clock, DollarSign } from 'lucide-react';
-import { ImageWithFallback } from '../figma/ImageWithFallback';
+import { LogOut, User, MessageCircle, BarChart3, Plus, Edit, Trash2, Star, Clock } from 'lucide-react';
+import { ImageWithFallback } from '../ui/image-with-fallback';
 
 /**
  * CookDashboard
@@ -33,12 +33,14 @@ export function CookDashboard({ user, onNavigate, onLogout, onOpenChatbot }) {
     name: '',
     description: '',
     price: '',
-    category: 'Main Course',
-    cuisine: '',
-    image: '',
-    prepTime: '',
-    servings: '1',
+    category: 'main course',
+    availability: 'Available',
+    itemImage: '',
   });
+
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   // helper: cook id might be user.id or user._id depending on backend
   const cookId = user?.id || user?._id || null;
@@ -48,11 +50,11 @@ export function CookDashboard({ user, onNavigate, onLogout, onOpenChatbot }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Attempt to load meals from backend, fallback to localStorage
+  // Load meals from backend API: GET /api/cook/meals/all
   const loadMeals = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/cooks/meals', {
+      const res = await fetch('http://localhost:5000/api/cook/meals/all', {
         method: 'GET',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -60,187 +62,137 @@ export function CookDashboard({ user, onNavigate, onLogout, onOpenChatbot }) {
 
       if (res.ok) {
         const data = await res.json();
-        // expect data.meals (adjust if your API returns different shape)
         if (Array.isArray(data?.meals)) {
+          console.log('Cook Dashboard: Loaded meals from backend:', data.meals); // Debug
           setMeals(data.meals);
-          // sync to localStorage too (optional)
-          localStorage.setItem('meals', JSON.stringify(data.meals));
           setLoading(false);
           return;
         }
       }
-      // If not ok / endpoint doesn't exist, fallback
-      throw new Error('Backend fetch failed or not implemented');
+      throw new Error('Backend fetch failed');
     } catch (err) {
-      // fallback to localStorage
-      const storedMeals = JSON.parse(localStorage.getItem('meals') || '[]');
-      setMeals(storedMeals);
+      console.error('Error loading meals:', err);
+      setMeals([]);
     } finally {
       setLoading(false);
     }
   };
 
   // Filter meals for this cook
-  const myMeals = meals.filter(meal => meal.cookId === cookId);
+  const myMeals = meals.filter(meal => meal.cookId === cookId || meal.cookId?._id === cookId);
 
-  // Utility: try backend then fallback to localStorage for create
-  const createMeal = async (newMeal) => {
+  // Cloudinary upload (reusing same approach as document uploads)
+  const CLOUD_NAME = "dygeug69l";
+  const UPLOAD_PRESET = "cook_documents";
+
+  const uploadToCloudinary = async (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", UPLOAD_PRESET);
+
+    const res = await fetch(
+      `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/upload`,
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+
+    const data = await res.json();
+    if (!res.ok || !data.secure_url) {
+      throw new Error(
+        data?.error?.message || "Failed to upload image. Please try again."
+      );
+    }
+
+    return data.secure_url;
+  };
+
+  // Create meal via backend API: POST /api/cook/meals/add
+  const createMeal = async (mealData) => {
     try {
-      const res = await fetch('/api/cooks/meals', {
+      const res = await fetch('http://localhost:5000/api/cook/meals/add', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newMeal),
+        body: JSON.stringify(mealData),
       });
 
       if (res.ok) {
         const data = await res.json();
-        // expect backend returns created meal
-        return data.meal || newMeal;
+        return data.meal;
       }
-      throw new Error('Create endpoint returned error');
+      const errorData = await res.json();
+      throw new Error(errorData.message || 'Failed to create meal');
     } catch (err) {
-      // fallback - persist locally
-      const existing = JSON.parse(localStorage.getItem('meals') || '[]');
-      const updated = [...existing, newMeal];
-      localStorage.setItem('meals', JSON.stringify(updated));
-      return newMeal;
+      throw err;
     }
   };
 
-  const updateMealBackend = async (updatedMeal) => {
-    try {
-      const res = await fetch(`/api/cooks/meals/${updatedMeal.id}`, {
-        method: 'PUT',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedMeal),
-      });
+  // Note: Update and delete endpoints not yet implemented in backend
+  // These functions are placeholders for future implementation
 
-      if (res.ok) {
-        const data = await res.json();
-        return data.meal || updatedMeal;
-      }
-      throw new Error('Update endpoint returned error');
-    } catch (err) {
-      // fallback
-      const existing = JSON.parse(localStorage.getItem('meals') || '[]');
-      const updated = existing.map(m => (m.id === updatedMeal.id ? updatedMeal : m));
-      localStorage.setItem('meals', JSON.stringify(updated));
-      return updatedMeal;
+  // Handle image file selection
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setImageFile(file);
+      const preview = URL.createObjectURL(file);
+      setImagePreview(preview);
     }
   };
 
-  const deleteMealBackend = async (mealId) => {
-    try {
-      const res = await fetch(`/api/cooks/meals/${mealId}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-      if (res.ok) return true;
-      throw new Error('Delete endpoint returned error');
-    } catch (err) {
-      const existing = JSON.parse(localStorage.getItem('meals') || '[]');
-      const updated = existing.filter(m => m.id !== mealId);
-      localStorage.setItem('meals', JSON.stringify(updated));
-      return true;
-    }
-  };
-
-  // Handlers (preserve your UI behavior)
+  // Handle add meal with image upload
   const handleAddMeal = async (e) => {
     e.preventDefault();
+    setLoading(true);
 
-    const newMeal = {
-      id: Date.now().toString(),
-      cookId,
-      cookName: user?.name || 'Chef',
-      name: formData.name,
-      description: formData.description,
-      price: Number(parseFloat(formData.price) || 0),
-      category: formData.category,
-      cuisine: formData.cuisine,
-      image: formData.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400',
-      rating: 0,
-      prepTime: formData.prepTime,
-      servings: parseInt(formData.servings) || 1,
-      available: true,
-    };
-
-    // try backend, otherwise local
-    const created = await createMeal(newMeal);
-
-    // update UI
-    const updatedMeals = [...meals, created];
-    setMeals(updatedMeals);
-    localStorage.setItem('meals', JSON.stringify(updatedMeals)); // keep local copy
-    setIsAddDialogOpen(false);
-    resetForm();
-  };
-
-  const handleUpdateMeal = async (e) => {
-    e.preventDefault();
-    if (!editingMeal) return;
-
-    const updatedMeal = {
-      ...editingMeal,
-      name: formData.name,
-      description: formData.description,
-      price: Number(parseFloat(formData.price) || 0),
-      category: formData.category,
-      cuisine: formData.cuisine,
-      image: formData.image || editingMeal.image,
-      prepTime: formData.prepTime,
-      servings: parseInt(formData.servings) || 1,
-    };
-
-    const resultMeal = await updateMealBackend(updatedMeal);
-
-    const updatedMeals = meals.map(m => (m.id === resultMeal.id ? resultMeal : m));
-    setMeals(updatedMeals);
-    localStorage.setItem('meals', JSON.stringify(updatedMeals));
-    setEditingMeal(null);
-    resetForm();
-  };
-
-  const handleDeleteMeal = async (mealId) => {
-    if (!confirm('Are you sure you want to delete this meal?')) return;
-    await deleteMealBackend(mealId);
-    const updatedMeals = meals.filter(m => m.id !== mealId);
-    setMeals(updatedMeals);
-    localStorage.setItem('meals', JSON.stringify(updatedMeals));
-  };
-
-  const toggleAvailability = async (mealId) => {
-    const updatedMeals = meals.map(m =>
-      m.id === mealId ? { ...m, available: !m.available } : m
-    );
-
-    // optimistic update locally
-    setMeals(updatedMeals);
-    localStorage.setItem('meals', JSON.stringify(updatedMeals));
-
-    // try updating backend (PUT)
-    const target = updatedMeals.find(m => m.id === mealId);
     try {
-      await updateMealBackend(target);
-    } catch (err) {
-      // already persisted locally as fallback
+      // Upload image to Cloudinary first if provided
+      let imageUrl = '';
+      if (imageFile) {
+        setUploadingImage(true);
+        imageUrl = await uploadToCloudinary(imageFile);
+        setUploadingImage(false);
+      }
+
+      // Prepare meal data matching backend model
+      const mealData = {
+        name: formData.name,
+        description: formData.description,
+        price: Number(parseFloat(formData.price) || 0),
+        category: formData.category,
+        availability: formData.availability,
+        itemImage: imageUrl,
+      };
+
+      // Create meal via backend API
+      const created = await createMeal(mealData);
+
+      // Update UI
+      const updatedMeals = [...meals, created];
+      setMeals(updatedMeals);
+      console.log('Cook Dashboard: Meal created successfully:', created); // Debug
+      
+      setIsAddDialogOpen(false);
+      resetForm();
+      alert('Meal added successfully!');
+    } catch (error) {
+      console.error('Error adding meal:', error);
+      alert(error.message || 'Failed to add meal. Please try again.');
+    } finally {
+      setLoading(false);
+      setUploadingImage(false);
     }
   };
 
-  const startEditing = (meal) => {
-    setEditingMeal(meal);
-    setFormData({
-      name: meal.name || '',
-      description: meal.description || '',
-      price: (meal.price ?? '').toString(),
-      category: meal.category || 'Main Course',
-      cuisine: meal.cuisine || '',
-      image: meal.image || '',
-      prepTime: meal.prepTime || '',
-      servings: (meal.servings ?? 1).toString(),
-    });
+  // Placeholder functions for future update/delete implementation
+  const handleDeleteMeal = (mealId) => {
+    alert('Delete functionality will be implemented when backend endpoint is available');
+  };
+
+  const toggleAvailability = (mealId) => {
+    alert('Toggle availability will be implemented when backend endpoint is available');
   };
 
   const resetForm = () => {
@@ -248,12 +200,12 @@ export function CookDashboard({ user, onNavigate, onLogout, onOpenChatbot }) {
       name: '',
       description: '',
       price: '',
-      category: 'Main Course',
-      cuisine: '',
-      image: '',
-      prepTime: '',
-      servings: '1',
+      category: 'main course',
+      availability: 'Available',
+      itemImage: '',
     });
+    setImageFile(null);
+    setImagePreview(null);
   };
 
   // render (kept identical to your UI)
@@ -337,7 +289,7 @@ export function CookDashboard({ user, onNavigate, onLogout, onOpenChatbot }) {
             <CardHeader className="pb-3">
               <CardDescription>Total Revenue</CardDescription>
               <CardTitle className="text-orange-600">
-                ${myMeals.reduce((acc, m) => acc + (m.price || 0), 0).toFixed(2)}
+                PKR {myMeals.reduce((acc, m) => acc + (m.price || 0), 0).toFixed(0)}
               </CardTitle>
             </CardHeader>
           </Card>
@@ -363,11 +315,12 @@ export function CookDashboard({ user, onNavigate, onLogout, onOpenChatbot }) {
 
               <form onSubmit={handleAddMeal} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Meal Name</Label>
+                  <Label htmlFor="name">Meal Name <span className="text-red-600">*</span></Label>
                   <Input
                     id="name"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="e.g., Chicken Biryani"
                     required
                   />
                 </div>
@@ -378,92 +331,86 @@ export function CookDashboard({ user, onNavigate, onLogout, onOpenChatbot }) {
                     id="description"
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    required
+                    placeholder="Describe your meal..."
                     rows={3}
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="price">Price ($)</Label>
+                    <Label htmlFor="price">Price (PKR) <span className="text-red-600">*</span></Label>
                     <Input
                       id="price"
                       type="number"
-                      step="0.01"
+                      step="1"
+                      min="0"
                       value={formData.price}
                       onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                      placeholder="500"
                       required
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="servings">Servings</Label>
-                    <Input
-                      id="servings"
-                      type="number"
-                      value={formData.servings}
-                      onChange={(e) => setFormData({ ...formData, servings: e.target.value })}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="category">Category</Label>
+                    <Label htmlFor="category">Category <span className="text-red-600">*</span></Label>
                     <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Appetizer">Appetizer</SelectItem>
-                        <SelectItem value="Main Course">Main Course</SelectItem>
-                        <SelectItem value="Dessert">Dessert</SelectItem>
-                        <SelectItem value="Beverage">Beverage</SelectItem>
+                        <SelectItem value="main course">Main Course</SelectItem>
+                        <SelectItem value="beverages">Beverages</SelectItem>
+                        <SelectItem value="starter">Starter</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="cuisine">Cuisine</Label>
-                    <Input
-                      id="cuisine"
-                      value={formData.cuisine}
-                      onChange={(e) => setFormData({ ...formData, cuisine: e.target.value })}
-                      placeholder="e.g., Italian, Indian, Thai"
-                      required
-                    />
-                  </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="prepTime">Prep Time</Label>
-                  <Input
-                    id="prepTime"
-                    value={formData.prepTime}
-                    onChange={(e) => setFormData({ ...formData, prepTime: e.target.value })}
-                    placeholder="e.g., 30 mins"
-                    required
-                  />
+                  <Label htmlFor="availability">Availability</Label>
+                  <Select value={formData.availability} onValueChange={(value) => setFormData({ ...formData, availability: value })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Available">Available</SelectItem>
+                      <SelectItem value="OutOfStock">Out of Stock</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="image">Image URL (Optional)</Label>
+                  <Label htmlFor="itemImage">Meal Image</Label>
                   <Input
-                    id="image"
-                    type="url"
-                    value={formData.image}
-                    onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                    placeholder="https://example.com/image.jpg"
+                    id="itemImage"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
                   />
+                  {imagePreview && (
+                    <div className="mt-2">
+                      <img src={imagePreview} alt="Preview" className="h-32 w-auto rounded border" />
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex gap-4 pt-4">
-                  <Button type="submit" className="flex-1 bg-green-600 hover:bg-green-700">
-                    Add Meal
+                  <Button 
+                    type="submit" 
+                    className="flex-1 bg-green-600 hover:bg-green-700"
+                    disabled={loading || uploadingImage}
+                  >
+                    {uploadingImage ? 'Uploading Image...' : loading ? 'Adding Meal...' : 'Add Meal'}
                   </Button>
 
-                  <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)} className="flex-1">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setIsAddDialogOpen(false)} 
+                    className="flex-1"
+                    disabled={loading || uploadingImage}
+                  >
                     Cancel
                   </Button>
                 </div>
@@ -489,13 +436,13 @@ export function CookDashboard({ user, onNavigate, onLogout, onOpenChatbot }) {
               <Card key={meal.id} className="overflow-hidden">
                 <div className="relative h-48">
                   <ImageWithFallback
-                    src={meal.image}
+                    src={meal.itemImage || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400'}
                     alt={meal.name}
                     className="w-full h-full object-cover"
                   />
 
-                  <Badge className={`absolute top-2 right-2 ${meal.available ? 'bg-green-500' : 'bg-gray-500'}`}>
-                    {meal.available ? 'Available' : 'Unavailable'}
+                  <Badge className={`absolute top-2 right-2 ${meal.availability === 'Available' ? 'bg-green-500' : 'bg-gray-500'}`}>
+                    {meal.availability || 'Available'}
                   </Badge>
                 </div>
 
@@ -516,169 +463,37 @@ export function CookDashboard({ user, onNavigate, onLogout, onOpenChatbot }) {
                 <CardContent>
                   <p className="text-gray-600 text-sm mb-4">{meal.description}</p>
 
-                  <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-4 h-4" />
-                      {meal.prepTime}
-                    </div>
-                    <div>{meal.servings} {meal.servings === 1 ? 'serving' : 'servings'}</div>
-                  </div>
-
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-1">
-                      <DollarSign className="w-5 h-5 text-green-600" />
-                      <span className="text-green-600">{(meal.price || 0).toFixed(2)}</span>
+                      <span className="text-green-600 font-semibold">PKR {(meal.price || 0).toFixed(0)}</span>
                     </div>
 
                     <Badge variant="outline" className="text-xs">
-                      {meal.cuisine}
+                      {meal.category}
                     </Badge>
                   </div>
 
                   <div className="flex gap-2">
-                    {/* EDIT */}
-                    <Dialog open={editingMeal?.id === meal.id} onOpenChange={(open) => !open && setEditingMeal(null)}>
-                      <DialogTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex-1"
-                          onClick={() => startEditing(meal)}
-                        >
-                          <Edit className="w-4 h-4 mr-1" />
-                          Edit
-                        </Button>
-                      </DialogTrigger>
-
-                      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                        <DialogHeader>
-                          <DialogTitle>Edit Meal</DialogTitle>
-                          <DialogDescription>Update your meal details</DialogDescription>
-                        </DialogHeader>
-
-                        <form onSubmit={handleUpdateMeal} className="space-y-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="edit-name">Meal Name</Label>
-                            <Input
-                              id="edit-name"
-                              value={formData.name}
-                              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                              required
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="edit-description">Description</Label>
-                            <Textarea
-                              id="edit-description"
-                              value={formData.description}
-                              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                              required
-                              rows={3}
-                            />
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="edit-price">Price ($)</Label>
-                              <Input
-                                id="edit-price"
-                                type="number"
-                                step="0.01"
-                                value={formData.price}
-                                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                                required
-                              />
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label htmlFor="edit-servings">Servings</Label>
-                              <Input
-                                id="edit-servings"
-                                type="number"
-                                value={formData.servings}
-                                onChange={(e) => setFormData({ ...formData, servings: e.target.value })}
-                                required
-                              />
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="edit-category">Category</Label>
-                              <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="Appetizer">Appetizer</SelectItem>
-                                  <SelectItem value="Main Course">Main Course</SelectItem>
-                                  <SelectItem value="Dessert">Dessert</SelectItem>
-                                  <SelectItem value="Beverage">Beverage</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label htmlFor="edit-cuisine">Cuisine</Label>
-                              <Input
-                                id="edit-cuisine"
-                                value={formData.cuisine}
-                                onChange={(e) => setFormData({ ...formData, cuisine: e.target.value })}
-                                required
-                              />
-                            </div>
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="edit-prepTime">Prep Time</Label>
-                            <Input
-                              id="edit-prepTime"
-                              value={formData.prepTime}
-                              onChange={(e) => setFormData({ ...formData, prepTime: e.target.value })}
-                              required
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="edit-image">Image URL</Label>
-                            <Input
-                              id="edit-image"
-                              type="url"
-                              value={formData.image}
-                              onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                            />
-                          </div>
-
-                          <div className="flex gap-4 pt-4">
-                            <Button type="submit" className="flex-1 bg-green-600 hover:bg-green-700">
-                              Update Meal
-                            </Button>
-
-                            <Button type="button" variant="outline" onClick={() => setEditingMeal(null)} className="flex-1">
-                              Cancel
-                            </Button>
-                          </div>
-                        </form>
-                      </DialogContent>
-                    </Dialog>
-
-                    {/* Toggle Availability */}
+                    {/* Edit - Coming Soon */}
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => toggleAvailability(meal.id)}
-                      className={meal.available ? '' : 'bg-gray-100'}
+                      className="flex-1"
+                      disabled
+                      title="Edit functionality coming soon"
                     >
-                      {meal.available ? 'Hide' : 'Show'}
+                      <Edit className="w-4 h-4 mr-1" />
+                      Edit
                     </Button>
 
-                    {/* Delete */}
+                    {/* Delete - Coming Soon */}
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleDeleteMeal(meal.id)}
+                      onClick={() => handleDeleteMeal(meal._id)}
                       className="text-red-600 hover:bg-red-50"
+                      disabled
+                      title="Delete functionality coming soon"
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>

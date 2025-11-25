@@ -38,15 +38,6 @@ function SignupPage() {
   const [message, setMessage] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
-  const [resendCooldown, setResendCooldown] = useState(0);
-
-  // Resend cooldown timer
-  useEffect(() => {
-    if (resendCooldown > 0) {
-      const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [resendCooldown]);
 
   const update = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -113,7 +104,6 @@ function SignupPage() {
       const res = await cookSignupRequest(payload);
       setMessage(`OTP has been sent to your email: ${form.email}`);
       setStage(2);
-      setResendCooldown(30);
     } catch (err) {
       setMessage(
         err?.response?.data?.message ||
@@ -156,8 +146,6 @@ function SignupPage() {
 
   // RESEND OTP
   const handleResendOtp = async () => {
-    if (resendCooldown > 0) return;
-
     setLoading(true);
     setMessage("");
 
@@ -177,7 +165,6 @@ function SignupPage() {
     try {
       const res = await cookSignupRequest(payload);
       setMessage(`OTP has been sent to your email: ${form.email}`);
-      setResendCooldown(30);
     } catch (err) {
       setMessage(err?.response?.data?.message || "Error resending OTP");
     } finally {
@@ -235,6 +222,7 @@ function SignupPage() {
                         value={form.name}
                         onChange={(e) => update("name", e.target.value)}
                         required
+                        className="focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
                       />
                     </div>
 
@@ -246,6 +234,7 @@ function SignupPage() {
                         value={form.email}
                         onChange={(e) => update("email", e.target.value)}
                         required
+                        className="focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
                       />
                       {errors.email && (
                         <p className="text-sm text-red-600">{errors.email}</p>
@@ -254,24 +243,25 @@ function SignupPage() {
 
                     <div className="space-y-2">
                       <Label>Password <span className="text-red-600">*</span></Label>
-                      <div className="relative flex items-center">
+                      <div className="relative">
                         <Input
                           type={showPassword ? "text" : "password"}
                           value={form.password}
                           onChange={(e) => update("password", e.target.value)}
                           required
-                          className="pr-12"
+                          className="pr-12 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
                         />
                         <button
                           type="button"
                           aria-label="Toggle password visibility"
                           onClick={() => setShowPassword(!showPassword)}
-                          className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+                          style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', right: '12px' }}
+                          className="text-slate-400 hover:text-slate-600 z-10"
                         >
                           {showPassword ? (
-                            <EyeOff className="w-4 h-4" />
+                            <EyeOff className="h-5 w-5" />
                           ) : (
-                            <Eye className="w-4 h-4" />
+                            <Eye className="h-5 w-5" />
                           )}
                         </button>
                       </div>
@@ -283,6 +273,7 @@ function SignupPage() {
                         value={form.contact}
                         onChange={(e) => update("contact", e.target.value)}
                         required
+                        className="focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
                       />
                       {errors.contact && (
                         <p className="text-sm text-red-600">{errors.contact}</p>
@@ -294,6 +285,7 @@ function SignupPage() {
                       <Input
                         value={form.houseNo}
                         onChange={(e) => update("houseNo", e.target.value)}
+                        className="focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
                       />
                     </div>
 
@@ -303,6 +295,7 @@ function SignupPage() {
                         value={form.street}
                         onChange={(e) => update("street", e.target.value)}
                         required
+                        className="focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
                       />
                     </div>
 
@@ -312,6 +305,7 @@ function SignupPage() {
                         value={form.city}
                         onChange={(e) => update("city", e.target.value)}
                         required
+                        className="focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
                       />
                     </div>
 
@@ -321,6 +315,7 @@ function SignupPage() {
                         value={form.postalCode}
                         onChange={(e) => update("postalCode", e.target.value)}
                         required
+                        className="focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
                       />
                     </div>
 
@@ -336,11 +331,42 @@ function SignupPage() {
                       <p className="text-center text-green-600 text-sm">{message}</p>
                     )}
 
-                    <Input
-                      placeholder="Enter OTP"
-                      value={otp}
-                      onChange={(e) => setOtp(e.target.value)}
-                    />
+                    <div className="space-y-2">
+                      <Label className="text-center block">Enter 6-Digit OTP</Label>
+                      <div className="flex justify-center gap-2">
+                        {[0, 1, 2, 3, 4, 5].map((index) => (
+                          <Input
+                            key={index}
+                            type="text"
+                            inputMode="numeric"
+                            maxLength={1}
+                            value={otp[index] || ""}
+                            onChange={(e) => {
+                              const value = e.target.value.replace(/[^0-9]/g, "");
+                              if (value.length <= 1) {
+                                const newOtp = otp.split("");
+                                newOtp[index] = value;
+                                setOtp(newOtp.join(""));
+                                
+                                // Auto-focus next input
+                                if (value && index < 5) {
+                                  const nextInput = e.target.parentElement.children[index + 1];
+                                  if (nextInput) nextInput.focus();
+                                }
+                              }
+                            }}
+                            onKeyDown={(e) => {
+                              // Handle backspace
+                              if (e.key === "Backspace" && !otp[index] && index > 0) {
+                                const prevInput = e.target.parentElement.children[index - 1];
+                                if (prevInput) prevInput.focus();
+                              }
+                            }}
+                            className="w-12 h-12 text-center text-lg font-semibold focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          />
+                        ))}
+                      </div>
+                    </div>
 
                     {message && message.includes("Invalid") && (
                       <p className="text-center text-red-600 text-sm">{message}</p>
@@ -349,7 +375,7 @@ function SignupPage() {
                     <Button
                       className="w-full bg-green-600"
                       onClick={handleVerifyOtp}
-                      disabled={loading}
+                      disabled={loading || otp.length !== 6}
                     >
                       {loading ? "Verifying..." : "Verify OTP"}
                     </Button>
@@ -360,20 +386,13 @@ function SignupPage() {
                         onClick={() => {
                           setStage(1);
                           setMessage("");
+                          setOtp("");
                         }}
                       >
                         Edit details
                       </button>
 
-                      <button
-                        className="underline text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                        onClick={handleResendOtp}
-                        disabled={loading || resendCooldown > 0}
-                      >
-                        {resendCooldown > 0 
-                          ? `Resend OTP (${resendCooldown}s)` 
-                          : "Resend OTP"}
-                      </button>
+
                     </div>
                   </div>
                 )}
