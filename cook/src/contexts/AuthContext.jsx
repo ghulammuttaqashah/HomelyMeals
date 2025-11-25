@@ -54,10 +54,7 @@ const enrichCookProfile = (cook) => {
 };
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => {
-    const cached = readCachedCook();
-    return cached ? enrichCookProfile(cached) : null;
-  });
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const persistUser = useCallback((cook) => {
@@ -79,12 +76,18 @@ export function AuthProvider({ children }) {
       return null;
     }
 
-    persistUser(cached);
-    return enrichCookProfile(cached);
+    // Validate the cached session
+    const enriched = enrichCookProfile(cached);
+    persistUser(enriched);
+    return enriched;
   }, [persistUser]);
 
   useEffect(() => {
-    fetchSession().finally(() => setLoading(false));
+    fetchSession()
+      .catch(() => {
+        console.log("No active cook session");
+      })
+      .finally(() => setLoading(false));
   }, [fetchSession]);
 
   const login = useCallback(

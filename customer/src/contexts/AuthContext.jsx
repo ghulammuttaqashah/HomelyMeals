@@ -16,10 +16,7 @@ export const AuthContext = createContext();
 const STORAGE_KEY = "homelyMeals.customer";
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => {
-    const cached = localStorage.getItem(STORAGE_KEY);
-    return cached ? JSON.parse(cached) : null;
-  });
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const persistUser = useCallback((customer) => {
@@ -33,14 +30,28 @@ export function AuthProvider({ children }) {
 
   const fetchSession = useCallback(async () => {
     try {
+      // Check if there's a cached user in localStorage
+      const cached = localStorage.getItem(STORAGE_KEY);
+      if (!cached) {
+        persistUser(null);
+        return null;
+      }
+      
+      // Validate the cached user
       const { data } = await getCustomerProfile();
       const profile = data?.customer ?? data;
-      persistUser(profile);
-      return profile;
-    } catch (error) {
-      if (error?.response?.status === 401) {
+      
+      if (profile) {
+        persistUser(profile);
+        return profile;
+      } else {
+        // Invalid session, clear it
         persistUser(null);
+        return null;
       }
+    } catch (error) {
+      // Any error means invalid session
+      persistUser(null);
       throw error;
     }
   }, [persistUser]);
@@ -48,9 +59,8 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     fetchSession()
       .catch((error) => {
-        if (error?.response?.status !== 401) {
-          console.warn("Customer session check failed:", error?.message || error);
-        }
+        // Silently handle errors - user will just not be logged in
+        console.log("No active session");
       })
       .finally(() => setLoading(false));
   }, [fetchSession]);
