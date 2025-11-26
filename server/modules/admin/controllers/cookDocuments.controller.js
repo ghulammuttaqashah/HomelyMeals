@@ -19,7 +19,15 @@ export const getCooksWithSubmittedDocs = async (req, res) => {
       .populate("cookId", "name email contact address verificationStatus");
 
     const result = docs
-      .filter((doc) => doc.cookId) // Filter out documents where cook was deleted
+      .filter((doc) => {
+        // Filter out documents where cook was deleted
+        if (!doc.cookId) return false;
+        
+        // Filter out cooks whose verification status is already rejected or approved
+        // Only show cooks with pending/submitted status
+        return doc.cookId.verificationStatus === "pending" || 
+               doc.cookId.verificationStatus === "submitted";
+      })
       .map((doc) => ({
         cook: {
           id: doc.cookId._id,
@@ -188,8 +196,8 @@ export const rejectDocument = async (req, res) => {
 
     await doc.save();
 
-    // overall cook status → rejected
-    await Cook.findByIdAndUpdate(cookId, { verificationStatus: "rejected" });
+    // Update cook verification status based on document statuses
+    await updateCookVerificationStatus(cookId);
 
     return res.status(200).json({
       message: "Document rejected successfully",

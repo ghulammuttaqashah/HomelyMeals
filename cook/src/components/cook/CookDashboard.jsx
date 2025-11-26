@@ -8,7 +8,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { LogOut, User, MessageCircle, BarChart3, Plus, Edit, Trash2, Star, Clock } from 'lucide-react';
+import { LogOut, User, BarChart3, Plus, Edit, Trash2, Star, Clock } from 'lucide-react';
 import { ImageWithFallback } from '../ui/image-with-fallback';
 
 /**
@@ -79,7 +79,10 @@ export function CookDashboard({ user, onNavigate, onLogout, onOpenChatbot }) {
   };
 
   // Filter meals for this cook
-  const myMeals = meals.filter(meal => meal.cookId === cookId || meal.cookId?._id === cookId);
+  const myMeals = meals.filter(meal => {
+    const mealCookId = meal.cookId?._id || meal.cookId;
+    return mealCookId === cookId || String(mealCookId) === String(cookId);
+  });
 
   // Cloudinary upload (reusing same approach as document uploads)
   const CLOUD_NAME = "dygeug69l";
@@ -168,11 +171,10 @@ export function CookDashboard({ user, onNavigate, onLogout, onOpenChatbot }) {
 
       // Create meal via backend API
       const created = await createMeal(mealData);
-
-      // Update UI
-      const updatedMeals = [...meals, created];
-      setMeals(updatedMeals);
       console.log('Cook Dashboard: Meal created successfully:', created); // Debug
+      
+      // Reload meals from backend to ensure consistency
+      await loadMeals();
       
       setIsAddDialogOpen(false);
       resetForm();
@@ -227,14 +229,6 @@ export function CookDashboard({ user, onNavigate, onLogout, onOpenChatbot }) {
               >
                 <BarChart3 className="w-4 h-4 mr-2" />
                 Sentiment
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onOpenChatbot?.()}
-              >
-                <MessageCircle className="w-4 h-4 mr-2" />
-                Chat
               </Button>
               <Button
                 variant="outline"

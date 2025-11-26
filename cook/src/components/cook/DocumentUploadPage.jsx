@@ -76,6 +76,7 @@ export default function DocumentUploadPage() {
   const [errors, setErrors] = useState({});
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [rejectionReasons, setRejectionReasons] = useState(null);
 
   useEffect(() => {
     if (!user) return;
@@ -83,7 +84,31 @@ export default function DocumentUploadPage() {
     const statusSource =
       user.verificationStatus ?? user.verificationStatusNormalized;
     setVerificationStatus(normalizeVerificationStatus(statusSource));
+    
+    // Fetch rejection reasons if status is rejected
+    if (normalizeVerificationStatus(statusSource) === "rejected") {
+      fetchRejectionReasons();
+    }
   }, [user]);
+
+  const fetchRejectionReasons = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/cook/documents/my-documents', {
+        method: 'GET',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.hasDocuments) {
+          setRejectionReasons(data.documents);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching rejection reasons:', error);
+    }
+  };
 
   // Redirect verified cooks straight to dashboard
   useEffect(() => {
@@ -318,10 +343,121 @@ export default function DocumentUploadPage() {
     return null;
   }
 
-  // For rejected status, show message but continue to upload form below
-  const showRejectionMessage = verificationStatus === "rejected";
+  // For rejected status, show blocking message - NO re-upload allowed
+  if (verificationStatus === "rejected") {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-green-50 via-white to-orange-50">
+        <div className="w-full max-w-2xl">
+          <div className="mb-8">
+            <div className="flex items-start justify-between">
+              <div className="text-center flex-1">
+                <h1 className="text-orange-600 mb-2 text-4xl font-bold">Homely Meals</h1>
+                <p className="text-gray-600 text-lg">Document Verification</p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="ml-4"
+                onClick={handleLogout}
+              >
+                Logout
+              </Button>
+            </div>
+          </div>
 
-  // Default: not_submitted or rejected - show upload form
+          <Card>
+            <CardHeader className="space-y-3">
+              <div className="flex justify-center">
+                <StatusPill status="rejected" />
+              </div>
+              <CardTitle className="text-center text-red-600">Documents Rejected</CardTitle>
+              <CardDescription className="text-center">
+                Your documents have been rejected by the admin.
+              </CardDescription>
+            </CardHeader>
+
+            <CardContent className="space-y-6">
+              {rejectionReasons && (
+                <div className="rounded-lg bg-red-50 border-2 border-red-200 p-6">
+                  <h3 className="font-semibold text-red-900 text-base mb-3">Rejection Reasons:</h3>
+                  <ul className="space-y-2 text-sm text-red-800">
+                    {rejectionReasons.cnicFront?.status === 'rejected' && (
+                      <li className="flex items-start gap-2">
+                        <span className="text-red-600 font-bold">•</span>
+                        <div>
+                          <strong>CNIC Front:</strong> {rejectionReasons.cnicFront.rejectedReason || 'No reason provided'}
+                        </div>
+                      </li>
+                    )}
+                    {rejectionReasons.cnicBack?.status === 'rejected' && (
+                      <li className="flex items-start gap-2">
+                        <span className="text-red-600 font-bold">•</span>
+                        <div>
+                          <strong>CNIC Back:</strong> {rejectionReasons.cnicBack.rejectedReason || 'No reason provided'}
+                        </div>
+                      </li>
+                    )}
+                    {rejectionReasons.kitchenPhotos?.some(p => p.status === 'rejected') && (
+                      rejectionReasons.kitchenPhotos.map((photo, idx) => 
+                        photo.status === 'rejected' && (
+                          <li key={idx} className="flex items-start gap-2">
+                            <span className="text-red-600 font-bold">•</span>
+                            <div>
+                              <strong>Kitchen Photo #{idx + 1}:</strong> {photo.rejectedReason || 'No reason provided'}
+                            </div>
+                          </li>
+                        )
+                      )
+                    )}
+                    {rejectionReasons.sfaLicense?.status === 'rejected' && (
+                      <li className="flex items-start gap-2">
+                        <span className="text-red-600 font-bold">•</span>
+                        <div>
+                          <strong>SFA License:</strong> {rejectionReasons.sfaLicense.rejectedReason || 'No reason provided'}
+                        </div>
+                      </li>
+                    )}
+                    {rejectionReasons.other?.status === 'rejected' && (
+                      <li className="flex items-start gap-2">
+                        <span className="text-red-600 font-bold">•</span>
+                        <div>
+                          <strong>Other Document:</strong> {rejectionReasons.other.rejectedReason || 'No reason provided'}
+                        </div>
+                      </li>
+                    )}
+                  </ul>
+                </div>
+              )}
+
+              <div className="rounded-lg bg-orange-50 border-2 border-orange-200 p-6 text-center">
+                <div className="mb-4">
+                  <svg className="mx-auto h-16 w-16 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-orange-900 mb-2">
+                  Unable to Re-upload Documents
+                </h3>
+                <p className="text-orange-800 mb-4">
+                  Your account has been flagged for document issues. You cannot upload new documents at this time.
+                </p>
+                <p className="text-orange-900 font-semibold text-lg">
+                  Please contact the administrator for assistance.
+                </p>
+              </div>
+
+              <div className="text-center text-sm text-gray-600">
+                <p>Need help? Contact support at:</p>
+                <p className="font-semibold text-gray-900 mt-1">homelymeals4@gmail.com</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // Default: not_submitted - show upload form
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-green-50 via-white to-orange-50">
       <div className="w-full max-w-2xl">
@@ -345,15 +481,8 @@ export default function DocumentUploadPage() {
         <Card>
           <CardHeader className="space-y-3">
             <CardTitle>Cook Document Upload</CardTitle>
-            {showRejectionMessage && (
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <StatusPill status="rejected" />
-              </div>
-            )}
             <CardDescription>
-              {showRejectionMessage
-                ? "Your documents were rejected. Please re-upload correct documents."
-                : verificationStatus === "not_submitted" || !verificationStatus
+              {verificationStatus === "not_submitted" || !verificationStatus
                 ? "You have not submitted your documents yet. Please upload the required documents for verification."
                 : "Please upload the required documents for verification."}
             </CardDescription>
