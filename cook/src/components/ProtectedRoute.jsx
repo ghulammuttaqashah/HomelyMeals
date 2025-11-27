@@ -29,7 +29,7 @@ const ProtectedRoute = ({ children }) => {
   }
 
   const status = cook?.verificationStatus
-  if (status === 'approved' || status === 'verified') {
+  if (status === 'approved') {
     return children
   }
 

@@ -1,6 +1,7 @@
 
 import { CookDocument } from "../../cook/models/cookDocument.model.js";
 import { Cook } from "../../cook/models/cook.model.js";
+import { sendEmail } from "../../../shared/utils/sendEmail.js";
 
 /**
  * GET ALL COOKS WHO SUBMITTED DOCUMENTS (Admin)
@@ -24,9 +25,8 @@ export const getCooksWithSubmittedDocs = async (req, res) => {
         if (!doc.cookId) return false;
         
         // Filter out cooks whose verification status is already rejected or approved
-        // Only show cooks with pending/submitted status
-        return doc.cookId.verificationStatus === "pending" || 
-               doc.cookId.verificationStatus === "submitted";
+        // Only show cooks with pending status
+        return doc.cookId.verificationStatus === "pending";
       })
       .map((doc) => ({
         cook: {
@@ -281,6 +281,12 @@ const updateCookVerificationStatus = async (cookId) => {
   const doc = await CookDocument.findOne({ cookId });
   if (!doc) return;
 
+  // Get cook info for email
+  const cook = await Cook.findById(cookId);
+  if (!cook) return;
+
+  const previousStatus = cook.verificationStatus;
+
   // Define REQUIRED documents (must be submitted and approved)
   const requiredDocs = [
     doc.cnicFront,
@@ -310,6 +316,11 @@ const updateCookVerificationStatus = async (cookId) => {
 
   if (anyRequiredRejected || anyKitchenPhotoRejected) {
     await Cook.findByIdAndUpdate(cookId, { verificationStatus: "rejected" });
+    
+    // Send rejection email if status changed
+    if (previousStatus !== "rejected") {
+      await sendRejectionEmail(cook, doc);
+    }
     return;
   }
 
@@ -335,9 +346,103 @@ const updateCookVerificationStatus = async (cookId) => {
   // ✅ APPROVED: All required docs + at least one kitchen photo approved
   if (allRequiredApproved && hasApprovedKitchenPhoto) {
     await Cook.findByIdAndUpdate(cookId, { verificationStatus: "approved" });
+    
+    // Send approval email if status changed
+    if (previousStatus !== "approved") {
+      await sendApprovalEmail(cook);
+    }
     return;
   }
 
   // Default to pending if we can't determine
   await Cook.findByIdAndUpdate(cookId, { verificationStatus: "pending" });
+};
+
+/**
+ * Send approval email to cook
+ */
+const sendApprovalEmail = async (cook) => {
+  try {
+    const subject = "🎉 Your Documents Have Been Approved!";
+    const text = `Dear ${cook.name},
+
+Congratulations! Your verification documents have been approved by our admin team.
+
+You can now start using your cook account and begin serving customers on Homely Meals platform.
+
+Next Steps:
+- Log in to your cook dashboard
+- Set up your menu and meal offerings
+- Start accepting orders
+
+Thank you for joining Homely Meals!
+
+Best regards,
+Homely Meals Team`;
+
+    await sendEmail(cook.email, subject, text);
+    console.log(`Approval email sent to ${cook.email}`);
+  } catch (error) {
+    console.error(`Failed to send approval email to ${cook.email}:`, error.message);
+  }
+};
+
+/**
+ * Send rejection email to cook with reasons
+ */
+const sendRejectionEmail = async (cook, doc) => {
+  try {
+    // Collect rejection reasons
+    const rejectionReasons = [];
+
+    if (doc.cnicFront?.status === "rejected") {
+      rejectionReasons.push(`- CNIC Front: ${doc.cnicFront.rejectedReason || "Not specified"}`);
+    }
+
+    if (doc.cnicBack?.status === "rejected") {
+      rejectionReasons.push(`- CNIC Back: ${doc.cnicBack.rejectedReason || "Not specified"}`);
+    }
+
+    if (doc.sfaLicense?.status === "rejected") {
+      rejectionReasons.push(`- SFA License: ${doc.sfaLicense.rejectedReason || "Not specified"}`);
+    }
+
+    if (doc.other?.status === "rejected") {
+      rejectionReasons.push(`- Other Document: ${doc.other.rejectedReason || "Not specified"}`);
+    }
+
+    doc.kitchenPhotos?.forEach((photo, index) => {
+      if (photo.status === "rejected") {
+        rejectionReasons.push(`- Kitchen Photo ${index + 1}: ${photo.rejectedReason || "Not specified"}`);
+      }
+    });
+
+    const reasonsText = rejectionReasons.length > 0 
+      ? rejectionReasons.join("\n") 
+      : "Please check your documents and resubmit.";
+
+    const subject = "Document Verification - Action Required";
+    const text = `Dear ${cook.name},
+
+We regret to inform you that some of your verification documents have been rejected by our admin team.
+
+Rejection Reasons:
+${reasonsText}
+
+What to do next:
+- Log in to your cook account
+- Review the rejection reasons carefully
+- Upload corrected documents
+- Wait for admin review
+
+If you have any questions, please contact our support team.
+
+Best regards,
+Homely Meals Team`;
+
+    await sendEmail(cook.email, subject, text);
+    console.log(`Rejection email sent to ${cook.email}`);
+  } catch (error) {
+    console.error(`Failed to send rejection email to ${cook.email}:`, error.message);
+  }
 };

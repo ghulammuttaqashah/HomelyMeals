@@ -45,7 +45,7 @@ export const signupRequest = async (req, res) => {
     await otpEntry.save();
 
     try {
-      await sendEmail(email, "Your OTP Code", `Your OTP for signup is ${otpCode}`);
+      await sendEmail(email, "Your OTP Code", `Your OTP for cook account signup is ${otpCode}`);
     } catch (emailError) {
       await OTPVerification.deleteOne({ email, purpose: "cook-signup" });
       return res

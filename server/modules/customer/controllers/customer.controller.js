@@ -54,7 +54,7 @@ export const signupRequest = async (req, res) => {
 
     // 7️⃣ Send email safely
     try {
-      await sendEmail(email, "Your OTP Code", `Your OTP for signup is ${otpCode}`);
+      await sendEmail(email, "Your OTP Code", `Your OTP for customer account signup is ${otpCode}`);
     } catch (emailError) {
       await OTPVerification.deleteOne({ email, purpose: "signup" });
       return res.status(400).json({

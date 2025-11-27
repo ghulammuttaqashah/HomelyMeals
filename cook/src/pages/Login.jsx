@@ -37,7 +37,7 @@ const Login = () => {
         navigate('/status', { replace: true })
       } else if (verificationStatus === 'rejected') {
         navigate('/status', { replace: true })
-      } else if (verificationStatus === 'approved' || verificationStatus === 'verified') {
+      } else if (verificationStatus === 'approved') {
         navigate('/dashboard', { replace: true })
       } else {
         navigate('/status', { replace: true })

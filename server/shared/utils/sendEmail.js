@@ -11,7 +11,7 @@ export const sendEmail = async (to, subject, text) => {
     });
 
     const mailOptions = {
-      from: `"Homely Meals" <${process.env.EMAIL_USER}>`,
+      from: `<${process.env.EMAIL_USER}>`,
       to,
       subject,
       text
