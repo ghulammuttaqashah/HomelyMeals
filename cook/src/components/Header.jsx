@@ -3,12 +3,21 @@ import { useAuth } from '../context/AuthContext'
 
 const Header = ({ showSignOut = false }) => {
   const navigate = useNavigate()
-  const { signout, isAuthenticated } = useAuth()
+  const { signout, isAuthenticated, cook } = useAuth()
 
   const handleLogoClick = () => {
     if (isAuthenticated) {
-      // If logged in, go to dashboard
-      navigate('/dashboard')
+      const status = cook?.verificationStatus
+      // Redirect based on verification status
+      if (status === 'not_started') {
+        navigate('/upload-docs')
+      } else if (status === 'pending' || status === 'rejected') {
+        navigate('/status')
+      } else if (status === 'approved' || status === 'verified') {
+        navigate('/dashboard')
+      } else {
+        navigate('/status')
+      }
     } else {
       // If not logged in, redirect to customer landing page
       const customerUrl = import.meta.env.VITE_CUSTOMER_URL || 'http://localhost:5173'

@@ -47,7 +47,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/customer", customerRoutes);
 app.use("/api/cook", cookRoutes);
 
-// Start Server
+// Start Serv
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });

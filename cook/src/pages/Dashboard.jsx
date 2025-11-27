@@ -17,8 +17,16 @@ const Dashboard = () => {
   useEffect(() => {
     if (!isAuthenticated) {
       navigate('/login', { replace: true })
+      return
     }
-  }, [isAuthenticated, navigate])
+
+    const status = cook?.verificationStatus
+    if (status === 'not_started') {
+      navigate('/upload-docs', { replace: true })
+    } else if (status === 'pending' || status === 'rejected') {
+      navigate('/status', { replace: true })
+    }
+  }, [isAuthenticated, cook, navigate])
 
   useEffect(() => {
     if (isAuthenticated) {

@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
+import { useAuth } from '../context/AuthContext'
 import { addMeal } from '../api/meals'
 import { uploadToCloudinary } from '../utils/cloudinary'
 import Header from '../components/Header'
@@ -10,6 +11,7 @@ import FormInput from '../components/FormInput'
 
 const AddMeal = () => {
   const navigate = useNavigate()
+  const { cook, isAuthenticated } = useAuth()
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
@@ -24,6 +26,20 @@ const AddMeal = () => {
 
   const categories = ['main course', 'beverages', 'starter', 'other']
   const availabilityOptions = ['Available', 'OutOfStock']
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/login', { replace: true })
+      return
+    }
+
+    const status = cook?.verificationStatus
+    if (status === 'not_started') {
+      navigate('/upload-docs', { replace: true })
+    } else if (status === 'pending' || status === 'rejected') {
+      navigate('/status', { replace: true })
+    }
+  }, [isAuthenticated, cook, navigate])
 
   const handleChange = (event) => {
     const { name, value } = event.target
