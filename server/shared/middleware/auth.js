@@ -22,11 +22,11 @@ export const protect = (req, res, next) => {
   if (!token) {
     // Only log if it's not a /me endpoint (which is expected to fail when not logged in)
     if (!req.originalUrl.includes("/me")) {
-      console.log("❌ Auth failed: No token provided");
-      console.log("   Cookies received:", Object.keys(req.cookies || {}).join(", ") || "none");
-      console.log("   Path:", req.path);
-      console.log("   Original URL:", req.originalUrl);
-      console.log("   Origin:", req.headers.origin);
+     // console.log("❌ Auth failed: No token provided");
+      //console.log("   Cookies received:", Object.keys(req.cookies || {}).join(", ") || "none");
+      //console.log("   Path:", req.path);
+      //console.log("   Original URL:", req.originalUrl);
+      //console.log("   Origin:", req.headers.origin);
     }
     return res.status(401).json({ message: "No token provided" });
   }
@@ -42,13 +42,13 @@ export const protect = (req, res, next) => {
     next();
   } catch (err) {
     if (err.name === "TokenExpiredError") {
-      console.log("❌ Auth failed: Token expired");
+      //console.log("❌ Auth failed: Token expired");
       return res.status(401).json({
         message: "Session expired. Please sign in again.",
       });
     }
 
-    console.log("❌ Auth failed: Invalid token -", err.message);
+    //console.log("❌ Auth failed: Invalid token -", err.message);
     return res.status(401).json({ message: "Invalid token" });
   }
 };

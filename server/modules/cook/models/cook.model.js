@@ -20,7 +20,7 @@ const cookSchema = new mongoose.Schema(
     /** Document verification flow */
     verificationStatus: {
       type: String,
-      enum: ["not_started", "not_submitted", "pending", "submitted", "verified", "approved", "rejected"],
+      enum: ["not_started", "pending", "submitted", "verified", "approved", "rejected"],
       default: "not_started",
     },
 

@@ -72,7 +72,7 @@ export const submitDocuments = async (req, res) => {
     await cookDoc.save();
 
     // Update cook verificationStatus to pending if not started
-    if (cook.verificationStatus === "not_started" || cook.verificationStatus === "not_submitted") {
+    if (cook.verificationStatus === "not_started") {
       cook.verificationStatus = "pending";
       await cook.save();
     }
