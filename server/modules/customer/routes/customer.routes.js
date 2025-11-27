@@ -5,9 +5,10 @@ import {
   signIn,
   signOut,
   getAllMealsForCustomer,
-  resendSignupOtp
+  resendSignupOtp,
+  getCurrentCustomer
 } from "../controllers/customer.controller.js";
-import { protect } from "../../../shared/middleware/auth.js"; // optional if you need protected routes
+import { protect } from "../../../shared/middleware/auth.js";
 
 const router = express.Router();
 
@@ -22,6 +23,9 @@ router.post("/signup/resend", resendSignupOtp);
 
 // STEP 3: Sign-in (sets JWT cookie)
 router.post("/signin", signIn);
+
+// Get current customer (protected)
+router.get("/me", protect, getCurrentCustomer);
 
 // STEP 4: Sign-out (clears cookie - no auth required to allow cleanup)
 router.post("/signout", signOut); 

@@ -146,8 +146,8 @@ export const signIn = async (req, res) => {
       expiresIn: JWT_EXPIRES_IN
     });
 
-    // Send token as HTTP-only cookie
-    res.cookie("token", token, {
+    // Send token as HTTP-only cookie with customer-specific name
+    res.cookie("customerToken", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "Strict",
@@ -171,11 +171,37 @@ export const signIn = async (req, res) => {
 };
 
 /**
+ * Get Current Customer (Protected)
+ */
+export const getCurrentCustomer = async (req, res) => {
+  try {
+    const customer = await Customer.findById(req.user._id).select("-password");
+    if (!customer) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+
+    return res.status(200).json({
+      customer: {
+        id: customer._id,
+        name: customer.name,
+        email: customer.email,
+        contact: customer.contact,
+        address: customer.address,
+        status: customer.status,
+      },
+    });
+  } catch (err) {
+    console.error("Get Current Customer Error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+/**
  * STEP 4: Customer Sign-out (Clear Cookie)
  */
 export const signOut = async (req, res) => {
   try {
-    res.clearCookie("token", {
+    res.clearCookie("customerToken", {
       httpOnly: true,
       sameSite: "Strict",
       secure: process.env.NODE_ENV === "production"

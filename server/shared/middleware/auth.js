@@ -6,18 +6,28 @@ export const protect = (req, res, next) => {
   // Determine which cookie to check based on the route
   let token;
   if (req.path.startsWith("/admin") || req.originalUrl.includes("/admin")) {
-    // For admin routes, check adminToken first, then fall back to token (for backward compatibility)
-    token = req.cookies?.adminToken || req.cookies?.token || req.headers.authorization?.split(" ")[1];
+    // For admin routes, check adminToken
+    token = req.cookies?.adminToken || req.headers.authorization?.split(" ")[1];
+  } else if (req.originalUrl.includes("/cook")) {
+    // For cook routes, check cookToken
+    token = req.cookies?.cookToken || req.headers.authorization?.split(" ")[1];
+  } else if (req.originalUrl.includes("/customer")) {
+    // For customer routes, check customerToken
+    token = req.cookies?.customerToken || req.headers.authorization?.split(" ")[1];
   } else {
+    // Fallback to generic token
     token = req.cookies?.token || req.headers.authorization?.split(" ")[1];
   }
 
   if (!token) {
-    console.log("❌ Auth failed: No token provided");
-    console.log("   Cookies received:", Object.keys(req.cookies || {}).join(", ") || "none");
-    console.log("   Path:", req.path);
-    console.log("   Original URL:", req.originalUrl);
-    console.log("   Origin:", req.headers.origin);
+    // Only log if it's not a /me endpoint (which is expected to fail when not logged in)
+    if (!req.originalUrl.includes("/me")) {
+      console.log("❌ Auth failed: No token provided");
+      console.log("   Cookies received:", Object.keys(req.cookies || {}).join(", ") || "none");
+      console.log("   Path:", req.path);
+      console.log("   Original URL:", req.originalUrl);
+      console.log("   Origin:", req.headers.origin);
+    }
     return res.status(401).json({ message: "No token provided" });
   }
 

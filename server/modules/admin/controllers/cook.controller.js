@@ -2,10 +2,12 @@ import { Cook } from "../../cook/models/cook.model.js";
 
 /**
  * GET ALL COOKS (Admin)
+ * Only returns cooks with verificationStatus = "approved"
  */
 export const getAllCooks = async (req, res) => {
   try {
-    const cooks = await Cook.find().select("-password");
+    // Only show approved cooks in "Manage Cook Status"
+    const cooks = await Cook.find({ verificationStatus: "approved" }).select("-password");
 
     return res.status(200).json({
       message: "Cooks retrieved successfully",

@@ -12,9 +12,9 @@ const app = express();
 
 
 const allowedOrigins = [
-  "http://localhost:5173",  // admin frontend
-  "http://localhost:5174",  // cusrtomer frontend
-  "http://localhost:5175",  // cook frontend (if you use it)
+  "http://localhost:5173",  // customer frontend
+  "http://localhost:5174",  // cook frontend
+  "http://localhost:5175",  // admin frontend
 ];
 
 app.use(

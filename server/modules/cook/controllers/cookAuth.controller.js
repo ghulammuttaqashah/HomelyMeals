@@ -142,7 +142,7 @@ export const cookSignin = async (req, res) => {
       expiresIn: JWT_EXPIRES_IN,
     });
 
-    res.cookie("token", token, {
+    res.cookie("cookToken", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "Strict",
@@ -170,11 +170,40 @@ export const cookSignin = async (req, res) => {
 };
 
 /**
+ * Get Current Cook (Protected)
+ */
+export const getCurrentCook = async (req, res) => {
+  try {
+    const cook = await Cook.findById(req.user._id).select("-password");
+    if (!cook) {
+      return res.status(404).json({ message: "Cook not found" });
+    }
+
+    return res.status(200).json({
+      cook: {
+        id: cook._id,
+        name: cook.name,
+        email: cook.email,
+        contact: cook.contact,
+        address: cook.address,
+        verificationStatus: cook.verificationStatus,
+        serviceStatus: cook.serviceStatus,
+        status: cook.status,
+        statusReason: cook.statusReason,
+      },
+    });
+  } catch (err) {
+    console.error("Get Current Cook Error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+/**
  * STEP 4: Cook Sign-Out
  */
 export const cookSignout = async (req, res) => {
   try {
-    res.clearCookie("token", {
+    res.clearCookie("cookToken", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "Strict",
