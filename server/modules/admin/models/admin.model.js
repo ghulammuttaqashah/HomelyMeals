@@ -10,7 +10,7 @@ const adminSchema = new mongoose.Schema({
   lastLogin: { type: Date }
 });
 
-// Hash password before save (for manual insert or update)
+
 
 
 export const Admin = mongoose.model("Admin", adminSchema);

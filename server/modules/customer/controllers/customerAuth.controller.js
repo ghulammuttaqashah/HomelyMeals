@@ -1,4 +1,3 @@
-
 import { Customer } from "../models/customer.model.js";
 import { OTPVerification } from "../../../shared/models/otp.model.js";
 import { generateOtp } from "../../../shared/utils/generateOtp.js";
@@ -7,7 +6,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { JWT_SECRET, JWT_EXPIRES_IN } from "../../../shared/config/env.js";
 import { isValidEmail } from "../../../shared/utils/validateEmail.js";
-import { verifyEmailAPI } from "../../../shared/utils/verifyEmailAPI.js"; // ✅ new import
+import { verifyEmailAPI } from "../../../shared/utils/verifyEmailAPI.js";
 
 /**
  * STEP 1: Request Signup OTP (Account not created yet)
@@ -71,8 +70,6 @@ export const signupRequest = async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
-
-
 
 /**
  * STEP 2: Verify OTP & Create Account
@@ -214,56 +211,6 @@ export const signOut = async (req, res) => {
   }
 };
 
-
-import Meal from "../../cook/models/cookMeal.model.js";
-import {Cook} from "../../cook/models/cook.model.js";
-
-// Get all meals for customers (with cook name)
-export const getAllMealsForCustomer = async (req, res) => {
-  try {
-    // Populate cook info (name and status)
-    const meals = await Meal.find()
-      .populate({
-        path: "cookId",
-        select: "name status verificationStatus",
-      })
-      .sort({ createdAt: -1 });
-
-    // Filter out meals from suspended or non-approved cooks
-    const formatted = meals
-      .filter(m => {
-        // Only show meals from active and approved cooks
-        return m.cookId && 
-               m.cookId.status === "active" && 
-               m.cookId.verificationStatus === "approved";
-      })
-      .map(m => ({
-        mealId: m._id,
-        name: m.name,
-        description: m.description,
-        price: m.price,
-        category: m.category,
-        availability: m.availability,
-        itemImage: m.itemImage,
-        cookName: m.cookId?.name || "Unknown Cook",
-        createdAt: m.createdAt,
-      }));
-
-    res.status(200).json({
-      success: true,
-      count: formatted.length,
-      meals: formatted
-    });
-  } catch (error) {
-    console.error("Get meals error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch meals",
-    });
-  }
-};
-
-
 /**
  * Resend OTP for Customer Signup
  */
@@ -311,6 +258,213 @@ export const resendSignupOtp = async (req, res) => {
     });
   } catch (err) {
     console.error("Resend OTP Error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+/**
+ * FORGOT PASSWORD - Step 1: Request OTP
+ */
+export const forgotPasswordRequest = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    // Check if customer exists
+    const customer = await Customer.findOne({ email });
+    if (!customer) {
+      return res.status(404).json({ message: "No account found with this email" });
+    }
+
+    // Delete any existing forgot password OTPs for this email
+    await OTPVerification.deleteMany({ email, purpose: "customer-forgot-password" });
+
+    // Generate OTP
+    const otpCode = generateOtp();
+    const expiryTime = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+
+    // Save OTP entry
+    const otpEntry = new OTPVerification({
+      email,
+      otpCode,
+      purpose: "customer-forgot-password",
+      expiryTime,
+    });
+    await otpEntry.save();
+
+    // Send email
+    try {
+      await sendEmail(
+        email,
+        "Password Reset OTP",
+        `Your OTP for password reset is: ${otpCode}\n\nThis OTP will expire in 10 minutes.\n\nIf you did not request this, please ignore this email.`
+      );
+    } catch (emailError) {
+      await OTPVerification.deleteOne({ email, purpose: "customer-forgot-password" });
+      return res.status(400).json({
+        message: "Failed to send OTP. Please try again.",
+      });
+    }
+
+    return res.status(200).json({
+      message: "OTP sent to your email. Please verify to reset password.",
+    });
+  } catch (err) {
+    console.error("Forgot Password Request Error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+/**
+ * FORGOT PASSWORD - Step 2: Verify OTP
+ */
+export const verifyForgotPasswordOtp = async (req, res) => {
+  const { email, otpCode } = req.body;
+
+  try {
+    if (!email || !otpCode) {
+      return res.status(400).json({ message: "Email and OTP are required" });
+    }
+
+    const otpEntry = await OTPVerification.findOne({
+      email,
+      otpCode,
+      purpose: "customer-forgot-password",
+      isVerified: false,
+    });
+
+    if (!otpEntry) {
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
+
+    if (otpEntry.expiryTime < new Date()) {
+      return res.status(400).json({ message: "OTP expired" });
+    }
+
+    // Mark OTP as verified
+    otpEntry.isVerified = true;
+    await otpEntry.save();
+
+    return res.status(200).json({
+      message: "OTP verified successfully. You can now reset your password.",
+    });
+  } catch (err) {
+    console.error("Verify Forgot Password OTP Error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+/**
+ * FORGOT PASSWORD - Step 3: Reset Password
+ */
+export const resetPassword = async (req, res) => {
+  const { email, newPassword } = req.body;
+
+  try {
+    if (!email || !newPassword) {
+      return res.status(400).json({ message: "Email and new password are required" });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters" });
+    }
+
+    // Check if OTP was verified
+    const otpEntry = await OTPVerification.findOne({
+      email,
+      purpose: "customer-forgot-password",
+      isVerified: true,
+    });
+
+    if (!otpEntry) {
+      return res.status(400).json({
+        message: "Please verify OTP first before resetting password",
+      });
+    }
+
+    // Find customer and update password
+    const customer = await Customer.findOne({ email });
+    if (!customer) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    customer.password = hashedPassword;
+    await customer.save();
+
+    // Delete the OTP entry after successful password reset
+    await OTPVerification.deleteMany({ email, purpose: "customer-forgot-password" });
+
+    return res.status(200).json({
+      message: "Password reset successful. You can now login with your new password.",
+    });
+  } catch (err) {
+    console.error("Reset Password Error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+/**
+ * FORGOT PASSWORD - Resend OTP
+ */
+export const resendForgotPasswordOtp = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    // Check if customer exists
+    const customer = await Customer.findOne({ email });
+    if (!customer) {
+      return res.status(404).json({ message: "No account found with this email" });
+    }
+
+    // Check if there's a pending forgot password OTP
+    const existingOtp = await OTPVerification.findOne({
+      email,
+      purpose: "customer-forgot-password",
+      isVerified: false,
+    });
+
+    if (!existingOtp) {
+      return res.status(400).json({
+        message: "No pending password reset found. Please start the process again.",
+      });
+    }
+
+    // Generate new OTP
+    const otpCode = generateOtp();
+    const expiryTime = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+
+    // Update existing OTP entry
+    existingOtp.otpCode = otpCode;
+    existingOtp.expiryTime = expiryTime;
+    await existingOtp.save();
+
+    // Send email
+    try {
+      await sendEmail(
+        email,
+        "Password Reset OTP (Resent)",
+        `Your new OTP for password reset is: ${otpCode}\n\nThis OTP will expire in 10 minutes.`
+      );
+    } catch (emailError) {
+      return res.status(400).json({
+        message: "Failed to send OTP. Please try again.",
+      });
+    }
+
+    return res.status(200).json({
+      message: "OTP resent successfully. Please check your email.",
+    });
+  } catch (err) {
+    console.error("Resend Forgot Password OTP Error:", err);
     return res.status(500).json({ message: "Server error" });
   }
 };

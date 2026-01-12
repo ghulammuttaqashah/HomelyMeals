@@ -29,3 +29,24 @@ export const getCurrentCook = async () => {
   const { data } = await api.get('/api/cook/auth/me')
   return data
 }
+
+// Forgot Password APIs
+export const forgotPasswordRequest = async (payload) => {
+  const { data } = await api.post('/api/cook/auth/forgot-password/request', payload)
+  return data
+}
+
+export const verifyForgotPasswordOtp = async (payload) => {
+  const { data } = await api.post('/api/cook/auth/forgot-password/verify', payload)
+  return data
+}
+
+export const resetPassword = async (payload) => {
+  const { data } = await api.post('/api/cook/auth/forgot-password/reset', payload)
+  return data
+}
+
+export const resendForgotPasswordOtp = async (payload) => {
+  const { data } = await api.post('/api/cook/auth/forgot-password/resend', payload)
+  return data
+}

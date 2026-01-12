@@ -148,7 +148,7 @@ const Dashboard = () => {
 
               {/* Sort By Price */}
               <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">Sort By Price</label>
+                <label className="mb-2 block text-sm font-medium text-gray-700">Sort By Price and Letter</label>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}

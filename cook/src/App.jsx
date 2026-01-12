@@ -5,9 +5,11 @@ import ProtectedRoute from './components/ProtectedRoute'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
 import VerifyOtp from './pages/VerifyOtp'
+import ForgotPassword from './pages/ForgotPassword'
 import UploadDocuments from './pages/UploadDocuments'
 import Status from './pages/Status'
 import Dashboard from './pages/Dashboard'
+import MenuManagement from './pages/MenuManagement'
 import AddMeal from './pages/AddMeal'
 
 const App = () => {
@@ -18,6 +20,7 @@ const App = () => {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/verify-otp" element={<VerifyOtp />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/upload-docs" element={<UploadDocuments />} />
           <Route path="/status" element={<Status />} />
           <Route 
@@ -25,6 +28,14 @@ const App = () => {
             element={
               <ProtectedRoute>
                 <Dashboard />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/menu" 
+            element={
+              <ProtectedRoute>
+                <MenuManagement />
               </ProtectedRoute>
             } 
           />

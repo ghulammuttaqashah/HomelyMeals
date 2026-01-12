@@ -7,7 +7,7 @@ import { Customer } from "../../customer/models/customer.model.js";
 
 export const getAllCustomers = async (req, res) => {
   try {
-    const customers = await Customer.find().select("-password");
+    const customers = await Customer.find().select("-password"); //excludes the password field
     return res.status(200).json({
       message: "Customers retrieved successfully",
       customers,

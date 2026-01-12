@@ -15,7 +15,7 @@ const Header = ({ showNav = true }) => {
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 lg:px-6">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Admin Panel</p>
-          <h1 className="text-xl font-bold text-orange-600">Homely Meals Admin</h1>
+          <h1 className="text-xl font-bold text-orange-600">HomelyMeals Admin</h1>
         </div>
         {showNav && (
           <nav className="flex items-center gap-1">

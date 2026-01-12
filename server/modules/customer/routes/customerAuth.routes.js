@@ -4,10 +4,13 @@ import {
   verifyOtpAndCreateAccount,
   signIn,
   signOut,
-  getAllMealsForCustomer,
   resendSignupOtp,
-  getCurrentCustomer
-} from "../controllers/customer.controller.js";
+  getCurrentCustomer,
+  forgotPasswordRequest,
+  verifyForgotPasswordOtp,
+  resetPassword,
+  resendForgotPasswordOtp
+} from "../controllers/customerAuth.controller.js";
 import { protect } from "../../../shared/middleware/auth.js";
 
 const router = express.Router();
@@ -30,7 +33,10 @@ router.get("/me", protect, getCurrentCustomer);
 // STEP 4: Sign-out (clears cookie - no auth required to allow cleanup)
 router.post("/signout", signOut); 
 
-// Get all meals (public endpoint - no authentication required)
-router.get("/meals", getAllMealsForCustomer);
+// Forgot Password Routes
+router.post("/forgot-password/request", forgotPasswordRequest);
+router.post("/forgot-password/verify", verifyForgotPasswordOtp);
+router.post("/forgot-password/reset", resetPassword);
+router.post("/forgot-password/resend", resendForgotPasswordOtp);
 
 export default router;
