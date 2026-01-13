@@ -4,11 +4,13 @@ import { Cook } from "../../cook/models/cook.model.js";
 /**
  * Get all meals for customers (with cook name)
  * Only shows meals from active and approved cooks
+ * Only shows meals that are available (not out of stock)
  */
 export const getAllMealsForCustomer = async (req, res) => {
   try {
     // Populate cook info (name and status)
-    const meals = await Meal.find()
+    // Only fetch meals that are available
+    const meals = await Meal.find({ availability: "Available" })
       .populate({
         path: "cookId",
         select: "name status verificationStatus",
