@@ -111,7 +111,7 @@ const AddMeal = () => {
 
       toast.dismiss(loadingToast)
       toast.success('Meal added successfully!')
-      navigate('/dashboard', { replace: true })
+      navigate('/menu-management', { replace: true })
     } catch (error) {
       toast.dismiss(loadingToast)
       const message = error.response?.data?.message || 'Failed to add meal'

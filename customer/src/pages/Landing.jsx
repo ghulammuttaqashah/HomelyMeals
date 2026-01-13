@@ -91,8 +91,9 @@ const Landing = () => {
               <p className="mt-2 text-gray-600">Discover delicious homemade meals from local cooks</p>
             </div>
             {loading ? (
-              <div className="flex items-center justify-center py-20">
+              <div className="flex flex-col items-center justify-center py-20">
                 <Loader size="lg" />
+                <p className="mt-4 text-sm text-gray-500">Loading delicious meals...</p>
               </div>
             ) : meals.length > 0 ? (
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
