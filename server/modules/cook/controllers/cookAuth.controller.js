@@ -479,3 +479,27 @@ export const resendForgotPasswordOtp = async (req, res) => {
   }
 };
 
+
+/**
+ * Toggle Service Status (open/closed)
+ */
+export const toggleServiceStatus = async (req, res) => {
+  try {
+    const cook = await Cook.findById(req.user._id);
+    if (!cook) {
+      return res.status(404).json({ message: "Cook not found" });
+    }
+
+    // Toggle between open and closed
+    cook.serviceStatus = cook.serviceStatus === "open" ? "closed" : "open";
+    await cook.save();
+
+    return res.status(200).json({
+      message: `Kitchen is now ${cook.serviceStatus}`,
+      serviceStatus: cook.serviceStatus,
+    });
+  } catch (err) {
+    console.error("Toggle Service Status Error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};

@@ -50,3 +50,8 @@ export const resendForgotPasswordOtp = async (payload) => {
   const { data } = await api.post('/api/cook/auth/forgot-password/resend', payload)
   return data
 }
+
+export const toggleServiceStatus = async () => {
+  const { data } = await api.patch('/api/cook/auth/service-status')
+  return data
+}

@@ -165,8 +165,9 @@ const Dashboard = () => {
 
           {/* Meals Grid */}
           {loading ? (
-            <div className="flex items-center justify-center py-20">
+            <div className="flex flex-col items-center justify-center py-32">
               <Loader size="lg" />
+              <p className="mt-6 text-base font-medium text-gray-600">Loading meals...</p>
             </div>
           ) : filteredMeals.length > 0 ? (
             <>

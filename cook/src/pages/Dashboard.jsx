@@ -1,6 +1,9 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
+import { toggleServiceStatus } from '../api/auth'
+import Loader from '../components/Loader'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 
@@ -59,7 +62,8 @@ const cards = [
 
 const Dashboard = () => {
   const navigate = useNavigate()
-  const { cook, isAuthenticated } = useAuth()
+  const { cook, isAuthenticated, refreshCook } = useAuth()
+  const [toggling, setToggling] = useState(false)
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -82,16 +86,87 @@ const Dashboard = () => {
     navigate(card.path)
   }
 
+  const handleToggleService = async () => {
+    setToggling(true)
+    try {
+      const response = await toggleServiceStatus()
+      toast.success(response.message)
+      // Refresh cook data to update the UI
+      if (refreshCook) {
+        await refreshCook()
+      }
+    } catch (error) {
+      const message = error.response?.data?.message || 'Failed to update service status'
+      toast.error(message)
+    } finally {
+      setToggling(false)
+    }
+  }
+
+  const isOpen = cook?.serviceStatus === 'open'
+
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
       <Header showSignOut={true} />
-
+     
       <main className="flex-1 py-12">
         <div className="mx-auto max-w-7xl px-4 lg:px-6">
           {/* Header Section */}
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-            <p className="mt-1 text-sm text-gray-600">Welcome back, {cook?.name}!</p>
+          <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+              <p className="mt-1 text-sm text-gray-600">Welcome back, {cook?.name}!</p>
+            </div>
+
+            {/* Service Status Toggle */}
+            <div className={`flex items-center gap-4 rounded-xl p-4 shadow-sm border-2 transition-all duration-300 ${
+              isOpen 
+                ? 'bg-green-50 border-green-200' 
+                : 'bg-red-50 border-red-200'
+            }`}>
+              <div className="flex flex-col">
+                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Kitchen Status</span>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className={`relative flex h-3 w-3`}>
+                    <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isOpen ? 'bg-green-400' : 'bg-red-400'}`}></span>
+                    <span className={`relative inline-flex rounded-full h-3 w-3 ${isOpen ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                  </span>
+                  <span className={`text-sm font-bold ${isOpen ? 'text-green-700' : 'text-red-700'}`}>
+                    {isOpen ? 'Open for Orders' : 'Closed'}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={handleToggleService}
+                disabled={toggling}
+                className={`relative inline-flex h-8 w-14 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:cursor-not-allowed ${
+                  isOpen 
+                    ? 'bg-green-500 focus:ring-green-500 hover:bg-green-600' 
+                    : 'bg-gray-300 focus:ring-gray-400 hover:bg-gray-400'
+                } ${toggling ? 'opacity-70' : ''}`}
+                role="switch"
+                aria-checked={isOpen}
+                aria-label="Toggle kitchen status"
+              >
+                <span
+                  className={`pointer-events-none inline-flex h-7 w-7 transform items-center justify-center rounded-full bg-white shadow-lg ring-0 transition-all duration-300 ease-in-out ${
+                    isOpen ? 'translate-x-6' : 'translate-x-0'
+                  }`}
+                >
+                  {toggling ? (
+                    <Loader size="sm" />
+                  ) : isOpen ? (
+                    <svg className="h-4 w-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                    </svg>
+                  ) : (
+                    <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  )}
+                </span>
+              </button>
+            </div>
           </div>
 
           {/* Cards Grid */}

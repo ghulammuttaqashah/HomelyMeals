@@ -3,7 +3,7 @@ import { Cook } from "../../cook/models/cook.model.js";
 
 /**
  * Get all meals for customers (with cook name)
- * Only shows meals from active and approved cooks
+ * Only shows meals from active, approved, and open cooks
  * Only shows meals that are available (not out of stock)
  */
 export const getAllMealsForCustomer = async (req, res) => {
@@ -13,17 +13,18 @@ export const getAllMealsForCustomer = async (req, res) => {
     const meals = await Meal.find({ availability: "Available" })
       .populate({
         path: "cookId",
-        select: "name status verificationStatus",
+        select: "name status verificationStatus serviceStatus",
       })
       .sort({ createdAt: -1 });
 
-    // Filter out meals from suspended or non-approved cooks
+    // Filter out meals from suspended, non-approved, or closed cooks
     const formatted = meals
       .filter(m => {
-        // Only show meals from active and approved cooks
+        // Only show meals from active, approved, and open cooks
         return m.cookId && 
                m.cookId.status === "active" && 
-               m.cookId.verificationStatus === "approved";
+               m.cookId.verificationStatus === "approved" &&
+               m.cookId.serviceStatus === "open";
       })
       .map(m => ({
         mealId: m._id,

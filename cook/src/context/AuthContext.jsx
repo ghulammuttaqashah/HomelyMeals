@@ -91,6 +91,17 @@ export const AuthProvider = ({ children }) => {
     return data
   }, [])
 
+  const refreshCook = useCallback(async () => {
+    try {
+      const data = await getCurrentCookAPI()
+      setCook(data.cook)
+      return data.cook
+    } catch (error) {
+      console.error('Failed to refresh cook data:', error)
+      return null
+    }
+  }, [])
+
   const signout = useCallback(async () => {
     if (isLoggingOut.current) {
       return
@@ -131,9 +142,10 @@ export const AuthProvider = ({ children }) => {
       verifySignupOtp,
       resendOtp,
       signin,
+      refreshCook,
       signout,
     }),
-    [cook, isAuthenticated, isLoading, pendingEmail, signupData, signupRequest, verifySignupOtp, resendOtp, signin, signout],
+    [cook, isAuthenticated, isLoading, pendingEmail, signupData, signupRequest, verifySignupOtp, resendOtp, signin, refreshCook, signout],
   )
 
   if (isLoading) {
