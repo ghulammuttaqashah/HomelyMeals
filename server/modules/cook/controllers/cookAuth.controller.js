@@ -125,7 +125,7 @@ export const cookSignin = async (req, res) => {
 
   try {
     const cook = await Cook.findOne({ email });
-    if (!cook) return res.status(400).json({ message: "Invalid credentials" });
+    if (!cook) return res.status(404).json({ message: "Account not found with this email" });
 
     if (cook.status === "suspended") {
       return res.status(403).json({
@@ -136,7 +136,7 @@ export const cookSignin = async (req, res) => {
 
     const isPasswordValid = await bcrypt.compare(password, cook.password);
     if (!isPasswordValid)
-      return res.status(400).json({ message: "Invalid credentials" });
+      return res.status(401).json({ message: "Incorrect password" });
 
     const token = jwt.sign({ id: cook._id }, JWT_SECRET, {
       expiresIn: JWT_EXPIRES_IN,

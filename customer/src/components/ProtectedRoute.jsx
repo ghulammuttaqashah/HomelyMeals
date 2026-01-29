@@ -3,11 +3,11 @@ import { useAuth } from '../context/AuthContext'
 import Loader from './Loader'
 
 /**
- * ProtectedRoute - Protects dashboard and other pages that require approved cook status
- * Redirects based on authentication and verification status
+ * ProtectedRoute - Redirects non-authenticated users to login page
+ * Use this for pages that require authentication
  */
 const ProtectedRoute = ({ children }) => {
-  const { cook, isAuthenticated, isLoading } = useAuth()
+  const { isAuthenticated, isLoading } = useAuth()
 
   // Show loader while checking authentication
   if (isLoading) {
@@ -26,22 +26,8 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/login" replace />
   }
 
-  const status = cook?.verificationStatus
-
-  // Redirect based on verification status
-  if (status === 'not_started') {
-    return <Navigate to="/upload-docs" replace />
-  } else if (status === 'pending' || status === 'rejected') {
-    return <Navigate to="/status" replace />
-  }
-
-  // Only 'approved' status can access protected routes
-  if (status === 'approved') {
-    return children
-  }
-
-  // Default fallback
-  return <Navigate to="/status" replace />
+  // Authenticated, show protected content
+  return children
 }
 
 export default ProtectedRoute

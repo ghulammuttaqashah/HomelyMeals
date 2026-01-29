@@ -95,13 +95,24 @@ export const verifyOtpAndCreateAccount = async (req, res) => {
 
     const { name, contact, password, address } = otpEntry.tempData;
 
-    // Create customer account
+    // Create customer account with initial address in addresses array
+    const initialAddress = address ? {
+      label: address.label || "Home",
+      houseNo: address.houseNo || "",
+      street: address.street,
+      city: address.city || "Sukkur",
+      postalCode: address.postalCode || "65200",
+      latitude: address.latitude || null,
+      longitude: address.longitude || null,
+      isDefault: true,
+    } : null;
+
     const customer = new Customer({
       name,
       email,
       contact,
       password,
-      address
+      addresses: initialAddress ? [initialAddress] : [],
     });
 
     await customer.save();
@@ -125,7 +136,7 @@ export const signIn = async (req, res) => {
   try {
     const customer = await Customer.findOne({ email });
     if (!customer)
-      return res.status(400).json({ message: "Invalid credentials" });
+      return res.status(404).json({ message: "Account not found with this email" });
 
     if (customer.status !== "active") {
       return res.status(403).json({
@@ -136,7 +147,7 @@ export const signIn = async (req, res) => {
 
     const isPasswordValid = await bcrypt.compare(password, customer.password);
     if (!isPasswordValid)
-      return res.status(400).json({ message: "Invalid credentials" });
+      return res.status(401).json({ message: "Incorrect password" });
 
     // Generate JWT
     const token = jwt.sign({ id: customer._id }, JWT_SECRET, {
@@ -183,7 +194,7 @@ export const getCurrentCustomer = async (req, res) => {
         name: customer.name,
         email: customer.email,
         contact: customer.contact,
-        address: customer.address,
+        addresses: customer.addresses,
         status: customer.status,
       },
     });
@@ -465,6 +476,203 @@ export const resendForgotPasswordOtp = async (req, res) => {
     });
   } catch (err) {
     console.error("Resend Forgot Password OTP Error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+/**
+ * Update Customer Profile (name, contact)
+ */
+export const updateProfile = async (req, res) => {
+  const { name, contact } = req.body;
+
+  try {
+    const customer = await Customer.findById(req.user._id);
+    if (!customer) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+
+    if (name) customer.name = name;
+    if (contact) customer.contact = contact;
+
+    await customer.save();
+
+    return res.status(200).json({
+      message: "Profile updated successfully",
+      customer: {
+        id: customer._id,
+        name: customer.name,
+        email: customer.email,
+        contact: customer.contact,
+        addresses: customer.addresses,
+        status: customer.status,
+      },
+    });
+  } catch (err) {
+    console.error("Update Profile Error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+/**
+ * Add New Address
+ */
+export const addAddress = async (req, res) => {
+  const { label, houseNo, street, city, postalCode, latitude, longitude, isDefault } = req.body;
+
+  try {
+    if (!street) {
+      return res.status(400).json({ message: "Street is required" });
+    }
+
+    const customer = await Customer.findById(req.user._id);
+    if (!customer) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+
+    // If this is set as default, unset other defaults
+    if (isDefault) {
+      customer.addresses.forEach(addr => addr.isDefault = false);
+    }
+
+    // If this is the first address, make it default
+    const shouldBeDefault = isDefault || customer.addresses.length === 0;
+
+    const newAddress = {
+      label: label || "Home",
+      houseNo: houseNo || "",
+      street,
+      city: city || "Sukkur",
+      postalCode: postalCode || "65200",
+      latitude: latitude || null,
+      longitude: longitude || null,
+      isDefault: shouldBeDefault,
+    };
+
+    customer.addresses.push(newAddress);
+    await customer.save();
+
+    return res.status(201).json({
+      message: "Address added successfully",
+      addresses: customer.addresses,
+    });
+  } catch (err) {
+    console.error("Add Address Error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+/**
+ * Update Address
+ */
+export const updateAddress = async (req, res) => {
+  const { addressId } = req.params;
+  const { label, houseNo, street, city, postalCode, latitude, longitude, isDefault } = req.body;
+
+  try {
+    const customer = await Customer.findById(req.user._id);
+    if (!customer) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+
+    const address = customer.addresses.id(addressId);
+    if (!address) {
+      return res.status(404).json({ message: "Address not found" });
+    }
+
+    // If setting as default, unset other defaults
+    if (isDefault && !address.isDefault) {
+      customer.addresses.forEach(addr => addr.isDefault = false);
+    }
+
+    // Update fields
+    if (label !== undefined) address.label = label;
+    if (houseNo !== undefined) address.houseNo = houseNo;
+    if (street !== undefined) address.street = street;
+    if (city !== undefined) address.city = city;
+    if (postalCode !== undefined) address.postalCode = postalCode;
+    if (latitude !== undefined) address.latitude = latitude;
+    if (longitude !== undefined) address.longitude = longitude;
+    if (isDefault !== undefined) address.isDefault = isDefault;
+
+    await customer.save();
+
+    return res.status(200).json({
+      message: "Address updated successfully",
+      addresses: customer.addresses,
+    });
+  } catch (err) {
+    console.error("Update Address Error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+/**
+ * Delete Address
+ */
+export const deleteAddress = async (req, res) => {
+  const { addressId } = req.params;
+
+  try {
+    const customer = await Customer.findById(req.user._id);
+    if (!customer) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+
+    const address = customer.addresses.id(addressId);
+    if (!address) {
+      return res.status(404).json({ message: "Address not found" });
+    }
+
+    const wasDefault = address.isDefault;
+    customer.addresses.pull(addressId);
+
+    // If deleted address was default and there are other addresses, make first one default
+    if (wasDefault && customer.addresses.length > 0) {
+      customer.addresses[0].isDefault = true;
+    }
+
+    await customer.save();
+
+    return res.status(200).json({
+      message: "Address deleted successfully",
+      addresses: customer.addresses,
+    });
+  } catch (err) {
+    console.error("Delete Address Error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+/**
+ * Set Default Address
+ */
+export const setDefaultAddress = async (req, res) => {
+  const { addressId } = req.params;
+
+  try {
+    const customer = await Customer.findById(req.user._id);
+    if (!customer) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+
+    const address = customer.addresses.id(addressId);
+    if (!address) {
+      return res.status(404).json({ message: "Address not found" });
+    }
+
+    // Unset all defaults and set this one
+    customer.addresses.forEach(addr => addr.isDefault = false);
+    address.isDefault = true;
+
+    await customer.save();
+
+    return res.status(200).json({
+      message: "Default address updated",
+      addresses: customer.addresses,
+    });
+  } catch (err) {
+    console.error("Set Default Address Error:", err);
     return res.status(500).json({ message: "Server error" });
   }
 };

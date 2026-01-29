@@ -89,6 +89,15 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(true)
   }, [])
 
+  const refreshCustomer = useCallback(async () => {
+    try {
+      const data = await getCurrentCustomerAPI()
+      setCustomer(data.customer)
+    } catch (error) {
+      console.error('Failed to refresh customer:', error)
+    }
+  }, [])
+
   const signout = useCallback(async () => {
     if (isLoggingOut.current) {
       return
@@ -130,8 +139,9 @@ export const AuthProvider = ({ children }) => {
       resendOtp,
       signin,
       signout,
+      refreshCustomer,
     }),
-    [customer, isAuthenticated, isLoading, pendingEmail, signupData, signupRequest, verifySignupOtp, resendOtp, signin, signout],
+    [customer, isAuthenticated, isLoading, pendingEmail, signupData, signupRequest, verifySignupOtp, resendOtp, signin, signout, refreshCustomer],
   )
 
   if (isLoading) {

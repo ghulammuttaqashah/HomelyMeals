@@ -1,188 +1,179 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
+import { getAllCooks } from '../api/meals'
 import { useAuth } from '../context/AuthContext'
-import { getAllMeals } from '../api/meals'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import Container from '../components/Container'
-import MealCard from '../components/MealCard'
+import CookCard from '../components/CookCard'
 import Loader from '../components/Loader'
 
 const Dashboard = () => {
   const navigate = useNavigate()
-  const { isAuthenticated } = useAuth()
-  const [meals, setMeals] = useState([])
-  const [filteredMeals, setFilteredMeals] = useState([])
+  const { isAuthenticated, customer } = useAuth()
+  const [cooks, setCooks] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState('All Categories')
-  const [sortBy, setSortBy] = useState('default')
+  const [searchInput, setSearchInput] = useState('')
+  const [customerCity, setCustomerCity] = useState(null)
+  const [serviceAvailable, setServiceAvailable] = useState(true)
 
-  const categories = ['All Categories', 'Main Course', 'Beverages', 'Starter', 'Other']
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/login', { replace: true })
-    }
-  }, [isAuthenticated, navigate])
+  // Get selected address from customer's addresses (default or first)
+  const selectedAddress = customer?.addresses?.find(a => a.isDefault) || customer?.addresses?.[0]
 
   useEffect(() => {
-    fetchMeals()
-  }, [])
+    fetchCooks()
+  }, [searchQuery, selectedAddress?._id])
 
-  useEffect(() => {
-    filterAndSortMeals()
-  }, [meals, searchQuery, selectedCategory, sortBy])
-
-  const fetchMeals = async () => {
+  const fetchCooks = async () => {
     try {
       setLoading(true)
-      const response = await getAllMeals()
-      const mealsData = response.meals.map(meal => ({
-        id: meal.mealId,
-        name: meal.name,
-        price: meal.price,
-        description: meal.description,
-        image: meal.itemImage || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&h=300&fit=crop',
-        rating: 4.5,
-        reviews: 0,
-        category: meal.category,
-        cookName: meal.cookName,
-        availability: meal.availability,
-      }))
-      setMeals(mealsData)
-      setFilteredMeals(mealsData)
+      const response = await getAllCooks(searchQuery)
+      setCooks(response.cooks || [])
+      setCustomerCity(response.customerCity || null)
+      setServiceAvailable(response.serviceAvailable !== false)
     } catch (error) {
-      toast.error('Failed to load meals')
-      console.error('Fetch meals error:', error)
+      toast.error('Failed to load cooks')
+      console.error('Fetch cooks error:', error)
     } finally {
       setLoading(false)
     }
   }
 
-  const filterAndSortMeals = () => {
-    let result = [...meals]
+  const handleSearch = (e) => {
+    e.preventDefault()
+    setSearchQuery(searchInput.trim())
+  }
 
-    // Filter by search query
-    if (searchQuery) {
-      result = result.filter(meal =>
-        meal.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        meal.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        meal.category.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    }
-
-    // Filter by category
-    if (selectedCategory !== 'All Categories') {
-      result = result.filter(meal => 
-        meal.category.toLowerCase() === selectedCategory.toLowerCase()
-      )
-    }
-
-    // Sort meals
-    if (sortBy === 'price-low') {
-      result.sort((a, b) => a.price - b.price)
-    } else if (sortBy === 'price-high') {
-      result.sort((a, b) => b.price - a.price)
-    } else if (sortBy === 'name') {
-      result.sort((a, b) => a.name.localeCompare(b.name))
-    }
-
-    setFilteredMeals(result)
+  const handleClearSearch = () => {
+    setSearchInput('')
+    setSearchQuery('')
   }
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
-      <Header />
+      <Header onAddressChange={fetchCooks} />
       
       <main className="flex-1">
         <Container className="py-8">
-          {/* Filter Section */}
-          <div className="mb-8 rounded-lg bg-white p-6 shadow-sm border border-gray-200">
-            <h2 className="mb-4 text-lg font-semibold text-gray-900">Filter Meals</h2>
-            
-            {/* Search Bar */}
-            <div className="mb-4">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search meals by name, description, or category..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 pl-10 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                />
-                <svg
-                  className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+          {/* Location Banner - Only show if logged in and has city */}
+          {isAuthenticated && customerCity && (
+            <div className="mb-6 flex items-center gap-2 rounded-xl bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 px-4 py-3">
+              <svg className="h-5 w-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span className="text-sm text-gray-700">
+                Showing cooks in <span className="font-semibold text-orange-600">{customerCity}</span>
+              </span>
+            </div>
+          )}
+
+          {/* Search Section */}
+          <div className="mb-8 rounded-xl bg-white p-6 shadow-sm border border-gray-200">
+            <h2 className="mb-4 text-lg font-semibold text-gray-900">Search for Meals</h2>
+            <form onSubmit={handleSearch}>
+              <div className="flex gap-3">
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    placeholder="Search by meal name (e.g., Biryani, Karahi, Pizza...)"
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 pl-10 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
                   />
-                </svg>
-              </div>
-            </div>
-
-            {/* Filters Row */}
-            <div className="grid gap-4 md:grid-cols-2">
-              {/* Category Filter */}
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">Category</label>
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  <svg
+                    className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
+                  </svg>
+                </div>
+                <button
+                  type="submit"
+                  className="rounded-lg bg-orange-600 px-6 py-3 text-sm font-medium text-white hover:bg-orange-700 transition-colors"
                 >
-                  {categories.map((category) => (
-                    <option key={category} value={category}>
-                      {category}
-                    </option>
-                  ))}
-                </select>
+                  Search
+                </button>
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={handleClearSearch}
+                    className="rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    Clear
+                  </button>
+                )}
               </div>
-
-              {/* Sort By Price */}
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">Sort By Price and Letter</label>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                >
-                  <option value="default">Default</option>
-                  <option value="price-low">Price (Low to High)</option>
-                  <option value="price-high">Price (High to Low)</option>
-                  <option value="name">Name (A-Z)</option>
-                </select>
-              </div>
-            </div>
+            </form>
+            {searchQuery && (
+              <p className="mt-3 text-sm text-gray-600">
+                Showing cooks with meals matching "<span className="font-medium text-orange-600">{searchQuery}</span>"
+              </p>
+            )}
           </div>
 
-          {/* Meals Grid */}
+          {/* Cooks Grid */}
           {loading ? (
             <div className="flex flex-col items-center justify-center py-32">
               <Loader size="lg" />
-              <p className="mt-6 text-base font-medium text-gray-600">Loading meals...</p>
+              <p className="mt-6 text-base font-medium text-gray-600">Loading cooks...</p>
             </div>
-          ) : filteredMeals.length > 0 ? (
+          ) : cooks.length > 0 ? (
             <>
               <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-gray-900">Available Meals</h2>
-                <p className="text-sm text-gray-600">{filteredMeals.length} meals found</p>
+                <h2 className="text-2xl font-bold text-gray-900">
+                  {searchQuery ? 'Matching Cooks' : 'Available Cooks'}
+                </h2>
+                <p className="text-sm text-gray-600">{cooks.length} cooks found</p>
               </div>
-              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {filteredMeals.map((meal) => (
-                  <MealCard key={meal.id} meal={meal} />
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {cooks.map((cook) => (
+                  <CookCard key={cook.cookId} cook={cook} />
                 ))}
               </div>
             </>
+          ) : !serviceAvailable && customerCity ? (
+            // Service not available in customer's city
+            <div className="rounded-xl bg-white p-12 text-center shadow-sm border border-gray-200">
+              <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-red-100">
+                <svg className="h-10 w-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900">Not Available in Your Area</h3>
+              <p className="mt-2 text-gray-600">
+                Sorry, we don't have any home cooks available in <span className="font-semibold text-orange-600">{customerCity}</span> yet.
+              </p>
+              <p className="mt-1 text-sm text-gray-500">
+                We're expanding! Check back soon or try a different address.
+              </p>
+              {customer?.addresses?.length > 1 && (
+                <p className="mt-4 text-sm text-gray-600">
+                  You can try selecting a different address from the header dropdown.
+                </p>
+              )}
+              <button
+                onClick={() => navigate('/profile')}
+                className="mt-6 inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Manage Addresses
+              </button>
+            </div>
           ) : (
-            <div className="rounded-lg bg-white p-12 text-center shadow-sm border border-gray-200">
+            <div className="rounded-xl bg-white p-12 text-center shadow-sm border border-gray-200">
               <svg
                 className="mx-auto h-16 w-16 text-gray-400"
                 fill="none"
@@ -196,10 +187,20 @@ const Dashboard = () => {
                   d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
               </svg>
-              <h3 className="mt-4 text-lg font-semibold text-gray-900">No meals found</h3>
+              <h3 className="mt-4 text-lg font-semibold text-gray-900">No cooks found</h3>
               <p className="mt-2 text-sm text-gray-600">
-                Try adjusting your search or filter criteria
+                {searchQuery 
+                  ? `No cooks have meals matching "${searchQuery}". Try a different search term.`
+                  : 'No cooks are currently available. Please check back later.'}
               </p>
+              {searchQuery && (
+                <button
+                  onClick={handleClearSearch}
+                  className="mt-4 rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700 transition-colors"
+                >
+                  Clear Search
+                </button>
+              )}
             </div>
           )}
         </Container>

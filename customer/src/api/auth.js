@@ -51,3 +51,30 @@ export const resendForgotPasswordOtp = async (payload) => {
   return data
 }
 
+// Profile Management APIs
+export const updateProfile = async (payload) => {
+  const { data } = await api.put('/api/customer/auth/profile', payload)
+  return data
+}
+
+// Address Management APIs
+export const addAddress = async (payload) => {
+  const { data } = await api.post('/api/customer/auth/addresses', payload)
+  return data
+}
+
+export const updateAddress = async (addressId, payload) => {
+  const { data } = await api.put(`/api/customer/auth/addresses/${addressId}`, payload)
+  return data
+}
+
+export const deleteAddress = async (addressId) => {
+  const { data } = await api.delete(`/api/customer/auth/addresses/${addressId}`)
+  return data
+}
+
+export const setDefaultAddress = async (addressId) => {
+  const { data } = await api.patch(`/api/customer/auth/addresses/${addressId}/default`)
+  return data
+}
+

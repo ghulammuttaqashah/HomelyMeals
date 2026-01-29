@@ -9,7 +9,12 @@ import {
   forgotPasswordRequest,
   verifyForgotPasswordOtp,
   resetPassword,
-  resendForgotPasswordOtp
+  resendForgotPasswordOtp,
+  updateProfile,
+  addAddress,
+  updateAddress,
+  deleteAddress,
+  setDefaultAddress,
 } from "../controllers/customerAuth.controller.js";
 import { protect } from "../../../shared/middleware/auth.js";
 
@@ -38,5 +43,14 @@ router.post("/forgot-password/request", forgotPasswordRequest);
 router.post("/forgot-password/verify", verifyForgotPasswordOtp);
 router.post("/forgot-password/reset", resetPassword);
 router.post("/forgot-password/resend", resendForgotPasswordOtp);
+
+// Profile Management (protected)
+router.put("/profile", protect, updateProfile);
+
+// Address Management (protected)
+router.post("/addresses", protect, addAddress);
+router.put("/addresses/:addressId", protect, updateAddress);
+router.delete("/addresses/:addressId", protect, deleteAddress);
+router.patch("/addresses/:addressId/default", protect, setDefaultAddress);
 
 export default router;

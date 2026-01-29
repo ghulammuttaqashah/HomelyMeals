@@ -47,11 +47,11 @@ export const adminSignInRequest = async (req, res) => {
 
   try {
     const admin = await Admin.findOne({ email });
-    if (!admin) return res.status(400).json({ message: "Invalid credentials" });
+    if (!admin) return res.status(404).json({ message: "Account not found with this email" });
 
     const isPasswordValid = await bcrypt.compare(password, admin.password);
     if (!isPasswordValid)
-      return res.status(400).json({ message: "Invalid credentials" });
+      return res.status(401).json({ message: "Incorrect password" });
 
     // Generate OTP
     const otpCode = generateOtp();

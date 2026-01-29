@@ -13,35 +13,16 @@ const MealCard = ({ meal }) => {
       <div className="p-4">
         <div className="flex items-start justify-between gap-2">
           <h3 className="text-lg font-semibold text-gray-900">{meal.name}</h3>
-          <span className="text-lg font-bold text-orange-600">PKR {meal.price}</span>
+          <span className="text-lg font-bold text-orange-600">Rs {meal.price}</span>
         </div>
-        
-        {/* Cook Name */}
-        {meal.cookName && (
-          <div className="mt-2 flex items-center gap-1.5 text-sm text-gray-600">
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
-            <span>by {meal.cookName}</span>
-          </div>
-        )}
         
         <p className="mt-2 text-sm text-gray-600 line-clamp-2">{meal.description}</p>
         
-        {/* Category and Availability */}
-        <div className="mt-3 flex items-center gap-2">
+        {/* Category */}
+        <div className="mt-3">
           <span className="rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-medium text-orange-700 capitalize">
             {meal.category}
           </span>
-          {meal.availability && (
-            <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-              meal.availability === 'Available' 
-                ? 'bg-green-100 text-green-700' 
-                : 'bg-red-100 text-red-700'
-            }`}>
-              {meal.availability}
-            </span>
-          )}
         </div>
         
         <div className="mt-4">

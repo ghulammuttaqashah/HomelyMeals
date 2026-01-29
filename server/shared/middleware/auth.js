@@ -2,6 +2,43 @@
 import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "../config/env.js";
 
+/**
+ * Optional authentication middleware
+ * Attaches user info if token exists, but doesn't fail if not
+ * Useful for endpoints that work for both guests and logged-in users
+ */
+export const optionalAuth = (req, res, next) => {
+  let token;
+  
+  if (req.originalUrl.includes("/customer")) {
+    token = req.cookies?.customerToken || req.headers.authorization?.split(" ")[1];
+  } else if (req.originalUrl.includes("/cook")) {
+    token = req.cookies?.cookToken || req.headers.authorization?.split(" ")[1];
+  } else if (req.originalUrl.includes("/admin")) {
+    token = req.cookies?.adminToken || req.headers.authorization?.split(" ")[1];
+  } else {
+    token = req.cookies?.token || req.headers.authorization?.split(" ")[1];
+  }
+
+  if (!token) {
+    // No token - continue without user info (guest)
+    req.user = null;
+    return next();
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = {
+      _id: decoded.id || decoded._id,
+    };
+    next();
+  } catch (err) {
+    // Invalid/expired token - continue as guest
+    req.user = null;
+    next();
+  }
+};
+
 export const protect = (req, res, next) => {
   // Determine which cookie to check based on the route
   let token;

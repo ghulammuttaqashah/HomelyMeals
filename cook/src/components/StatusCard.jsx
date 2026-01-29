@@ -1,4 +1,4 @@
-const StatusCard = ({ type = 'pending', onBackToLogin }) => {
+const StatusCard = ({ type = 'pending', onSignOut }) => {
   const statusConfig = {
     pending: {
       icon: (
@@ -24,13 +24,13 @@ const StatusCard = ({ type = 'pending', onBackToLogin }) => {
       ),
       iconBg: 'bg-red-100',
       title: 'Verification Rejected',
-      message: 'Your documents were rejected. Please contact admin for more information or resubmit your documents.',
+      message: 'Your documents were rejected. Please contact us for more information.',
       statusBoxBg: 'bg-red-50',
       statusBoxBorder: 'border-red-200',
       statusText: 'text-red-900',
       statusSubtext: 'text-red-800',
       statusLabel: 'Rejected',
-      statusDescription: 'Please contact admin or resubmit your documents with correct information.',
+      statusDescription: 'Please contact us at the email below for assistance.',
     },
     approved: {
       icon: (
@@ -70,13 +70,27 @@ const StatusCard = ({ type = 'pending', onBackToLogin }) => {
         </p>
       </div>
 
-      {onBackToLogin && (
-        <div className="mt-8 flex justify-center gap-4">
+      {type === 'rejected' && (
+        <div className="mt-6 rounded-lg bg-gray-50 p-4 border border-gray-200">
+          <p className="text-sm text-gray-600">
+            <span className="font-medium">Contact us:</span>{' '}
+            <a 
+              href="mailto:homelymeals4@gmail.com" 
+              className="text-orange-600 hover:text-orange-700 hover:underline font-medium"
+            >
+              homelymeals4@gmail.com
+            </a>
+          </p>
+        </div>
+      )}
+
+      {onSignOut && (
+        <div className="mt-8 flex justify-center">
           <button
-            onClick={onBackToLogin}
+            onClick={onSignOut}
             className="rounded-lg border border-gray-300 bg-white px-6 py-2.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition-colors"
           >
-            Back to Login
+            Sign Out
           </button>
         </div>
       )}
