@@ -10,7 +10,9 @@ import {
   verifyForgotPasswordOtp,
   resetPassword,
   resendForgotPasswordOtp,
-  toggleServiceStatus
+  toggleServiceStatus,
+  updateProfile,
+  changePassword
 } from "../controllers/cookAuth.controller.js";
 import { protect } from "../../../shared/middleware/auth.js";
 
@@ -33,6 +35,12 @@ router.get("/me", protect, getCurrentCook);
 
 // Toggle service status (protected)
 router.patch("/service-status", protect, toggleServiceStatus);
+
+// Update profile (protected)
+router.put("/profile", protect, updateProfile);
+
+// Change password (protected)
+router.put("/change-password", protect, changePassword);
 
 // Step 4: Logout (no auth required to allow cleanup)
 router.post("/signout", cookSignout);

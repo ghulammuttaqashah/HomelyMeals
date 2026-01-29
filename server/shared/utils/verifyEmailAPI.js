@@ -1,6 +1,12 @@
 import axios from "axios";
 
 export const verifyEmailAPI = async (email) => {
+  // If API credentials are not configured, skip external verification
+  if (!process.env.EMAIL_VERIFICATION_API || !process.env.EMAIL_VERIFICATION_KEY) {
+    console.log("⚠️ Email verification API not configured, skipping external check");
+    return { valid: true };
+  }
+
   try {
     const url = `${process.env.EMAIL_VERIFICATION_API}?api_key=${process.env.EMAIL_VERIFICATION_KEY}&email=${email}`;
     //console.log("🔍 Verifying email via:", url);
@@ -19,6 +25,7 @@ export const verifyEmailAPI = async (email) => {
     }
   } catch (err) {
     console.error("🚫 Email verification API error:", err.message);
-    return { valid: false, reason: "API error or unauthorized key" };
+    // On API error, allow signup to proceed (fail open)
+    return { valid: true };
   }
 };

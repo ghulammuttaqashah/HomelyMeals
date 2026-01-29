@@ -55,3 +55,13 @@ export const toggleServiceStatus = async () => {
   const { data } = await api.patch('/api/cook/auth/service-status')
   return data
 }
+
+export const updateProfile = async (payload) => {
+  const { data } = await api.put('/api/cook/auth/profile', payload)
+  return data
+}
+
+export const changePassword = async (payload) => {
+  const { data } = await api.put('/api/cook/auth/change-password', payload)
+  return data
+}

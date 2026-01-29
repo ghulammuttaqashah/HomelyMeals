@@ -26,11 +26,11 @@ const Header = ({ showSignOut = false }) => {
   }
 
   return (
-    <header className="border-b border-gray-200 bg-white shadow-sm">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 lg:px-6">
+    <header className="border-b border-gray-200 bg-white shadow-sm sticky top-0 z-40">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-3 py-3 sm:px-4 sm:py-4 lg:px-6">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Cook Portal</p>
-          <h1 className="text-xl font-bold text-orange-600 cursor-pointer" onClick={handleLogoClick}>
+          <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-gray-500">Cook Portal</p>
+          <h1 className="text-lg sm:text-xl font-bold text-orange-600 cursor-pointer" onClick={handleLogoClick}>
             HomelyMeals
           </h1>
         </div>
@@ -38,7 +38,7 @@ const Header = ({ showSignOut = false }) => {
           <button
             type="button"
             onClick={signout}
-            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition-colors"
+            className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition-colors"
           >
             Sign Out
           </button>

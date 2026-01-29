@@ -126,12 +126,22 @@ const AddMeal = () => {
     <div className="flex min-h-screen flex-col bg-gray-50">
       <Header showSignOut={true} />
 
-      <main className="flex-1 py-12">
-        <div className="mx-auto max-w-2xl px-4 lg:px-6">
-          <div className="rounded-lg bg-white p-8 shadow-sm border border-gray-200">
-            <div className="mb-8">
-              <h1 className="text-2xl font-bold text-gray-900">Add New Meal</h1>
-              <p className="mt-2 text-sm text-gray-600">
+      <main className="flex-1 py-6 sm:py-8 lg:py-12">
+        <div className="mx-auto max-w-2xl px-3 sm:px-4 lg:px-6">
+          <div className="rounded-lg bg-white p-5 sm:p-8 shadow-sm border border-gray-200">
+            <div className="mb-6 sm:mb-8">
+              <button
+                type="button"
+                onClick={() => navigate('/menu')}
+                className="mb-3 sm:mb-4 flex items-center text-xs sm:text-sm text-gray-600 hover:text-orange-600 transition-colors"
+              >
+                <svg className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                Back to Menu
+              </button>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Add New Meal</h1>
+              <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-gray-600">
                 Fill in the details to add a new meal to your menu
               </p>
             </div>

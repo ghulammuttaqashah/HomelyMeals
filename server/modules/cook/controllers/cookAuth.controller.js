@@ -149,6 +149,22 @@ export const cookSignin = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
+    // Save latitude/longitude if provided (for internal use only)
+    try {
+      const { latitude, longitude } = req.body || {};
+      const latNum = latitude !== undefined ? parseFloat(latitude) : NaN;
+      const lngNum = longitude !== undefined ? parseFloat(longitude) : NaN;
+      if (Number.isFinite(latNum) && Number.isFinite(lngNum)) {
+        cook.location = {
+          type: "Point",
+          coordinates: [lngNum, latNum],
+        };
+        await cook.save();
+      }
+    } catch (e) {
+      console.error("Failed to save cook location:", e);
+    }
+
     return res.status(200).json({
       message: "Login successful",
       cook: {
@@ -190,6 +206,8 @@ export const getCurrentCook = async (req, res) => {
         serviceStatus: cook.serviceStatus,
         status: cook.status,
         statusReason: cook.statusReason,
+        maxDeliveryDistance: cook.maxDeliveryDistance,
+        location: cook.address?.location, // Location is now part of address
       },
     });
   } catch (err) {
@@ -500,6 +518,129 @@ export const toggleServiceStatus = async (req, res) => {
     });
   } catch (err) {
     console.error("Toggle Service Status Error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+/**
+ * Update Cook Profile
+ */
+export const updateProfile = async (req, res) => {
+  try {
+    const { name, contact, address, maxDeliveryDistance, latitude, longitude } = req.body;
+
+    const cook = await Cook.findById(req.user._id);
+    if (!cook) {
+      return res.status(404).json({ message: "Cook not found" });
+    }
+
+    // Validate required fields
+    if (name !== undefined && name.trim() === "") {
+      return res.status(400).json({ message: "Name cannot be empty" });
+    }
+
+    if (contact !== undefined && contact.trim() === "") {
+      return res.status(400).json({ message: "Contact cannot be empty" });
+    }
+
+    // Validate maxDeliveryDistance
+    if (maxDeliveryDistance !== undefined) {
+      const distance = Number(maxDeliveryDistance);
+      if (isNaN(distance) || distance < 1 || distance > 50) {
+        return res.status(400).json({ message: "Delivery distance must be between 1 and 50 km" });
+      }
+      cook.maxDeliveryDistance = distance;
+    }
+
+    // Update location if coordinates provided (stored in address.location)
+    if (latitude !== undefined && longitude !== undefined) {
+      const lat = parseFloat(latitude);
+      const lng = parseFloat(longitude);
+      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        cook.address.location = {
+          latitude: lat,
+          longitude: lng,
+        };
+      }
+    }
+
+    // Update fields if provided
+    if (name !== undefined) cook.name = name.trim();
+    if (contact !== undefined) cook.contact = contact.trim();
+
+    // Update address fields if provided
+    if (address) {
+      if (address.houseNo !== undefined) cook.address.houseNo = address.houseNo;
+      if (address.street !== undefined) {
+        if (address.street.trim() === "") {
+          return res.status(400).json({ message: "Street cannot be empty" });
+        }
+        cook.address.street = address.street.trim();
+      }
+      if (address.city !== undefined) cook.address.city = address.city.trim();
+      if (address.postalCode !== undefined) cook.address.postalCode = address.postalCode.trim();
+    }
+
+    await cook.save();
+
+    return res.status(200).json({
+      message: "Profile updated successfully",
+      cook: {
+        id: cook._id,
+        name: cook.name,
+        email: cook.email,
+        contact: cook.contact,
+        address: cook.address,
+        verificationStatus: cook.verificationStatus,
+        serviceStatus: cook.serviceStatus,
+        status: cook.status,
+        maxDeliveryDistance: cook.maxDeliveryDistance,
+        location: cook.address?.location, // Location is now part of address
+      },
+    });
+  } catch (err) {
+    console.error("Update Cook Profile Error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+/**
+ * Change Password
+ */
+export const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: "Current password and new password are required" });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: "New password must be at least 6 characters" });
+    }
+
+    const cook = await Cook.findById(req.user._id);
+    if (!cook) {
+      return res.status(404).json({ message: "Cook not found" });
+    }
+
+    // Verify current password
+    const isPasswordValid = await bcrypt.compare(currentPassword, cook.password);
+    if (!isPasswordValid) {
+      return res.status(400).json({ message: "Current password is incorrect" });
+    }
+
+    // Hash new password and save
+    cook.password = await bcrypt.hash(newPassword, 10);
+    await cook.save();
+
+    return res.status(200).json({
+      message: "Password changed successfully",
+    });
+  } catch (err) {
+    console.error("Change Password Error:", err);
     return res.status(500).json({ message: "Server error" });
   }
 };

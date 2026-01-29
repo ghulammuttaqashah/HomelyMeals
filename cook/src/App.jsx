@@ -12,6 +12,7 @@ import Status from './pages/Status'
 import Dashboard from './pages/Dashboard'
 import MenuManagement from './pages/MenuManagement'
 import AddMeal from './pages/AddMeal'
+import Profile from './pages/Profile'
 
 const App = () => {
   return (
@@ -68,6 +69,14 @@ const App = () => {
                 <AddMeal />
               </ProtectedRoute>
             }
+          />
+          <Route 
+            path="/profile" 
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            } 
           />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
