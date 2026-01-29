@@ -169,7 +169,7 @@ export const signIn = async (req, res) => {
         name: customer.name,
         email: customer.email,
         contact: customer.contact,
-        address: customer.address
+        addresses: customer.addresses
       }
     });
   } catch (error) {
@@ -241,8 +241,8 @@ export const resendSignupOtp = async (req, res) => {
     });
 
     if (!existingOtp) {
-      return res.status(400).json({ 
-        message: "No pending signup found. Please start signup process again." 
+      return res.status(400).json({
+        message: "No pending signup found. Please start signup process again."
       });
     }
 

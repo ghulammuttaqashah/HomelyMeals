@@ -103,7 +103,7 @@ const Signup = () => {
     const searchQuery = [formData.houseNo, formData.street, formData.city, formData.postalCode]
       .filter(Boolean)
       .join(', ')
-    
+
     if (!searchQuery.trim()) {
       toast.error('Please enter an address first')
       return
@@ -217,7 +217,7 @@ const Signup = () => {
 
   const handleSubmit = async (event) => {
     event.preventDefault()
-    
+
     if (!validateForm()) {
       toast.error('Please fix the errors in the form')
       return
@@ -225,7 +225,7 @@ const Signup = () => {
 
     setLoading(true)
     const loadingToast = toast.loading('Sending OTP to your email...', { duration: Infinity })
-    
+
     try {
       const payload = {
         name: formData.name.trim(),
@@ -326,7 +326,7 @@ const Signup = () => {
                     placeholder="03XXXXXXXXX"
                     error={errors.contact}
                   />
-                  
+
                   {/* Password Field */}
                   <div className="space-y-1">
                     <label htmlFor="password" className="block text-sm font-medium text-gray-700">
@@ -340,9 +340,8 @@ const Signup = () => {
                         required
                         value={formData.password}
                         onChange={handleChange}
-                        className={`w-full rounded-lg border ${
-                          errors.password ? 'border-red-500' : 'border-gray-300'
-                        } bg-white px-4 py-2.5 pr-12 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500`}
+                        className={`w-full rounded-lg border ${errors.password ? 'border-red-500' : 'border-gray-300'
+                          } bg-white px-4 py-2.5 pr-12 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500`}
                         placeholder="Min. 6 characters"
                       />
                       <button
@@ -444,14 +443,31 @@ const Signup = () => {
                       <select
                         id="label"
                         name="label"
-                        value={formData.label}
-                        onChange={handleChange}
+                        value={['Home', 'Work', 'Other'].includes(formData.label) ? formData.label : 'Other'}
+                        onChange={(e) => {
+                          const val = e.target.value
+                          if (val === 'Other') {
+                            setFormData((prev) => ({ ...prev, label: '' }))
+                          } else {
+                            setFormData((prev) => ({ ...prev, label: val }))
+                          }
+                        }}
                         className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
                       >
                         <option value="Home">🏠 Home</option>
                         <option value="Work">🏢 Work</option>
                         <option value="Other">📍 Other</option>
                       </select>
+                      {!['Home', 'Work'].includes(formData.label) && (
+                        <input
+                          type="text"
+                          name="customLabel"
+                          value={formData.label === 'Other' ? '' : formData.label}
+                          onChange={(e) => setFormData((prev) => ({ ...prev, label: e.target.value }))}
+                          placeholder="Enter custom label (e.g., Office, Mom's House)"
+                          className="mt-2 w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        />
+                      )}
                     </div>
                     <FormInput
                       label="House/Flat No."

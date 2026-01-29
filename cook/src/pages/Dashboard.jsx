@@ -107,59 +107,53 @@ const Dashboard = () => {
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
       <Header showSignOut={true} />
-     
+
       <main className="flex-1 py-6 sm:py-8 lg:py-12">
         <div className="mx-auto max-w-7xl px-3 sm:px-4 lg:px-6">
           {/* Header Section */}
-          <div className="mb-6 sm:mb-8 flex flex-col gap-4">
+          <div className="mb-6 sm:mb-8 flex items-center justify-between gap-4">
             <div>
               <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Dashboard</h1>
               <p className="mt-1 text-xs sm:text-sm text-gray-600">Welcome back, {cook?.name}!</p>
             </div>
 
-            {/* Service Status Toggle */}
-            <div className={`flex items-center justify-between gap-3 sm:gap-4 rounded-xl p-3 sm:p-4 shadow-sm border-2 transition-all duration-300 ${
-              isOpen 
-                ? 'bg-green-50 border-green-200' 
+            {/* Service Status Toggle - Compact */}
+            <div className={`flex items-center gap-3 rounded-lg px-3 py-2 shadow-sm border transition-all duration-300 ${isOpen
+                ? 'bg-green-50 border-green-200'
                 : 'bg-red-50 border-red-200'
-            }`}>
-              <div className="flex flex-col">
-                <span className="text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wide">Kitchen Status</span>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className={`relative flex h-2.5 w-2.5 sm:h-3 sm:w-3`}>
-                    <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isOpen ? 'bg-green-400' : 'bg-red-400'}`}></span>
-                    <span className={`relative inline-flex rounded-full h-2.5 w-2.5 sm:h-3 sm:w-3 ${isOpen ? 'bg-green-500' : 'bg-red-500'}`}></span>
-                  </span>
-                  <span className={`text-xs sm:text-sm font-bold ${isOpen ? 'text-green-700' : 'text-red-700'}`}>
-                    {isOpen ? 'Open for Orders' : 'Closed'}
-                  </span>
-                </div>
+              }`}>
+              <div className="flex items-center gap-2">
+                <span className={`relative flex h-2 w-2`}>
+                  <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isOpen ? 'bg-green-400' : 'bg-red-400'}`}></span>
+                  <span className={`relative inline-flex rounded-full h-2 w-2 ${isOpen ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                </span>
+                <span className={`text-xs font-semibold ${isOpen ? 'text-green-700' : 'text-red-700'}`}>
+                  {isOpen ? 'Open' : 'Closed'}
+                </span>
               </div>
               <button
                 onClick={handleToggleService}
                 disabled={toggling}
-                className={`relative inline-flex h-7 w-12 sm:h-8 sm:w-14 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:cursor-not-allowed ${
-                  isOpen 
-                    ? 'bg-green-500 focus:ring-green-500 hover:bg-green-600' 
+                className={`relative inline-flex h-6 w-10 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:cursor-not-allowed ${isOpen
+                    ? 'bg-green-500 focus:ring-green-500 hover:bg-green-600'
                     : 'bg-gray-300 focus:ring-gray-400 hover:bg-gray-400'
-                } ${toggling ? 'opacity-70' : ''}`}
+                  } ${toggling ? 'opacity-70' : ''}`}
                 role="switch"
                 aria-checked={isOpen}
                 aria-label="Toggle kitchen status"
               >
                 <span
-                  className={`pointer-events-none inline-flex h-6 w-6 sm:h-7 sm:w-7 transform items-center justify-center rounded-full bg-white shadow-lg ring-0 transition-all duration-300 ease-in-out ${
-                    isOpen ? 'translate-x-5 sm:translate-x-6' : 'translate-x-0'
-                  }`}
+                  className={`pointer-events-none inline-flex h-5 w-5 transform items-center justify-center rounded-full bg-white shadow ring-0 transition-all duration-300 ease-in-out ${isOpen ? 'translate-x-4' : 'translate-x-0'
+                    }`}
                 >
                   {toggling ? (
                     <Loader size="sm" />
                   ) : isOpen ? (
-                    <svg className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="h-3 w-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                     </svg>
                   ) : (
-                    <svg className="h-3 w-3 sm:h-4 sm:w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="h-3 w-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   )}
@@ -176,11 +170,10 @@ const Dashboard = () => {
                 type="button"
                 onClick={() => handleCardClick(card)}
                 disabled={card.comingSoon}
-                className={`group relative overflow-hidden rounded-lg bg-white p-5 sm:p-8 text-left shadow-sm border border-gray-200 transition-all ${
-                  card.comingSoon 
-                    ? 'cursor-not-allowed opacity-60' 
+                className={`group relative overflow-hidden rounded-lg bg-white p-5 sm:p-8 text-left shadow-sm border border-gray-200 transition-all ${card.comingSoon
+                    ? 'cursor-not-allowed opacity-60'
                     : 'hover:shadow-md hover:border-orange-200 active:scale-[0.98]'
-                }`}
+                  }`}
               >
                 {card.comingSoon && (
                   <span className="absolute top-3 right-3 sm:top-4 sm:right-4 rounded-full bg-gray-100 px-2 py-0.5 sm:px-2.5 text-[10px] sm:text-xs font-medium text-gray-600">

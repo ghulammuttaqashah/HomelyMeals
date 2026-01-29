@@ -128,7 +128,7 @@ const Profile = () => {
     const searchQuery = [addressForm.houseNo, addressForm.street, addressForm.city, addressForm.postalCode]
       .filter(Boolean)
       .join(', ')
-    
+
     if (!searchQuery.trim()) {
       toast.error('Please enter an address first')
       return
@@ -481,9 +481,8 @@ const Profile = () => {
                 {addresses.map((address) => (
                   <div
                     key={address._id}
-                    className={`rounded-xl border-2 p-4 transition-all ${
-                      address.isDefault ? 'border-orange-400 bg-orange-50' : 'border-gray-200 hover:border-gray-300'
-                    }`}
+                    className={`rounded-xl border-2 p-4 transition-all ${address.isDefault ? 'border-orange-400 bg-orange-50' : 'border-gray-200 hover:border-gray-300'
+                      }`}
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
@@ -627,13 +626,36 @@ const Profile = () => {
 
               {/* Address Form Fields */}
               <div className="grid grid-cols-2 gap-4">
-                <FormInput
-                  label="Label"
-                  value={addressForm.label}
-                  onChange={(e) => setAddressForm((prev) => ({ ...prev, label: e.target.value }))}
-                  placeholder="e.g., Home, Office"
-                  required
-                />
+                <div className="space-y-1">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Address Label <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={['Home', 'Work', 'Other'].includes(addressForm.label) ? addressForm.label : 'Other'}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      if (val === 'Other') {
+                        setAddressForm((prev) => ({ ...prev, label: '' }))
+                      } else {
+                        setAddressForm((prev) => ({ ...prev, label: val }))
+                      }
+                    }}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  >
+                    <option value="Home">🏠 Home</option>
+                    <option value="Work">🏢 Work</option>
+                    <option value="Other">📍 Other</option>
+                  </select>
+                  {!['Home', 'Work'].includes(addressForm.label) && (
+                    <input
+                      type="text"
+                      value={addressForm.label}
+                      onChange={(e) => setAddressForm((prev) => ({ ...prev, label: e.target.value }))}
+                      placeholder="Enter custom label (e.g., Office, Mom's House)"
+                      className="mt-2 w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                  )}
+                </div>
                 <FormInput
                   label="House/Flat No."
                   value={addressForm.houseNo}
