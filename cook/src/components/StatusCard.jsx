@@ -2,7 +2,7 @@ const StatusCard = ({ type = 'pending', onBackToLogin }) => {
   const statusConfig = {
     pending: {
       icon: (
-        <svg className="h-16 w-16 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="h-10 w-10 sm:h-16 sm:w-16 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       ),
@@ -18,7 +18,7 @@ const StatusCard = ({ type = 'pending', onBackToLogin }) => {
     },
     rejected: {
       icon: (
-        <svg className="h-16 w-16 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="h-10 w-10 sm:h-16 sm:w-16 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       ),
@@ -34,7 +34,7 @@ const StatusCard = ({ type = 'pending', onBackToLogin }) => {
     },
     approved: {
       icon: (
-        <svg className="h-16 w-16 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="h-10 w-10 sm:h-16 sm:w-16 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       ),
@@ -53,28 +53,28 @@ const StatusCard = ({ type = 'pending', onBackToLogin }) => {
   const config = statusConfig[type] || statusConfig.pending
 
   return (
-    <div className="rounded-lg bg-white p-8 shadow-sm border border-gray-200 text-center">
-      <div className={`mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full ${config.iconBg}`}>
+    <div className="rounded-lg bg-white p-5 sm:p-8 shadow-sm border border-gray-200 text-center">
+      <div className={`mx-auto mb-4 sm:mb-6 flex h-16 w-16 sm:h-24 sm:w-24 items-center justify-center rounded-full ${config.iconBg}`}>
         {config.icon}
       </div>
       
-      <h1 className="text-2xl font-bold text-gray-900">{config.title}</h1>
-      <p className="mt-4 text-gray-600">{config.message}</p>
+      <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{config.title}</h1>
+      <p className="mt-3 sm:mt-4 text-xs sm:text-base text-gray-600">{config.message}</p>
 
-      <div className={`mt-8 rounded-lg ${config.statusBoxBg} p-6 border ${config.statusBoxBorder}`}>
-        <p className={`text-sm ${config.statusText}`}>
+      <div className={`mt-6 sm:mt-8 rounded-lg ${config.statusBoxBg} p-4 sm:p-6 border ${config.statusBoxBorder}`}>
+        <p className={`text-xs sm:text-sm ${config.statusText}`}>
           <span className="font-semibold">Status:</span> {config.statusLabel}
         </p>
-        <p className={`mt-2 text-sm ${config.statusSubtext}`}>
+        <p className={`mt-1.5 sm:mt-2 text-xs sm:text-sm ${config.statusSubtext}`}>
           {config.statusDescription}
         </p>
       </div>
 
       {onBackToLogin && (
-        <div className="mt-8 flex justify-center gap-4">
+        <div className="mt-6 sm:mt-8 flex justify-center gap-4">
           <button
             onClick={onBackToLogin}
-            className="rounded-lg border border-gray-300 bg-white px-6 py-2.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition-colors"
+            className="rounded-lg border border-gray-300 bg-white px-4 py-2 sm:px-6 sm:py-2.5 text-xs sm:text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition-colors"
           >
             Back to Login
           </button>

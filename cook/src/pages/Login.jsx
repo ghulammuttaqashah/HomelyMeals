@@ -54,13 +54,13 @@ const Login = () => {
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-br from-slate-50 via-white to-slate-100">
       <Header />
-      <div className="flex flex-1 items-center justify-center px-4 py-12">
+      <div className="flex flex-1 items-center justify-center px-3 py-6 sm:px-4 sm:py-12">
         <div className="w-full max-w-md">
-          <div className="rounded-lg bg-white p-8 shadow-sm border border-gray-200">
-            <div className="mb-8 text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-orange-100">
+          <div className="rounded-lg bg-white p-5 sm:p-8 shadow-sm border border-gray-200">
+            <div className="mb-6 sm:mb-8 text-center">
+              <div className="mx-auto mb-3 sm:mb-4 flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center rounded-full bg-orange-100">
                 <svg
-                  className="h-8 w-8 text-orange-600"
+                  className="h-6 w-6 sm:h-8 sm:w-8 text-orange-600"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -73,8 +73,8 @@ const Login = () => {
                   />
                 </svg>
               </div>
-              <h1 className="text-2xl font-bold text-orange-600">Welcome</h1>
-              <p className="mt-2 text-sm text-gray-600">Sign in to your cook account</p>
+              <h1 className="text-xl sm:text-2xl font-bold text-orange-600">Welcome</h1>
+              <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-gray-600">Sign in to your cook account</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">

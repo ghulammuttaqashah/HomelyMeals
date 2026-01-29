@@ -180,32 +180,32 @@ const MenuManagement = () => {
     <div className="flex min-h-screen flex-col bg-gray-50">
       <Header showSignOut={true} />
 
-      <main className="flex-1 py-12">
-        <div className="mx-auto max-w-7xl px-4 lg:px-6">
+      <main className="flex-1 py-6 sm:py-8 lg:py-12">
+        <div className="mx-auto max-w-7xl px-3 sm:px-4 lg:px-6">
           {/* Back Button & Header Section */}
-          <div className="mb-8">
+          <div className="mb-6 sm:mb-8">
             <button
               onClick={() => navigate('/dashboard')}
-              className="mb-4 flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-orange-600 transition-colors"
+              className="mb-3 sm:mb-4 flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium text-gray-600 hover:text-orange-600 transition-colors"
             >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
               Back to Dashboard
             </button>
             
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Menu Management</h1>
-                <p className="mt-1 text-sm text-gray-600">
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Menu Management</h1>
+                <p className="mt-1 text-xs sm:text-sm text-gray-600">
                   Manage your meals - add, edit, view, or delete items
                 </p>
               </div>
               <button
                 onClick={() => navigate('/add-meal')}
-                className="flex items-center gap-2 rounded-lg bg-orange-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-orange-700 transition-colors"
+                className="flex items-center justify-center gap-1.5 sm:gap-2 rounded-lg bg-orange-600 px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm font-semibold text-white shadow-sm hover:bg-orange-700 transition-colors w-full sm:w-auto"
               >
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
                 Add Meal
@@ -215,12 +215,12 @@ const MenuManagement = () => {
 
           {/* Meals Grid */}
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-32">
+            <div className="flex flex-col items-center justify-center py-16 sm:py-32">
               <Loader size="lg" />
-              <p className="mt-6 text-base font-medium text-gray-600">Loading your meals...</p>
+              <p className="mt-4 sm:mt-6 text-sm sm:text-base font-medium text-gray-600">Loading your meals...</p>
             </div>
           ) : meals.length > 0 ? (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
               {meals.map((meal) => (
                 <MealCard
                   key={meal._id}
@@ -232,9 +232,9 @@ const MenuManagement = () => {
               ))}
             </div>
           ) : (
-            <div className="rounded-lg bg-white p-12 text-center shadow-sm border border-gray-200">
+            <div className="rounded-lg bg-white p-8 sm:p-12 text-center shadow-sm border border-gray-200">
               <svg
-                className="mx-auto h-16 w-16 text-gray-400"
+                className="mx-auto h-12 w-12 sm:h-16 sm:w-16 text-gray-400"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -246,13 +246,13 @@ const MenuManagement = () => {
                   d="M12 6v6m0 0v6m0-6h6m-6 0H6"
                 />
               </svg>
-              <h3 className="mt-4 text-lg font-semibold text-gray-900">No meals yet</h3>
-              <p className="mt-2 text-sm text-gray-600">
+              <h3 className="mt-3 sm:mt-4 text-base sm:text-lg font-semibold text-gray-900">No meals yet</h3>
+              <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-gray-600">
                 Start by adding your first meal to your menu
               </p>
               <button
                 onClick={() => navigate('/add-meal')}
-                className="mt-6 rounded-lg bg-orange-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-orange-700 transition-colors"
+                className="mt-4 sm:mt-6 rounded-lg bg-orange-600 px-5 py-2 sm:px-6 sm:py-2.5 text-xs sm:text-sm font-semibold text-white shadow-sm hover:bg-orange-700 transition-colors"
               >
                 Add Your First Meal
               </button>

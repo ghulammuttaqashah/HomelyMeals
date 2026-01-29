@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
@@ -6,6 +6,28 @@ import Loader from '../components/Loader'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import FormInput from '../components/FormInput'
+import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
+
+// Fix for default marker icon in Leaflet with React
+delete L.Icon.Default.prototype._getIconUrl
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+})
+
+// Component to update map view when coordinates change
+const MapUpdater = ({ coordinates }) => {
+  const map = useMap()
+  useEffect(() => {
+    if (coordinates) {
+      map.setView([coordinates.lat, coordinates.lng], 16)
+    }
+  }, [coordinates, map])
+  return null
+}
 
 const Signup = () => {
   const navigate = useNavigate()
@@ -19,8 +41,11 @@ const Signup = () => {
     street: '',
     city: 'Sukkur',
     postalCode: '65200',
+    maxDeliveryDistance: 5,
   })
   const [loading, setLoading] = useState(false)
+  const [locationLoading, setLocationLoading] = useState(false)
+  const [coordinates, setCoordinates] = useState(null)
   const [showPassword, setShowPassword] = useState(false)
   const [errors, setErrors] = useState({})
 
@@ -30,6 +55,92 @@ const Signup = () => {
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }))
     }
+  }
+
+  // Get current location and auto-fill address
+  const handleGetLocation = async () => {
+    if (!navigator.geolocation) {
+      toast.error('Geolocation is not supported by your browser')
+      return
+    }
+
+    setLocationLoading(true)
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords
+
+        // Store coordinates for map display
+        setCoordinates({ lat: latitude, lng: longitude })
+
+        try {
+          // Use OpenStreetMap's Nominatim API for reverse geocoding (free)
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`,
+            {
+              headers: {
+                'Accept-Language': 'en',
+              },
+            }
+          )
+
+          if (!response.ok) {
+            throw new Error('Failed to fetch address')
+          }
+
+          const data = await response.json()
+          const address = data.address || {}
+
+          // Extract address components
+          const houseNumber = address.house_number || ''
+          const road = address.road || address.street || address.neighbourhood || ''
+          const city = address.city || address.town || address.village || address.county || 'Sukkur'
+          const postcode = address.postcode || '65200'
+
+          // Update form with fetched address
+          setFormData((prev) => ({
+            ...prev,
+            houseNo: houseNumber || prev.houseNo,
+            street: road || prev.street,
+            city: city,
+            postalCode: postcode,
+          }))
+
+          // Clear street error if it was set
+          if (errors.street && road) {
+            setErrors((prev) => ({ ...prev, street: '' }))
+          }
+
+          toast.success('Location fetched successfully!')
+        } catch (error) {
+          console.error('Reverse geocoding error:', error)
+          toast.error('Failed to get address from location')
+        } finally {
+          setLocationLoading(false)
+        }
+      },
+      (error) => {
+        setLocationLoading(false)
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            toast.error('Location permission denied. Please allow location access.')
+            break
+          case error.POSITION_UNAVAILABLE:
+            toast.error('Location information is unavailable.')
+            break
+          case error.TIMEOUT:
+            toast.error('Location request timed out.')
+            break
+          default:
+            toast.error('An error occurred while getting location.')
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    )
   }
 
   const validateForm = () => {
@@ -61,6 +172,11 @@ const Signup = () => {
       newErrors.street = 'Street is required'
     }
 
+    const distance = Number(formData.maxDeliveryDistance)
+    if (isNaN(distance) || distance < 1 || distance > 50) {
+      newErrors.maxDeliveryDistance = 'Distance must be between 1 and 50 km'
+    }
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -88,6 +204,13 @@ const Signup = () => {
           city: formData.city,
           postalCode: formData.postalCode,
         },
+        maxDeliveryDistance: Number(formData.maxDeliveryDistance),
+      }
+
+      // Include coordinates if available
+      if (coordinates) {
+        payload.latitude = coordinates.lat
+        payload.longitude = coordinates.lng
       }
 
       await signupRequest(payload)
@@ -107,13 +230,13 @@ const Signup = () => {
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-br from-slate-50 via-white to-slate-100">
       <Header />
-      <div className="flex flex-1 items-center justify-center px-4 py-12">
+      <div className="flex flex-1 items-center justify-center px-3 py-6 sm:px-4 sm:py-12">
         <div className="w-full max-w-2xl">
-          <div className="rounded-lg bg-white p-8 shadow-sm border border-gray-200">
-            <div className="mb-8 text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-orange-100">
+          <div className="rounded-lg bg-white p-5 sm:p-8 shadow-sm border border-gray-200">
+            <div className="mb-6 sm:mb-8 text-center">
+              <div className="mx-auto mb-3 sm:mb-4 flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center rounded-full bg-orange-100">
                 <svg
-                  className="h-8 w-8 text-orange-600"
+                  className="h-6 w-6 sm:h-8 sm:w-8 text-orange-600"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -126,8 +249,8 @@ const Signup = () => {
                   />
                 </svg>
               </div>
-              <h1 className="text-2xl font-bold text-orange-600">Create Account</h1>
-              <p className="mt-2 text-sm text-gray-600">Join HomelyMeals as a Cook</p>
+              <h1 className="text-xl sm:text-2xl font-bold text-orange-600">Create Account</h1>
+              <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-gray-600">Join HomelyMeals as a Cook</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
@@ -207,7 +330,81 @@ const Signup = () => {
               </div>
 
               <div className="border-t border-gray-200 pt-5">
-                <h3 className="mb-4 text-sm font-semibold text-gray-700">Address</h3>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-semibold text-gray-700">Address</h3>
+                  <button
+                    type="button"
+                    onClick={handleGetLocation}
+                    disabled={locationLoading}
+                    className="flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {locationLoading ? (
+                      <>
+                        <Loader size="sm" />
+                        <span>Getting location...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span>Use My Location</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mb-4 flex items-center gap-1">
+                  <svg className="h-3.5 w-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>Use this while at your <strong>home or kitchen</strong> for accurate delivery location</span>
+                </p>
+
+                {/* Map Display - Always visible */}
+                <div className="mb-5 rounded-lg overflow-hidden border border-gray-200 shadow-sm">
+                  <div className="bg-gray-100 px-3 py-2 border-b border-gray-200 flex items-center gap-2">
+                    {coordinates ? (
+                      <>
+                        <svg className="h-4 w-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="text-xs font-medium text-gray-700">Your Kitchen Location</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="h-4 w-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span className="text-xs font-medium text-gray-700">Click &quot;Use My Location&quot; to set your kitchen location</span>
+                      </>
+                    )}
+                  </div>
+                  <MapContainer
+                    center={coordinates ? [coordinates.lat, coordinates.lng] : [27.7052, 68.8574]} // Default to Sukkur
+                    zoom={coordinates ? 16 : 13}
+                    style={{ height: '200px', width: '100%' }}
+                    scrollWheelZoom={true}
+                  >
+                    <TileLayer
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                    {coordinates && (
+                      <Marker position={[coordinates.lat, coordinates.lng]} />
+                    )}
+                    <MapUpdater coordinates={coordinates} />
+                  </MapContainer>
+                  {coordinates && (
+                    <div className="bg-green-50 px-3 py-2 border-t border-gray-200">
+                      <p className="text-xs text-green-700">
+                        <span className="font-medium">Location set:</span> {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
                 <div className="space-y-5">
                   <div className="grid gap-5 md:grid-cols-2">
                     <FormInput
@@ -253,6 +450,67 @@ const Signup = () => {
                       value={formData.postalCode}
                       onChange={handleChange}
                     />
+                  </div>
+                </div>
+              </div>
+
+              {/* Delivery Settings Section */}
+              <div className="border-t border-gray-200 pt-5">
+                <div className="mb-4">
+                  <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                    <svg className="h-4 w-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                    </svg>
+                    Delivery Settings
+                  </h3>
+                  <p className="mt-1 text-xs text-gray-500">
+                    Set the maximum distance you can deliver food. Customers outside this range won&apos;t see your meals.
+                  </p>
+                </div>
+
+                <div className="max-w-xs">
+                  <label htmlFor="maxDeliveryDistance" className="block text-sm font-medium text-gray-700 mb-1">
+                    Maximum Delivery Distance <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      id="maxDeliveryDistance"
+                      name="maxDeliveryDistance"
+                      min="1"
+                      max="50"
+                      value={formData.maxDeliveryDistance}
+                      onChange={handleChange}
+                      className={`w-full rounded-lg border ${
+                        errors.maxDeliveryDistance ? 'border-red-500' : 'border-gray-300'
+                      } bg-white px-4 py-3 pr-12 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500`}
+                      placeholder="Enter distance"
+                    />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-500">km</span>
+                  </div>
+                  {errors.maxDeliveryDistance && (
+                    <p className="mt-1 text-xs text-red-500">{errors.maxDeliveryDistance}</p>
+                  )}
+                  <p className="mt-1 text-xs text-gray-400">Must be between 1 and 50 kilometers</p>
+                </div>
+
+                {/* Visual indicator of delivery range */}
+                <div className="mt-4 rounded-lg bg-orange-50 p-3 border border-orange-100">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-100">
+                      <svg className="h-4 w-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-orange-800">
+                        Delivery range: <span className="font-bold">{formData.maxDeliveryDistance} km</span>
+                      </p>
+                      <p className="text-xs text-orange-600">
+                        Customers within this radius can order from you
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>

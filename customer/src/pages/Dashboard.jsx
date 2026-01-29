@@ -48,7 +48,10 @@ const Dashboard = () => {
         rating: 4.5,
         reviews: 0,
         category: meal.category,
+        cookId: meal.cookId,
         cookName: meal.cookName,
+        cookLocation: meal.cookLocation,
+        maxDeliveryDistance: meal.maxDeliveryDistance,
         availability: meal.availability,
       }))
       setMeals(mealsData)

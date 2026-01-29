@@ -197,13 +197,13 @@ const ForgotPassword = () => {
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-br from-slate-50 via-white to-slate-100">
       <Header />
-      <div className="flex flex-1 items-center justify-center px-4 py-12">
+      <div className="flex flex-1 items-center justify-center px-3 py-6 sm:px-4 sm:py-12">
         <div className="w-full max-w-md">
-          <div className="rounded-lg bg-white p-8 shadow-sm border border-gray-200">
-            <div className="mb-8 text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-orange-100">
+          <div className="rounded-lg bg-white p-5 sm:p-8 shadow-sm border border-gray-200">
+            <div className="mb-6 sm:mb-8 text-center">
+              <div className="mx-auto mb-3 sm:mb-4 flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center rounded-full bg-orange-100">
                 <svg
-                  className="h-8 w-8 text-orange-600"
+                  className="h-6 w-6 sm:h-8 sm:w-8 text-orange-600"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -216,15 +216,15 @@ const ForgotPassword = () => {
                   />
                 </svg>
               </div>
-              <h1 className="text-2xl font-bold text-orange-600">{getStepTitle()}</h1>
-              <p className="mt-2 text-sm text-gray-600">{getStepDescription()}</p>
+              <h1 className="text-xl sm:text-2xl font-bold text-orange-600">{getStepTitle()}</h1>
+              <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-gray-600">{getStepDescription()}</p>
               
               {/* Step Indicator */}
-              <div className="mt-4 flex justify-center gap-2">
+              <div className="mt-3 sm:mt-4 flex justify-center gap-1.5 sm:gap-2">
                 {[1, 2, 3].map((s) => (
                   <div
                     key={s}
-                    className={`h-2 w-8 rounded-full ${
+                    className={`h-1.5 sm:h-2 w-6 sm:w-8 rounded-full ${
                       s <= step ? 'bg-orange-600' : 'bg-gray-200'
                     }`}
                   />
@@ -234,7 +234,7 @@ const ForgotPassword = () => {
 
             {/* Step 1: Email */}
             {step === 1 && (
-              <form onSubmit={handleRequestOtp} className="space-y-5">
+              <form onSubmit={handleRequestOtp} className="space-y-4 sm:space-y-5">
                 <FormInput
                   label="Email address"
                   id="email"
@@ -246,7 +246,7 @@ const ForgotPassword = () => {
                   placeholder="you@example.com"
                   icon={
                     <svg
-                      className="h-5 w-5 text-slate-400"
+                      className="h-4 w-4 sm:h-5 sm:w-5 text-slate-400"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -264,7 +264,7 @@ const ForgotPassword = () => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full rounded-lg bg-orange-600 px-6 py-3.5 text-sm font-semibold text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="w-full rounded-lg bg-orange-600 px-5 py-3 sm:px-6 sm:py-3.5 text-xs sm:text-sm font-semibold text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <span className="flex items-center justify-center gap-2">
                     {loading ? (
@@ -282,12 +282,12 @@ const ForgotPassword = () => {
 
             {/* Step 2: OTP Verification */}
             {step === 2 && (
-              <form onSubmit={handleVerifyOtp} className="space-y-6">
+              <form onSubmit={handleVerifyOtp} className="space-y-5 sm:space-y-6">
                 <div>
-                  <label className="mb-3 block text-sm font-medium text-gray-700">
+                  <label className="mb-2 sm:mb-3 block text-xs sm:text-sm font-medium text-gray-700">
                     Enter verification code
                   </label>
-                  <div className="flex gap-3" onPaste={handleOtpPaste}>
+                  <div className="flex gap-1.5 sm:gap-3" onPaste={handleOtpPaste}>
                     {otp.map((digit, index) => (
                       <input
                         key={index}
@@ -298,7 +298,7 @@ const ForgotPassword = () => {
                         value={digit}
                         onChange={(e) => handleOtpChange(index, e.target.value)}
                         onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                        className="h-14 w-full rounded-lg border border-gray-300 bg-white text-center text-2xl font-bold text-gray-900 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="h-11 w-full sm:h-14 rounded-lg border border-gray-300 bg-white text-center text-xl sm:text-2xl font-bold text-gray-900 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:cursor-not-allowed disabled:opacity-50"
                         disabled={loading}
                       />
                     ))}
@@ -308,7 +308,7 @@ const ForgotPassword = () => {
                 <button
                   type="submit"
                   disabled={loading || otp.join('').length !== 6}
-                  className="w-full rounded-lg bg-orange-600 px-6 py-3.5 text-sm font-semibold text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="w-full rounded-lg bg-orange-600 px-5 py-3 sm:px-6 sm:py-3.5 text-xs sm:text-sm font-semibold text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <span className="flex items-center justify-center gap-2">
                     {loading ? (
@@ -323,12 +323,12 @@ const ForgotPassword = () => {
                 </button>
 
                 <div className="text-center">
-                  <p className="mb-2 text-sm text-gray-600">Didn't receive the code?</p>
+                  <p className="mb-1.5 sm:mb-2 text-xs sm:text-sm text-gray-600">Didn't receive the code?</p>
                   <button
                     type="button"
                     onClick={handleResendOtp}
                     disabled={loading}
-                    className="text-sm font-semibold text-orange-600 hover:text-orange-700 disabled:opacity-60"
+                    className="text-xs sm:text-sm font-semibold text-orange-600 hover:text-orange-700 disabled:opacity-60"
                   >
                     Resend OTP
                   </button>
@@ -338,9 +338,9 @@ const ForgotPassword = () => {
 
             {/* Step 3: New Password */}
             {step === 3 && (
-              <form onSubmit={handleResetPassword} className="space-y-5">
-                <div className="space-y-2">
-                  <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">
+              <form onSubmit={handleResetPassword} className="space-y-4 sm:space-y-5">
+                <div className="space-y-1.5 sm:space-y-2">
+                  <label htmlFor="newPassword" className="block text-xs sm:text-sm font-medium text-gray-700">
                     New Password
                   </label>
                   <div className="relative">
@@ -351,16 +351,16 @@ const ForgotPassword = () => {
                       required
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 pr-12 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 sm:px-4 sm:py-3 pr-10 sm:pr-12 text-xs sm:text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
                       placeholder="Enter new password"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600"
+                      className="absolute inset-y-0 right-0 flex items-center pr-2.5 sm:pr-3 text-slate-400 hover:text-slate-600"
                     >
                       {showPassword ? (
-                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path
                             strokeLinecap="round"
                             strokeLinejoin="round"
@@ -369,7 +369,7 @@ const ForgotPassword = () => {
                           />
                         </svg>
                       ) : (
-                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path
                             strokeLinecap="round"
                             strokeLinejoin="round"
@@ -388,8 +388,8 @@ const ForgotPassword = () => {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                <div className="space-y-1.5 sm:space-y-2">
+                  <label htmlFor="confirmPassword" className="block text-xs sm:text-sm font-medium text-gray-700">
                     Confirm Password
                   </label>
                   <div className="relative">
@@ -400,16 +400,16 @@ const ForgotPassword = () => {
                       required
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 pr-12 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 sm:px-4 sm:py-3 pr-10 sm:pr-12 text-xs sm:text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
                       placeholder="Confirm new password"
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600"
+                      className="absolute inset-y-0 right-0 flex items-center pr-2.5 sm:pr-3 text-slate-400 hover:text-slate-600"
                     >
                       {showConfirmPassword ? (
-                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path
                             strokeLinecap="round"
                             strokeLinejoin="round"
@@ -418,7 +418,7 @@ const ForgotPassword = () => {
                           />
                         </svg>
                       ) : (
-                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path
                             strokeLinecap="round"
                             strokeLinejoin="round"
@@ -440,7 +440,7 @@ const ForgotPassword = () => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full rounded-lg bg-orange-600 px-6 py-3.5 text-sm font-semibold text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="w-full rounded-lg bg-orange-600 px-5 py-3 sm:px-6 sm:py-3.5 text-xs sm:text-sm font-semibold text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <span className="flex items-center justify-center gap-2">
                     {loading ? (
@@ -456,8 +456,8 @@ const ForgotPassword = () => {
               </form>
             )}
 
-            <div className="mt-6 text-center">
-              <p className="text-sm text-gray-600">
+            <div className="mt-5 sm:mt-6 text-center">
+              <p className="text-xs sm:text-sm text-gray-600">
                 Remember your password?{' '}
                 <Link to="/login" className="font-semibold text-orange-600 hover:text-orange-700">
                   Sign in
