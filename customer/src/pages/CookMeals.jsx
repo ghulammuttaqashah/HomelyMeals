@@ -6,7 +6,7 @@ import Header from '../components/Header'
 import Footer from '../components/Footer'
 import Container from '../components/Container'
 import MealCard from '../components/MealCard'
-import Loader from '../components/Loader'
+import { SkeletonCard } from '../components/Loader'
 
 const CookMeals = () => {
   const { cookId } = useParams()
@@ -95,11 +95,40 @@ const CookMeals = () => {
     return (
       <div className="flex min-h-screen flex-col bg-gray-50">
         <Header />
-        <main className="flex flex-1 items-center justify-center">
-          <div className="text-center">
-            <Loader size="lg" />
-            <p className="mt-4 text-sm text-gray-600">Loading menu...</p>
-          </div>
+        <main className="flex-1">
+          <Container className="py-8">
+            {/* Back Button Skeleton */}
+            <div className="mb-6">
+              <div className="mb-4 h-5 w-28 bg-gray-200 rounded animate-pulse" />
+              
+              {/* Cook Info Skeleton */}
+              <div className="rounded-lg bg-white p-6 shadow-sm border border-gray-200">
+                <div className="flex items-center gap-4">
+                  <div className="h-16 w-16 rounded-full bg-gray-200 animate-pulse" />
+                  <div className="space-y-2">
+                    <div className="h-6 w-40 bg-gray-200 rounded animate-pulse" />
+                    <div className="h-4 w-32 bg-gray-200 rounded animate-pulse" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Filters Skeleton */}
+            <div className="mb-6 rounded-lg bg-white p-4 shadow-sm border border-gray-200">
+              <div className="flex flex-wrap gap-4">
+                <div className="h-10 w-64 bg-gray-200 rounded-lg animate-pulse" />
+                <div className="h-10 w-40 bg-gray-200 rounded-lg animate-pulse" />
+                <div className="h-10 w-36 bg-gray-200 rounded-lg animate-pulse" />
+              </div>
+            </div>
+
+            {/* Meals Grid Skeleton */}
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {[...Array(8)].map((_, i) => (
+                <SkeletonCard key={i} />
+              ))}
+            </div>
+          </Container>
         </main>
         <Footer />
       </div>

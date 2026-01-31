@@ -7,7 +7,7 @@ import Header from '../components/Header'
 import Footer from '../components/Footer'
 import FormInput from '../components/FormInput'
 import Loader from '../components/Loader'
-import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
@@ -18,6 +18,16 @@ L.Icon.Default.mergeOptions({
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 })
+
+// Component to handle map click events
+const LocationMarker = ({ position, setPosition }) => {
+  useMapEvents({
+    click(e) {
+      setPosition({ lat: e.latlng.lat, lng: e.latlng.lng })
+    },
+  })
+  return position ? <Marker position={[position.lat, position.lng]} /> : null
+}
 
 // Component to update map view when coordinates change
 const MapUpdater = ({ coordinates }) => {
@@ -47,6 +57,74 @@ const Profile = () => {
   const [profileLoading, setProfileLoading] = useState(false)
   const [locationLoading, setLocationLoading] = useState(false)
   const [coordinates, setCoordinates] = useState(null)
+
+  // Reverse geocode - get address from coordinates
+  const reverseGeocode = async (lat, lng) => {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`,
+        { headers: { 'Accept-Language': 'en' } }
+      )
+      const data = await response.json()
+      if (data && data.address) {
+        const addr = data.address
+        setProfileData((prev) => ({
+          ...prev,
+          houseNo: addr.house_number || prev.houseNo,
+          street: addr.road || addr.street || addr.neighbourhood || prev.street,
+          city: addr.city || addr.town || addr.village || addr.county || prev.city,
+          postalCode: addr.postcode || prev.postalCode,
+        }))
+      }
+    } catch (error) {
+      console.error('Reverse geocode error:', error)
+    }
+  }
+
+  // Forward geocode - search address and show on map
+  const forwardGeocode = async () => {
+    const searchQuery = [profileData.houseNo, profileData.street, profileData.city, profileData.postalCode]
+      .filter(Boolean)
+      .join(', ')
+
+    if (!searchQuery.trim()) {
+      toast.error('Please enter an address first')
+      return
+    }
+
+    setLocationLoading(true)
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1`
+      )
+      const data = await response.json()
+      if (data && data.length > 0) {
+        const lat = parseFloat(data[0].lat)
+        const lon = parseFloat(data[0].lon)
+        setCoordinates({ lat, lng: lon })
+        toast.success('Location found on map!')
+      } else {
+        toast.error('Address not found. Try using "Use My Location" instead.')
+      }
+    } catch (error) {
+      console.error('Forward geocode error:', error)
+      toast.error('Failed to search address')
+    } finally {
+      setLocationLoading(false)
+    }
+  }
+
+  // When coordinates change (from map click), reverse geocode - but not on initial load
+  const isInitialMount = useRef(true)
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false
+      return
+    }
+    if (coordinates) {
+      reverseGeocode(coordinates.lat, coordinates.lng)
+    }
+  }, [coordinates])
 
   // Populate form with cook data
   useEffect(() => {
@@ -87,7 +165,7 @@ const Profile = () => {
     setProfileData((prev) => ({ ...prev, [name]: value }))
   }
 
-  // Get current location and auto-fill address
+  // Get current location
   const handleGetLocation = async () => {
     if (!navigator.geolocation) {
       toast.error('Geolocation is not supported by your browser')
@@ -97,52 +175,12 @@ const Profile = () => {
     setLocationLoading(true)
 
     navigator.geolocation.getCurrentPosition(
-      async (position) => {
+      (position) => {
         const { latitude, longitude } = position.coords
-
-        // Store coordinates for map display
         setCoordinates({ lat: latitude, lng: longitude })
-
-        try {
-          // Use OpenStreetMap's Nominatim API for reverse geocoding (free)
-          const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`,
-            {
-              headers: {
-                'Accept-Language': 'en',
-              },
-            }
-          )
-
-          if (!response.ok) {
-            throw new Error('Failed to fetch address')
-          }
-
-          const data = await response.json()
-          const address = data.address || {}
-
-          // Extract address components
-          const houseNumber = address.house_number || ''
-          const road = address.road || address.street || address.neighbourhood || ''
-          const city = address.city || address.town || address.village || address.county || 'Sukkur'
-          const postcode = address.postcode || '65200'
-
-          // Update form with fetched address
-          setProfileData((prev) => ({
-            ...prev,
-            houseNo: houseNumber || prev.houseNo,
-            street: road || prev.street,
-            city: city,
-            postalCode: postcode,
-          }))
-
-          toast.success('Location fetched successfully!')
-        } catch (error) {
-          console.error('Reverse geocoding error:', error)
-          toast.error('Failed to get address from location')
-        } finally {
-          setLocationLoading(false)
-        }
+        reverseGeocode(latitude, longitude)
+        setLocationLoading(false)
+        toast.success('Location detected!')
       },
       (error) => {
         setLocationLoading(false)
@@ -300,33 +338,46 @@ const Profile = () => {
                 <div className="border-t border-gray-100 pt-5">
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-sm font-medium text-gray-700">Address Details</h3>
-                    <button
-                      type="button"
-                      onClick={handleGetLocation}
-                      disabled={locationLoading}
-                      className="flex items-center gap-2 rounded-lg bg-blue-50 px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      {locationLoading ? (
-                        <>
-                          <Loader size="sm" />
-                          <span>Getting location...</span>
-                        </>
-                      ) : (
-                        <>
-                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                          </svg>
-                          <span>Use Current Location</span>
-                        </>
-                      )}
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => forwardGeocode()}
+                        disabled={locationLoading}
+                        className="flex items-center gap-2 rounded-lg bg-green-50 px-4 py-2 text-sm font-medium text-green-600 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <span>Find on Map</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleGetLocation}
+                        disabled={locationLoading}
+                        className="flex items-center gap-2 rounded-lg bg-blue-50 px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {locationLoading ? (
+                          <>
+                            <Loader size="sm" />
+                            <span>Getting location...</span>
+                          </>
+                        ) : (
+                          <>
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            <span>Use My Location</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
                   <p className="text-xs text-gray-500 mb-4 flex items-center gap-1">
                     <svg className="h-3.5 w-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <span>Use this while at your <strong>home or kitchen</strong> for accurate delivery location</span>
+                    <span>Click on map or use buttons above to set your <strong>kitchen location</strong></span>
                   </p>
 
                   {/* Map Display - Always visible */}
@@ -337,7 +388,7 @@ const Profile = () => {
                           <svg className="h-4 w-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
-                          <span className="text-xs font-medium text-gray-700">Your Kitchen Location</span>
+                          <span className="text-xs font-medium text-gray-700">Your Kitchen Location (Click map to change)</span>
                         </>
                       ) : (
                         <>
@@ -345,7 +396,7 @@ const Profile = () => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                           </svg>
-                          <span className="text-xs font-medium text-gray-700">Click &quot;Use Current Location&quot; to set your kitchen location</span>
+                          <span className="text-xs font-medium text-gray-700">Click on map to set your kitchen location</span>
                         </>
                       )}
                     </div>
@@ -359,9 +410,7 @@ const Profile = () => {
                         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                       />
-                      {coordinates && (
-                        <Marker position={[coordinates.lat, coordinates.lng]} />
-                      )}
+                      <LocationMarker position={coordinates} setPosition={setCoordinates} />
                       <MapUpdater coordinates={coordinates} />
                     </MapContainer>
                     {coordinates && (

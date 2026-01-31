@@ -21,6 +21,13 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
   // Get default address or first address
   const defaultAddress = customer?.addresses?.find((addr) => addr.isDefault) || customer?.addresses?.[0]
 
+  // Sort addresses: default first, then others
+  const sortedAddresses = customer?.addresses?.slice().sort((a, b) => {
+    if (a.isDefault) return -1
+    if (b.isDefault) return 1
+    return 0
+  }) || []
+
   const getShortAddress = (address) => {
     if (!address) return 'No address'
     const parts = [address.label, address.street, address.city].filter(Boolean)
@@ -93,44 +100,58 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
               {showAddressDropdown && (
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setShowAddressDropdown(false)} />
-                  <div className="absolute left-0 top-full z-20 mt-2 w-72 rounded-lg border border-gray-200 bg-white py-2 shadow-lg">
-                    <div className="px-3 pb-2 text-xs font-semibold uppercase text-gray-500">Select Delivery Address</div>
-                    {customer.addresses.map((address) => (
-                      <button
-                        key={address._id}
-                        onClick={() => handleSelectAddress(address._id)}
-                        disabled={settingDefault}
-                        className={`w-full text-left px-3 py-2 transition-colors ${
-                          address.isDefault 
-                            ? 'bg-orange-50 cursor-default' 
-                            : 'hover:bg-gray-50 cursor-pointer'
-                        } ${settingDefault ? 'opacity-50' : ''}`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-gray-900">{address.label}</span>
-                          {address.isDefault && (
-                            <span className="rounded bg-orange-100 px-1.5 py-0.5 text-xs font-medium text-orange-600">
-                              Selected
-                            </span>
-                          )}
-                        </div>
-                        <p className="mt-0.5 text-xs text-gray-500">
-                          {[address.houseNo, address.street, address.city].filter(Boolean).join(', ')}
-                        </p>
-                      </button>
-                    ))}
-                    <div className="mt-1 border-t border-gray-100 pt-2 px-3">
+                  <div className="absolute left-0 top-full z-20 mt-2 w-80 rounded-lg border border-gray-200 bg-white shadow-lg overflow-hidden">
+                    <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
+                      <p className="text-xs font-semibold uppercase text-gray-500">Select Delivery Address</p>
+                    </div>
+                    <div className="max-h-64 overflow-y-auto">
+                      {sortedAddresses.map((address) => (
+                        <button
+                          key={address._id}
+                          onClick={() => handleSelectAddress(address._id)}
+                          disabled={settingDefault}
+                          className={`w-full text-left px-4 py-3 border-b border-gray-100 last:border-b-0 transition-colors ${
+                            address.isDefault 
+                              ? 'bg-orange-50' 
+                              : 'hover:bg-gray-50'
+                          } ${settingDefault ? 'opacity-50 cursor-wait' : 'cursor-pointer'}`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-gray-900">{address.label}</span>
+                              {address.isDefault && (
+                                <span className="rounded-full bg-orange-500 px-2 py-0.5 text-xs font-medium text-white">
+                                  Active
+                                </span>
+                              )}
+                            </div>
+                            {address.isDefault && (
+                              <svg className="h-5 w-5 text-orange-500" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                              </svg>
+                            )}
+                          </div>
+                          <p className="mt-1 text-sm text-gray-600">
+                            {[address.houseNo, address.street].filter(Boolean).join(', ')}
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            {[address.city, address.postalCode].filter(Boolean).join(' - ')}
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+                    <div className="border-t border-gray-200 p-3 bg-gray-50">
                       <button
                         onClick={() => {
                           setShowAddressDropdown(false)
                           navigate('/profile')
                         }}
-                        className="flex w-full items-center justify-center gap-1 rounded-lg bg-orange-50 px-3 py-2 text-xs font-medium text-orange-600 hover:bg-orange-100 transition-colors"
+                        className="flex w-full items-center justify-center gap-2 rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700 transition-colors"
                       >
                         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                         </svg>
-                        Manage Addresses
+                        Add / Manage Addresses
                       </button>
                     </div>
                   </div>

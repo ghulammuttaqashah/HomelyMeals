@@ -7,7 +7,7 @@ import Header from '../components/Header'
 import Footer from '../components/Footer'
 import Container from '../components/Container'
 import CookCard from '../components/CookCard'
-import Loader from '../components/Loader'
+import Loader, { SkeletonCard } from '../components/Loader'
 
 const Dashboard = () => {
   const navigate = useNavigate()
@@ -81,7 +81,8 @@ const Dashboard = () => {
                     placeholder="Search by meal name (e.g., Biryani, Karahi, Pizza...)"
                     value={searchInput}
                     onChange={(e) => setSearchInput(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 pl-10 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 pl-10 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-colors"
+                    disabled={loading}
                   />
                   <svg
                     className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400"
@@ -99,11 +100,19 @@ const Dashboard = () => {
                 </div>
                 <button
                   type="submit"
-                  className="rounded-lg bg-orange-600 px-6 py-3 text-sm font-medium text-white hover:bg-orange-700 transition-colors"
+                  disabled={loading}
+                  className="inline-flex items-center gap-2 rounded-lg bg-orange-600 px-6 py-3 text-sm font-medium text-white hover:bg-orange-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  Search
+                  {loading ? (
+                    <>
+                      <Loader size="sm" className="[&>div]:border-white [&>div]:border-t-transparent" />
+                      <span>Searching...</span>
+                    </>
+                  ) : (
+                    'Search'
+                  )}
                 </button>
-                {searchQuery && (
+                {searchQuery && !loading && (
                   <button
                     type="button"
                     onClick={handleClearSearch}
@@ -114,7 +123,7 @@ const Dashboard = () => {
                 )}
               </div>
             </form>
-            {searchQuery && (
+            {searchQuery && !loading && (
               <p className="mt-3 text-sm text-gray-600">
                 Showing cooks with meals matching "<span className="font-medium text-orange-600">{searchQuery}</span>"
               </p>
@@ -123,9 +132,16 @@ const Dashboard = () => {
 
           {/* Cooks Grid */}
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-32">
-              <Loader size="lg" />
-              <p className="mt-6 text-base font-medium text-gray-600">Loading cooks...</p>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="h-7 w-40 bg-gray-200 rounded animate-pulse" />
+                <div className="h-5 w-24 bg-gray-200 rounded animate-pulse" />
+              </div>
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {[...Array(8)].map((_, i) => (
+                  <SkeletonCard key={i} />
+                ))}
+              </div>
             </div>
           ) : cooks.length > 0 ? (
             <>

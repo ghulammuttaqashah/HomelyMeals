@@ -6,7 +6,7 @@ import { getMeals, updateMeal, deleteMeal } from '../api/meals'
 import { uploadToCloudinary } from '../utils/cloudinary'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
-import Loader from '../components/Loader'
+import Loader, { SkeletonCard } from '../components/Loader'
 import MealCard from '../components/MealCard'
 
 const MenuManagement = () => {
@@ -215,9 +215,10 @@ const MenuManagement = () => {
 
           {/* Meals Grid */}
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-16 sm:py-32">
-              <Loader size="lg" />
-              <p className="mt-4 sm:mt-6 text-sm sm:text-base font-medium text-gray-600">Loading your meals...</p>
+            <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+              {[...Array(6)].map((_, i) => (
+                <SkeletonCard key={i} />
+              ))}
             </div>
           ) : meals.length > 0 ? (
             <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">

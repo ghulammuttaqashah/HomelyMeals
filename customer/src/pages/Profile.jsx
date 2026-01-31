@@ -7,7 +7,7 @@ import Header from '../components/Header'
 import Footer from '../components/Footer'
 import Container from '../components/Container'
 import FormInput from '../components/FormInput'
-import Loader from '../components/Loader'
+import Loader, { Skeleton } from '../components/Loader'
 import { useAuth } from '../context/AuthContext'
 import {
   updateProfile,
@@ -327,11 +327,66 @@ const Profile = () => {
     return (
       <div className="flex min-h-screen flex-col bg-gray-50">
         <Header />
-        <main className="flex-1 flex items-center justify-center py-8">
-          <div className="flex flex-col items-center gap-4">
-            <Loader size="lg" />
-            <p className="text-gray-600">Loading profile...</p>
-          </div>
+        <main className="flex-1 py-8">
+          <Container>
+            {/* Back Button Skeleton */}
+            <div className="mb-6 h-5 w-32 bg-gray-200 rounded animate-pulse" />
+
+            {/* Page Title Skeleton */}
+            <div className="mb-8">
+              <div className="h-8 w-48 bg-gray-200 rounded animate-pulse mb-2" />
+              <div className="h-4 w-72 bg-gray-200 rounded animate-pulse" />
+            </div>
+
+            <div className="grid gap-8 lg:grid-cols-2">
+              {/* Profile Card Skeleton */}
+              <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-200">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="h-10 w-10 rounded-lg bg-gray-200 animate-pulse" />
+                  <div>
+                    <div className="h-5 w-36 bg-gray-200 rounded animate-pulse mb-2" />
+                    <div className="h-4 w-48 bg-gray-200 rounded animate-pulse" />
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div className="h-12 bg-gray-200 rounded-lg animate-pulse" />
+                  <div className="h-12 bg-gray-200 rounded-lg animate-pulse" />
+                  <div className="h-12 bg-gray-200 rounded-lg animate-pulse" />
+                </div>
+              </div>
+
+              {/* Addresses Card Skeleton */}
+              <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-lg bg-gray-200 animate-pulse" />
+                    <div>
+                      <div className="h-5 w-32 bg-gray-200 rounded animate-pulse mb-2" />
+                      <div className="h-4 w-44 bg-gray-200 rounded animate-pulse" />
+                    </div>
+                  </div>
+                  <div className="h-10 w-28 bg-gray-200 rounded-lg animate-pulse" />
+                </div>
+                <div className="space-y-3">
+                  {[1, 2].map((i) => (
+                    <div key={i} className="rounded-lg border border-gray-200 p-4">
+                      <div className="flex justify-between items-start">
+                        <div className="space-y-2">
+                          <div className="h-5 w-24 bg-gray-200 rounded animate-pulse" />
+                          <div className="h-4 w-48 bg-gray-200 rounded animate-pulse" />
+                          <div className="h-4 w-36 bg-gray-200 rounded animate-pulse" />
+                        </div>
+                        <div className="flex gap-2">
+                          <div className="h-8 w-8 bg-gray-200 rounded animate-pulse" />
+                          <div className="h-8 w-8 bg-gray-200 rounded animate-pulse" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </Container>
         </main>
         <Footer />
       </div>

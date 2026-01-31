@@ -1,11 +1,27 @@
+import { useState } from 'react'
+
 const MealCard = ({ meal, showActions = false, onEdit, onDelete }) => {
+  const [imageLoaded, setImageLoaded] = useState(false)
+  const [imageError, setImageError] = useState(false)
+
+  const imageSrc = meal.itemImage || meal.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&h=300&fit=crop'
+
   return (
     <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow">
-      <div className="aspect-video w-full overflow-hidden bg-gray-100">
+      <div className="aspect-video w-full overflow-hidden bg-gray-100 relative">
+        {/* Skeleton loader for image */}
+        {!imageLoaded && !imageError && (
+          <div className="absolute inset-0 bg-gray-200 animate-pulse" />
+        )}
         <img
-          src={meal.itemImage || meal.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&h=300&fit=crop'}
+          src={imageError ? 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&h=300&fit=crop' : imageSrc}
           alt={meal.name}
-          className="h-full w-full object-cover"
+          className={`h-full w-full object-cover ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+          onLoad={() => setImageLoaded(true)}
+          onError={() => {
+            setImageError(true)
+            setImageLoaded(true)
+          }}
         />
       </div>
       <div className="p-3 sm:p-4">
