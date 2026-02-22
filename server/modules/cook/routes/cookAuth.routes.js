@@ -12,7 +12,7 @@ import {
   resendForgotPasswordOtp,
   toggleServiceStatus,
   updateProfile,
-  changePassword
+  changePassword,
 } from "../controllers/cookAuth.controller.js";
 import { protect } from "../../../shared/middleware/auth.js";
 

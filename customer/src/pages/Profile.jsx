@@ -51,7 +51,7 @@ const RecenterMap = ({ position }) => {
 
 const Profile = () => {
   const navigate = useNavigate()
-  const { customer } = useAuth()
+  const { customer, refreshCustomer } = useAuth()
   const [loading, setLoading] = useState(true)
   const [profileData, setProfileData] = useState({ name: '', contact: '' })
   const [addresses, setAddresses] = useState([])
@@ -88,7 +88,7 @@ const Profile = () => {
       setProfileData({ name: data.name || '', contact: data.contact || '' })
       setAddresses(data.addresses || [])
     } catch (error) {
-      toast.error('Failed to load profile data')
+      toast.error('Unable to load your profile. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -154,7 +154,7 @@ const Profile = () => {
       }
     } catch (error) {
       console.error('Forward geocode error:', error)
-      toast.error('Failed to search address')
+      toast.error('Unable to search address. Please try again.')
     }
   }
 
@@ -192,7 +192,7 @@ const Profile = () => {
             toast.error('Location request timed out')
             break
           default:
-            toast.error('Failed to get location')
+            toast.error('Unable to get your location. Please try again.')
         }
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
@@ -211,7 +211,7 @@ const Profile = () => {
       toast.success('Profile updated successfully')
       setIsEditingProfile(false)
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to update profile')
+      toast.error(error.response?.data?.message || 'Couldn\'t update your profile. Please try again.')
     } finally {
       setSavingProfile(false)
     }
@@ -290,9 +290,10 @@ const Profile = () => {
         toast.success('Address added successfully')
       }
       await fetchCustomerData()
+      await refreshCustomer()
       closeAddressModal()
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to save address')
+      toast.error(error.response?.data?.message || 'Couldn\'t save address. Please try again.')
     } finally {
       setSavingAddress(false)
     }
@@ -306,8 +307,9 @@ const Profile = () => {
       await deleteAddress(addressId)
       toast.success('Address deleted successfully')
       await fetchCustomerData()
+      await refreshCustomer()
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to delete address')
+      toast.error(error.response?.data?.message || 'Couldn\'t delete address. Please try again.')
     } finally {
       setDeletingAddressId(null)
     }
@@ -318,8 +320,9 @@ const Profile = () => {
       await setDefaultAddress(addressId)
       toast.success('Default address updated')
       await fetchCustomerData()
+      await refreshCustomer()
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to set default address')
+      toast.error(error.response?.data?.message || 'Couldn\'t set default address. Please try again.')
     }
   }
 

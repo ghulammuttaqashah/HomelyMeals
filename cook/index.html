@@ -2,11 +2,44 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="/chef.png" id="favicon" />
+    <link rel="apple-touch-icon" href="/chef.png" />
+    <script>
+      (function() {
+        var img = new Image();
+        img.onload = function() {
+          var c = document.createElement('canvas');
+          c.width = img.width; c.height = img.height;
+          var ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+          ctx.globalCompositeOperation = 'source-atop';
+          ctx.fillStyle = '#ea580c';
+          ctx.fillRect(0, 0, c.width, c.height);
+          var link = document.getElementById('favicon');
+          if (link) link.href = c.toDataURL('image/png');
+        };
+        img.src = '/chef.png';
+      })();
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#ea580c" />
+    <meta name="description" content="Manage your home kitchen business with Homely Meals" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="HM Cook" />
+    <link rel="manifest" href="/manifest.json" />
     <title>Homely Meals - Cook</title>
   </head>
   <body>
+    <!-- Capture beforeinstallprompt BEFORE React loads so it's never lost on reload -->
+    <script>
+      window.__pwaInstallPrompt = null;
+      window.addEventListener('beforeinstallprompt', function(e) {
+        e.preventDefault();
+        window.__pwaInstallPrompt = e;
+      });
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

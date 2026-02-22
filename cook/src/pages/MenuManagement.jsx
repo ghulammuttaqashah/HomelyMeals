@@ -63,7 +63,7 @@ const MenuManagement = () => {
       const response = await getMeals()
       setMeals(response.meals || [])
     } catch (error) {
-      toast.error('Failed to load meals')
+      toast.error('Unable to load your menu. Please try again.')
       console.error('Fetch meals error:', error)
     } finally {
       setLoading(false)
@@ -142,7 +142,7 @@ const MenuManagement = () => {
       fetchMeals()
     } catch (error) {
       toast.dismiss(loadingToast)
-      const message = error.response?.data?.message || 'Failed to update meal'
+      const message = error.response?.data?.message || 'Couldn\'t update meal. Please try again.'
       toast.error(message)
     } finally {
       setEditLoading(false)
@@ -169,7 +169,7 @@ const MenuManagement = () => {
       fetchMeals()
     } catch (error) {
       toast.dismiss(loadingToast)
-      const message = error.response?.data?.message || 'Failed to delete meal'
+      const message = error.response?.data?.message || 'Couldn\'t delete meal. Please try again.'
       toast.error(message)
     } finally {
       setDeleteLoading(false)

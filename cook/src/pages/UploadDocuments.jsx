@@ -122,7 +122,7 @@ const UploadDocuments = () => {
       }, 1500)
     } catch (error) {
       toast.dismiss(loadingToast)
-      const message = error.message || 'Failed to upload documents'
+      const message = error.message || 'Couldn\'t upload documents. Please try smaller files.'
       toast.error(message)
       console.error('Upload error:', error)
     } finally {

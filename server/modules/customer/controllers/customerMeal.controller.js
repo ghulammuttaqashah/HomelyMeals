@@ -1,6 +1,9 @@
 import Meal from "../../cook/models/cookMeal.model.js";
 import { Cook } from "../../cook/models/cook.model.js";
 import { Customer } from "../models/customer.model.js";
+import DeliveryCharges from "../../admin/models/deliveryCharges.model.js";
+import { Order } from "../../../shared/models/order.model.js";
+import mongoose from "mongoose";
 
 /**
  * Get all active cooks for customers
@@ -139,7 +142,8 @@ export const getMealsByCookId = async (req, res) => {
     res.status(200).json({
       success: true,
       cook: {
-        cookId: cook._id,
+        _id: cook._id,
+        cookId: cook._id, // kept for backward compatibility
         name: cook.name,
         city: cook.address?.city || "Sukkur",
       },
@@ -175,10 +179,10 @@ export const getAllMealsForCustomer = async (req, res) => {
     const formatted = meals
       .filter(m => {
         // Only show meals from active, approved, and open cooks
-        return m.cookId && 
-               m.cookId.status === "active" && 
-               m.cookId.verificationStatus === "approved" &&
-               m.cookId.serviceStatus === "open";
+        return m.cookId &&
+          m.cookId.status === "active" &&
+          m.cookId.verificationStatus === "approved" &&
+          m.cookId.serviceStatus === "open";
       })
       .map(m => ({
         mealId: m._id,
@@ -202,6 +206,134 @@ export const getAllMealsForCustomer = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to fetch meals",
+    });
+  }
+};
+
+/**
+ * Get cook delivery info (location + maxDeliveryDistance) - PUBLIC
+ * Used for frontend distance calculation
+ */
+export const getCookDeliveryInfo = async (req, res) => {
+  try {
+    const { cookId } = req.params;
+
+    const cook = await Cook.findOne({
+      _id: cookId,
+      status: "active",
+      verificationStatus: "approved",
+    }).select("name address maxDeliveryDistance");
+
+    if (!cook) {
+      return res.status(404).json({
+        success: false,
+        message: "Cook not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      cook: {
+        cookId: cook._id,
+        name: cook.name,
+        latitude: cook.address?.location?.latitude || null,
+        longitude: cook.address?.location?.longitude || null,
+        maxDeliveryDistance: cook.maxDeliveryDistance || 10,
+      },
+    });
+  } catch (error) {
+    console.error("Get cook delivery info error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch cook info",
+    });
+  }
+};
+
+/**
+ * Get delivery charge settings - PUBLIC
+ * Used for frontend delivery charge calculation
+ */
+export const getDeliverySettings = async (req, res) => {
+  try {
+    const settings = await DeliveryCharges.getSettings();
+
+    res.status(200).json({
+      success: true,
+      settings: {
+        pricePerKm: settings?.pricePerKm || 20,
+        minimumCharge: settings?.minimumCharge || 0,
+      },
+    });
+  } catch (error) {
+    console.error("Get delivery settings error:", error);
+    res.status(200).json({
+      success: true,
+      settings: {
+        pricePerKm: 20,
+        minimumCharge: 0,
+      },
+    });
+  }
+};
+
+/**
+ * Get top selling meals for a specific cook - PUBLIC
+ * Aggregates delivered orders and returns top meals by quantity sold
+ * GET /api/customer/meals/cook/:cookId/top-selling
+ */
+export const getTopSellingMeals = async (req, res) => {
+  try {
+    const { cookId } = req.params;
+    const cookObjectId = new mongoose.Types.ObjectId(cookId);
+
+    // Aggregate delivered orders for this cook, group by meal
+    const topMeals = await Order.aggregate([
+      { $match: { cookId: cookObjectId, status: "delivered" } },
+      { $unwind: "$items" },
+      {
+        $group: {
+          _id: "$items.mealId",
+          name: { $first: "$items.name" },
+          totalQuantity: { $sum: "$items.quantity" },
+          totalOrders: { $sum: 1 },
+        },
+      },
+      { $sort: { totalQuantity: -1 } },
+      { $limit: 1 },
+    ]);
+
+    // Enrich with meal images from CookMeal collection
+    const enriched = await Promise.all(
+      topMeals.map(async (item) => {
+        let itemImage = null;
+        if (item._id) {
+          const meal = await Meal.findById(item._id).select("itemImage price");
+          if (meal) {
+            itemImage = meal.itemImage || null;
+            item.price = meal.price;
+          }
+        }
+        return {
+          mealId: item._id,
+          name: item.name,
+          totalQuantity: item.totalQuantity,
+          totalOrders: item.totalOrders,
+          price: item.price || 0,
+          itemImage,
+        };
+      })
+    );
+
+    res.status(200).json({
+      success: true,
+      topMeals: enriched,
+    });
+  } catch (error) {
+    console.error("Get top selling meals error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch top selling meals",
     });
   }
 };

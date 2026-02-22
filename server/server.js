@@ -1,4 +1,5 @@
 import express from "express";
+import { createServer } from "http";
 import cors from "cors";
 import connectDB from "./shared/config/db.js";
 import { PORT } from "./shared/config/env.js";
@@ -8,7 +9,11 @@ import adminRoutes from "./modules/admin/index.js";
 import customerRoutes from "./modules/customer/index.js";
 import cookRoutes from "./modules/cook/index.js";
 
+import { initializeSocket } from "./shared/utils/socket.js";
+import { startOrderJobs } from "./shared/jobs/orderJobs.js";
+
 const app = express();
+const server = createServer(app);
 
 
 const allowedOrigins = [
@@ -38,6 +43,12 @@ app.use(express.json());
 // Database
 connectDB();
 
+// Initialize Socket.io
+initializeSocket(server);
+
+// Start cron jobs
+startOrderJobs();
+
 app.get("/", (req, res) => {
   res.send("Homely Meals API is working!");
 });
@@ -47,7 +58,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/customer", customerRoutes);
 app.use("/api/cook", cookRoutes);
 
-// Start Serv
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+// Start Server
+server.listen(PORT, () => {
+  console.log(`🚀 Server unning on http://localhost:${PORT}`);
 });

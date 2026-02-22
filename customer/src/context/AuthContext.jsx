@@ -10,6 +10,7 @@ import {
   getCurrentCustomer as getCurrentCustomerAPI,
 } from '../api/auth'
 import { setUnauthorizedHandler } from '../api/axios'
+import { initializeSocket, disconnectSocket } from '../utils/socket'
 
 const AuthContext = createContext(null)
 
@@ -29,12 +30,20 @@ export const AuthProvider = ({ children }) => {
 
   // Check authentication on mount
   useEffect(() => {
-    const checkAuth = async () => {
+    const checkAuth = async (retries = 1) => {
       try {
         const data = await getCurrentCustomerAPI()
         setCustomer(data.customer)
         setIsAuthenticated(true)
+        // Initialize socket when authenticated
+        initializeSocket()
       } catch (error) {
+        // Retry once after a short delay — handles browser session restore
+        // where cookies may not be available on the very first request
+        if (retries > 0) {
+          await new Promise((r) => setTimeout(r, 600))
+          return checkAuth(retries - 1)
+        }
         // Not authenticated, that's okay
         setCustomer(null)
         setIsAuthenticated(false)
@@ -52,6 +61,8 @@ export const AuthProvider = ({ children }) => {
     setSignupData(null)
     sessionStorage.removeItem('customerPendingEmail')
     sessionStorage.removeItem('customerSignupData')
+    // Disconnect socket on logout
+    disconnectSocket()
   }, [])
 
   const signupRequest = useCallback(async (data) => {
@@ -87,6 +98,8 @@ export const AuthProvider = ({ children }) => {
     const data = await signinAPI(credentials)
     setCustomer(data?.customer ?? { email: credentials.email })
     setIsAuthenticated(true)
+    // Initialize socket after login
+    initializeSocket()
   }, [])
 
   const refreshCustomer = useCallback(async () => {

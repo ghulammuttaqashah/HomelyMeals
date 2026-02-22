@@ -33,7 +33,7 @@ const Landing = () => {
       }))
       setMeals(mealsData)
     } catch (error) {
-      toast.error('Failed to load meals')
+      toast.error('Unable to load meals. Please try again.')
       console.error('Fetch meals error:', error)
     } finally {
       setLoading(false)

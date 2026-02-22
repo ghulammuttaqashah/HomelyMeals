@@ -9,6 +9,7 @@ import {
   signout as signoutAPI,
   getCurrentCook as getCurrentCookAPI,
 } from '../api/auth'
+import { initializeSocket, disconnectSocket } from '../utils/socket'
 
 const AuthContext = createContext(null)
 
@@ -28,12 +29,20 @@ export const AuthProvider = ({ children }) => {
 
   // Check authentication on mount
   useEffect(() => {
-    const checkAuth = async () => {
+    const checkAuth = async (retries = 1) => {
       try {
         const data = await getCurrentCookAPI()
         setCook(data.cook)
         setIsAuthenticated(true)
+        // Initialize socket when authenticated
+        initializeSocket()
       } catch (error) {
+        // Retry once after a short delay — handles browser session restore
+        // where cookies may not be available on the very first request
+        if (retries > 0) {
+          await new Promise((r) => setTimeout(r, 600))
+          return checkAuth(retries - 1)
+        }
         // Not authenticated, that's okay
         setCook(null)
         setIsAuthenticated(false)
@@ -51,6 +60,8 @@ export const AuthProvider = ({ children }) => {
     setSignupData(null)
     sessionStorage.removeItem('cookPendingEmail')
     sessionStorage.removeItem('cookSignupData')
+    // Disconnect socket on logout
+    disconnectSocket()
   }, [])
 
   const signupRequest = useCallback(async (data) => {
@@ -88,6 +99,8 @@ export const AuthProvider = ({ children }) => {
     const data = await signinAPI(credentials)
     setCook(data?.cook ?? { email: credentials.email })
     setIsAuthenticated(true)
+    // Initialize socket after login
+    initializeSocket()
     return data
   }, [])
 

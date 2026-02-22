@@ -1,14 +1,56 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
+import { useCart } from '../context/CartContext'
 import { setDefaultAddress } from '../api/auth'
+import { getUnreadCount } from '../api/chat'
+import { getSocket } from '../utils/socket'
+import { FiShoppingCart, FiPackage, FiMessageCircle } from 'react-icons/fi'
+import { usePWA } from '../utils/usePWA'
 
 const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) => {
   const navigate = useNavigate()
+  const location = useLocation()
   const { isAuthenticated, customer, signout, refreshCustomer } = useAuth()
+  const { getCartTotals } = useCart()
+  const { isInstallable, isInstalled, installApp } = usePWA()
   const [showAddressDropdown, setShowAddressDropdown] = useState(false)
   const [settingDefault, setSettingDefault] = useState(false)
+  const [unreadChats, setUnreadChats] = useState(0)
+
+  const { itemCount } = getCartTotals()
+
+  // Fetch unread count on mount and listen for new messages
+  useEffect(() => {
+    if (!isAuthenticated) return
+
+    const fetchUnread = async () => {
+      // Skip fetch if on chats page — messages are being read, badge resets to 0
+      if (location.pathname.startsWith('/chats')) return
+      try {
+        const res = await getUnreadCount()
+        setUnreadChats(res.unreadCount || 0)
+      } catch { }
+    }
+    fetchUnread()
+
+    const socket = getSocket()
+    const onNewMessage = () => {
+      if (!location.pathname.startsWith('/chats')) {
+        setUnreadChats(prev => prev + 1)
+      }
+    }
+    socket.on('new_message', onNewMessage)
+    return () => socket.off('new_message', onNewMessage)
+  }, [isAuthenticated, location.pathname])
+
+  // Reset unread when navigating to chats
+  useEffect(() => {
+    if (location.pathname.startsWith('/chats')) {
+      setUnreadChats(0)
+    }
+  }, [location.pathname])
 
   const handleLogoClick = () => {
     if (isAuthenticated) {
@@ -37,7 +79,7 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
 
   const handleSelectAddress = async (addressId) => {
     if (settingDefault) return
-    
+
     // Find the address to check if it's already default
     const address = customer?.addresses?.find(a => a._id === addressId)
     if (address?.isDefault) {
@@ -110,11 +152,10 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
                           key={address._id}
                           onClick={() => handleSelectAddress(address._id)}
                           disabled={settingDefault}
-                          className={`w-full text-left px-4 py-3 border-b border-gray-100 last:border-b-0 transition-colors ${
-                            address.isDefault 
-                              ? 'bg-orange-50' 
+                          className={`w-full text-left px-4 py-3 border-b border-gray-100 last:border-b-0 transition-colors ${address.isDefault
+                              ? 'bg-orange-50'
                               : 'hover:bg-gray-50'
-                          } ${settingDefault ? 'opacity-50 cursor-wait' : 'cursor-pointer'}`}
+                            } ${settingDefault ? 'opacity-50 cursor-wait' : 'cursor-pointer'}`}
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
@@ -162,8 +203,63 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
         </div>
 
         <div className="flex items-center gap-2">
+          {/* PWA Install Button */}
+          {isInstallable && !isInstalled && (
+            <button
+              type="button"
+              onClick={installApp}
+              className="flex items-center gap-1.5 rounded-lg border border-orange-200 bg-orange-50 px-2.5 py-1.5 text-orange-600 hover:bg-orange-100 transition-colors"
+              title="Install App"
+            >
+              <img src="/mobileapp.png" alt="" className="h-5 w-5" style={{ filter: 'invert(37%) sepia(98%) saturate(1800%) hue-rotate(11deg) brightness(94%) contrast(94%)' }} />
+              <span className="text-sm font-semibold">Install</span>
+            </button>
+          )}
+
           {isAuthenticated ? (
             <>
+              {/* Chats Button */}
+              <button
+                type="button"
+                onClick={() => navigate('/chats')}
+                className="relative flex items-center gap-1 rounded-lg border border-gray-200 p-2 text-gray-600 hover:bg-gray-50 transition-colors"
+                title="Messages"
+              >
+                <FiMessageCircle className="h-5 w-5" />
+                <span className="hidden sm:inline text-sm font-medium">Chats</span>
+                {unreadChats > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-orange-600 text-xs font-bold text-white">
+                    {unreadChats > 9 ? '9+' : unreadChats}
+                  </span>
+                )}
+              </button>
+
+              {/* Orders Button */}
+              <button
+                type="button"
+                onClick={() => navigate('/orders')}
+                className="flex items-center gap-1 rounded-lg border border-gray-200 p-2 text-gray-600 hover:bg-gray-50 transition-colors"
+                title="My Orders"
+              >
+                <FiPackage className="h-5 w-5" />
+                <span className="hidden sm:inline text-sm font-medium">Orders</span>
+              </button>
+
+              {/* Cart Button */}
+              <button
+                type="button"
+                onClick={() => navigate('/cart')}
+                className="relative flex items-center gap-1 rounded-lg border border-gray-200 p-2 text-gray-600 hover:bg-gray-50 transition-colors"
+                title="Cart"
+              >
+                <FiShoppingCart className="h-5 w-5" />
+                {itemCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-orange-600 text-xs font-bold text-white">
+                    {itemCount > 9 ? '9+' : itemCount}
+                  </span>
+                )}
+              </button>
+
               {/* Mobile Address Button */}
               {customer?.addresses?.length > 0 && (
                 <button

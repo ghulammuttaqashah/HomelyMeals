@@ -54,6 +54,7 @@ const cookSchema = new mongoose.Schema(
       min: 1,
       max: 50,
     },
+
   },
   { timestamps: true }
 );

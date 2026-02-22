@@ -108,7 +108,7 @@ const Profile = () => {
       }
     } catch (error) {
       console.error('Forward geocode error:', error)
-      toast.error('Failed to search address')
+      toast.error('Unable to search address. Please try again.')
     } finally {
       setLocationLoading(false)
     }
@@ -257,7 +257,7 @@ const Profile = () => {
         await refreshCook()
       }
     } catch (error) {
-      const message = error.response?.data?.message || 'Failed to update profile'
+      const message = error.response?.data?.message || 'Couldn\'t update your profile. Please try again.'
       toast.error(message)
     } finally {
       setProfileLoading(false)

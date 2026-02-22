@@ -120,7 +120,7 @@ const VerifyOtp = () => {
       inputRefs.current[0]?.focus()
     } catch (error) {
       toast.dismiss(resendToast)
-      const message = error.response?.data?.message || 'Failed to resend OTP'
+      const message = error.response?.data?.message || 'Couldn\'t resend code. Please try again.'
       toast.error(message)
     } finally {
       setResending(false)

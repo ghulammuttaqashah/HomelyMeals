@@ -129,7 +129,7 @@ const Signup = () => {
       }
     } catch (error) {
       console.error('Forward geocode error:', error)
-      toast.error('Failed to search address')
+      toast.error('Unable to search address. Please try again.')
     }
   }
 
@@ -167,7 +167,7 @@ const Signup = () => {
             toast.error('Location request timed out')
             break
           default:
-            toast.error('Failed to get location')
+            toast.error('Unable to get your location. Please try again.')
         }
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }

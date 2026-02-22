@@ -109,7 +109,7 @@ const Signup = () => {
       }
     } catch (error) {
       console.error('Forward geocode error:', error)
-      toast.error('Failed to search address')
+      toast.error('Unable to search address. Please try again.')
     } finally {
       setLocationLoading(false)
     }

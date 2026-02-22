@@ -81,7 +81,7 @@ const ForgotPassword = () => {
       setTimeout(() => otpInputRefs.current[0]?.focus(), 100)
     } catch (error) {
       toast.dismiss(loadingToast)
-      const message = error.response?.data?.message || 'Failed to send OTP'
+      const message = error.response?.data?.message || 'Couldn\'t send verification code. Please try again.'
       toast.error(message)
     } finally {
       setLoading(false)
@@ -141,7 +141,7 @@ const ForgotPassword = () => {
       navigate('/login', { replace: true })
     } catch (error) {
       toast.dismiss(loadingToast)
-      const message = error.response?.data?.message || 'Failed to reset password'
+      const message = error.response?.data?.message || 'Couldn\'t reset your password. Please try again.'
       toast.error(message)
     } finally {
       setLoading(false)
@@ -161,7 +161,7 @@ const ForgotPassword = () => {
       otpInputRefs.current[0]?.focus()
     } catch (error) {
       toast.dismiss(loadingToast)
-      const message = error.response?.data?.message || 'Failed to resend OTP'
+      const message = error.response?.data?.message || 'Couldn\'t resend code. Please try again.'
       toast.error(message)
     } finally {
       setLoading(false)

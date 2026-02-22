@@ -10,11 +10,12 @@ import { JWT_SECRET } from "../config/env.js";
 export const optionalAuth = (req, res, next) => {
   let token;
   
-  if (req.originalUrl.includes("/customer")) {
+  // Check /customer BEFORE /cook because customer URLs may contain "/cook/" in the path
+  if (req.originalUrl.startsWith("/api/customer")) {
     token = req.cookies?.customerToken || req.headers.authorization?.split(" ")[1];
-  } else if (req.originalUrl.includes("/cook")) {
+  } else if (req.originalUrl.startsWith("/api/cook")) {
     token = req.cookies?.cookToken || req.headers.authorization?.split(" ")[1];
-  } else if (req.originalUrl.includes("/admin")) {
+  } else if (req.originalUrl.startsWith("/api/admin")) {
     token = req.cookies?.adminToken || req.headers.authorization?.split(" ")[1];
   } else {
     token = req.cookies?.token || req.headers.authorization?.split(" ")[1];
@@ -40,17 +41,19 @@ export const optionalAuth = (req, res, next) => {
 };
 
 export const protect = (req, res, next) => {
-  // Determine which cookie to check based on the route
+  // Determine which cookie to check based on the route prefix
+  // IMPORTANT: Check /customer BEFORE /cook because customer chat URLs
+  // contain "/cook/" in the path (e.g. /api/customer/chats/cook/:cookId)
   let token;
-  if (req.path.startsWith("/admin") || req.originalUrl.includes("/admin")) {
-    // For admin routes, check adminToken
-    token = req.cookies?.adminToken || req.headers.authorization?.split(" ")[1];
-  } else if (req.originalUrl.includes("/cook")) {
-    // For cook routes, check cookToken
-    token = req.cookies?.cookToken || req.headers.authorization?.split(" ")[1];
-  } else if (req.originalUrl.includes("/customer")) {
+  if (req.originalUrl.startsWith("/api/customer")) {
     // For customer routes, check customerToken
     token = req.cookies?.customerToken || req.headers.authorization?.split(" ")[1];
+  } else if (req.originalUrl.startsWith("/api/cook")) {
+    // For cook routes, check cookToken
+    token = req.cookies?.cookToken || req.headers.authorization?.split(" ")[1];
+  } else if (req.originalUrl.startsWith("/api/admin") || req.path.startsWith("/admin")) {
+    // For admin routes, check adminToken
+    token = req.cookies?.adminToken || req.headers.authorization?.split(" ")[1];
   } else {
     // Fallback to generic token
     token = req.cookies?.token || req.headers.authorization?.split(" ")[1];

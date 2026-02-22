@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { getAllCooks } from '../api/meals'
@@ -9,46 +9,57 @@ import Container from '../components/Container'
 import CookCard from '../components/CookCard'
 import Loader, { SkeletonCard } from '../components/Loader'
 
+// Custom debounce hook
+const useDebounce = (value, delay) => {
+  const [debouncedValue, setDebouncedValue] = useState(value)
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedValue(value)
+    }, delay)
+
+    return () => clearTimeout(timer)
+  }, [value, delay])
+
+  return debouncedValue
+}
+
 const Dashboard = () => {
   const navigate = useNavigate()
   const { isAuthenticated, customer } = useAuth()
   const [cooks, setCooks] = useState([])
   const [loading, setLoading] = useState(true)
-  const [searchQuery, setSearchQuery] = useState('')
   const [searchInput, setSearchInput] = useState('')
   const [customerCity, setCustomerCity] = useState(null)
   const [serviceAvailable, setServiceAvailable] = useState(true)
+
+  // Debounce search input - waits 400ms after user stops typing
+  const debouncedSearch = useDebounce(searchInput, 400)
 
   // Get selected address from customer's addresses (default or first)
   const selectedAddress = customer?.addresses?.find(a => a.isDefault) || customer?.addresses?.[0]
 
   useEffect(() => {
     fetchCooks()
-  }, [searchQuery, selectedAddress?._id])
+  }, [debouncedSearch, selectedAddress?._id])
 
   const fetchCooks = async () => {
     try {
       setLoading(true)
-      const response = await getAllCooks(searchQuery)
+      const response = await getAllCooks(debouncedSearch.trim())
       setCooks(response.cooks || [])
       setCustomerCity(response.customerCity || null)
       setServiceAvailable(response.serviceAvailable !== false)
     } catch (error) {
-      toast.error('Failed to load cooks')
+      toast.error('Unable to load available cooks. Please try again.')
       console.error('Fetch cooks error:', error)
     } finally {
       setLoading(false)
     }
   }
 
-  const handleSearch = (e) => {
-    e.preventDefault()
-    setSearchQuery(searchInput.trim())
-  }
-
   const handleClearSearch = () => {
     setSearchInput('')
-    setSearchQuery('')
   }
 
   return (
@@ -73,59 +84,49 @@ const Dashboard = () => {
           {/* Search Section */}
           <div className="mb-8 rounded-xl bg-white p-6 shadow-sm border border-gray-200">
             <h2 className="mb-4 text-lg font-semibold text-gray-900">Search for Meals</h2>
-            <form onSubmit={handleSearch}>
-              <div className="flex gap-3">
-                <div className="relative flex-1">
-                  <input
-                    type="text"
-                    placeholder="Search by meal name (e.g., Biryani, Karahi, Pizza...)"
-                    value={searchInput}
-                    onChange={(e) => setSearchInput(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 pl-10 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-colors"
-                    disabled={loading}
-                  />
-                  <svg
-                    className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                    />
-                  </svg>
-                </div>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search by meal name (e.g., Biryani, Karahi, Pizza...)"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 pl-10 pr-10 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-colors"
+              />
+              <svg
+                className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+              {searchInput && (
                 <button
-                  type="submit"
-                  disabled={loading}
-                  className="inline-flex items-center gap-2 rounded-lg bg-orange-600 px-6 py-3 text-sm font-medium text-white hover:bg-orange-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                  type="button"
+                  onClick={handleClearSearch}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                 >
-                  {loading ? (
-                    <>
-                      <Loader size="sm" className="[&>div]:border-white [&>div]:border-t-transparent" />
-                      <span>Searching...</span>
-                    </>
-                  ) : (
-                    'Search'
-                  )}
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
-                {searchQuery && !loading && (
-                  <button
-                    type="button"
-                    onClick={handleClearSearch}
-                    className="rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-                  >
-                    Clear
-                  </button>
-                )}
-              </div>
-            </form>
-            {searchQuery && !loading && (
+              )}
+            </div>
+            {debouncedSearch && (
               <p className="mt-3 text-sm text-gray-600">
-                Showing cooks with meals matching "<span className="font-medium text-orange-600">{searchQuery}</span>"
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <Loader size="sm" />
+                    Searching for "<span className="font-medium text-orange-600">{debouncedSearch}</span>"...
+                  </span>
+                ) : (
+                  <>Showing cooks with meals matching "<span className="font-medium text-orange-600">{debouncedSearch}</span>"</>
+                )}
               </p>
             )}
           </div>
@@ -147,7 +148,7 @@ const Dashboard = () => {
             <>
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="text-2xl font-bold text-gray-900">
-                  {searchQuery ? 'Matching Cooks' : 'Available Cooks'}
+                  {debouncedSearch ? 'Matching Cooks' : 'Available Cooks'}
                 </h2>
                 <p className="text-sm text-gray-600">{cooks.length} cooks found</p>
               </div>
@@ -157,6 +158,31 @@ const Dashboard = () => {
                 ))}
               </div>
             </>
+          ) : debouncedSearch ? (
+            // No results for search query
+            <div className="rounded-xl bg-white p-12 text-center shadow-sm border border-gray-200">
+              <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-orange-100">
+                <svg className="h-10 w-10 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900">No Results Found</h3>
+              <p className="mt-2 text-gray-600">
+                No cooks have meals matching "<span className="font-semibold text-orange-600">{debouncedSearch}</span>"
+              </p>
+              <p className="mt-1 text-sm text-gray-500">
+                Try searching for something else like "Biryani", "Karahi", or "Pizza"
+              </p>
+              <button
+                onClick={handleClearSearch}
+                className="mt-6 inline-flex items-center gap-2 rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700 transition-colors"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Clear Search
+              </button>
+            </div>
           ) : !serviceAvailable && customerCity ? (
             // Service not available in customer's city
             <div className="rounded-xl bg-white p-12 text-center shadow-sm border border-gray-200">
@@ -189,34 +215,17 @@ const Dashboard = () => {
               </button>
             </div>
           ) : (
+            // No cooks available at all
             <div className="rounded-xl bg-white p-12 text-center shadow-sm border border-gray-200">
-              <svg
-                className="mx-auto h-16 w-16 text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <h3 className="mt-4 text-lg font-semibold text-gray-900">No cooks found</h3>
-              <p className="mt-2 text-sm text-gray-600">
-                {searchQuery 
-                  ? `No cooks have meals matching "${searchQuery}". Try a different search term.`
-                  : 'No cooks are currently available. Please check back later.'}
+              <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-gray-100">
+                <svg className="h-10 w-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900">No Cooks Available</h3>
+              <p className="mt-2 text-gray-600">
+                No cooks are currently available. Please check back later.
               </p>
-              {searchQuery && (
-                <button
-                  onClick={handleClearSearch}
-                  className="mt-4 rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700 transition-colors"
-                >
-                  Clear Search
-                </button>
-              )}
             </div>
           )}
         </Container>

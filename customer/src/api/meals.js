@@ -25,3 +25,21 @@ export const checkDeliveryEligibility = async (mealId, customerLocation) => {
   const { data } = await api.post(`/api/customer/meals/${mealId}/check-delivery`, customerLocation)
   return data
 }
+
+// Get cook delivery info (location + maxDeliveryDistance)
+export const getCookDeliveryInfo = async (cookId) => {
+  const { data } = await api.get(`/api/customer/meals/cook/${cookId}/delivery-info`);
+  return data
+}
+
+// Get delivery charge settings
+export const getDeliverySettings = async () => {
+  const { data } = await api.get('/api/customer/meals/delivery-settings');
+  return data
+}
+
+// Get top selling meals for a cook
+export const getTopSellingMeals = async (cookId) => {
+  const { data } = await api.get(`/api/customer/meals/cook/${cookId}/top-selling`)
+  return data
+}
