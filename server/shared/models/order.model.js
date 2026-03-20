@@ -104,15 +104,15 @@ orderSchema.pre("save", async function (next) {
   if (this.isNew && !this.orderNumber) {
     const today = new Date();
     const dateStr = today.toISOString().slice(0, 10).replace(/-/g, "");
-    
+
     // Count orders created today
     const startOfDay = new Date(today.setHours(0, 0, 0, 0));
     const endOfDay = new Date(today.setHours(23, 59, 59, 999));
-    
+
     const count = await mongoose.model("Order").countDocuments({
       createdAt: { $gte: startOfDay, $lte: endOfDay },
     });
-    
+
     this.orderNumber = `ORD-${dateStr}-${String(count + 1).padStart(4, "0")}`;
   }
   next();

@@ -20,6 +20,7 @@ import {
   FiCheck,
   FiX,
   FiAlertCircle,
+  FiAlertTriangle,
   FiImage,
   FiSend,
   FiTruck,
@@ -206,11 +207,21 @@ const OrderDetails = () => {
               onClick={handleStatusUpdate}
               disabled={actionLoading}
               variant="primary"
-              className="w-full flex items-center justify-center gap-2"
+              className="w-full flex items-center justify-center gap-2 mb-3"
             >
               {actionLoading ? "Updating..." : getStatusButtonText()}
             </Button>
           )}
+
+          {/* File Complaint Button */}
+          <Button
+            onClick={() => navigate(`/file-complaint?orderId=${order._id}`)}
+            variant="outline"
+            className="w-full flex items-center justify-center gap-2 border-orange-500 text-orange-600 hover:bg-orange-50"
+          >
+            <FiAlertTriangle className="w-4 h-4" />
+            File Complaint
+          </Button>
         </div>
 
         {/* COD Payment Note */}

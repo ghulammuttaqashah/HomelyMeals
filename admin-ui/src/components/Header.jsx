@@ -31,6 +31,8 @@ const Header = ({ showNav = true }) => {
     { label: 'Customers', path: '/customers' },
     { label: 'Cooks', path: '/cooks' },
     { label: 'Orders', path: '/orders', count: pendingOrdersCount },
+    { label: 'Complaints', path: '/complaints' },
+    { label: 'Delivery Charges', path: '/delivery-charges' },
   ]
 
   return (

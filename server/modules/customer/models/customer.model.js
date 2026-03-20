@@ -23,7 +23,8 @@ const customerSchema = new mongoose.Schema({
     enum: ["active", "suspended"],
     default: "active"
   },
-  statusReason: { type: String, default: "" }
+  statusReason: { type: String, default: "" },
+  warningsCount: { type: Number, default: 0 },
 }, { timestamps: true });
 
 export const Customer = mongoose.model("Customer", customerSchema);

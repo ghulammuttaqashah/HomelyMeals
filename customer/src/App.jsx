@@ -19,6 +19,8 @@ import Checkout from './pages/Checkout'
 import Orders from './pages/Orders'
 import OrderDetails from './pages/OrderDetails'
 import Chats from './pages/Chats'
+import Complaints from './pages/Complaints'
+import FileComplaint from './pages/FileComplaint'
 
 const App = () => {
   return (
@@ -122,6 +124,22 @@ const App = () => {
               element={
                 <ProtectedRoute>
                   <Chats />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/complaints"
+              element={
+                <ProtectedRoute>
+                  <Complaints />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/file-complaint"
+              element={
+                <ProtectedRoute>
+                  <FileComplaint />
                 </ProtectedRoute>
               }
             />

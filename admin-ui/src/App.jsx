@@ -9,6 +9,7 @@ import CookStatus from './pages/cooks/status'
 import CookVerification from './pages/cooks/verification'
 import CookDocumentViewer from './pages/cooks/verification/ViewDocuments'
 import DeliveryChargesSettings from './pages/DeliveryChargesSettings'
+import Complaints from './pages/Complaints'
 import Orders from './pages/Orders'
 import OrderDetails from './pages/OrderDetails'
 import { AuthProvider } from './context/AuthContext'
@@ -90,6 +91,14 @@ const App = () => {
             element={
               <ProtectedRoute>
                 <OrderDetails />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/complaints"
+            element={
+              <ProtectedRoute>
+                <Complaints />
               </ProtectedRoute>
             }
           />

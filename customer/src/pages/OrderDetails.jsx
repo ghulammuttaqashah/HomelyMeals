@@ -19,8 +19,8 @@ import {
   FiClock,
   FiPhone,
   FiCheck,
-  FiX,
   FiAlertCircle,
+  FiAlertTriangle,
   FiCheckCircle,
   FiHome,
   FiTruck,
@@ -561,9 +561,23 @@ const OrderDetails = () => {
               <Button
                 onClick={() => setShowCancelModal(true)}
                 variant="outline"
-                className="border-red-500 text-red-500 hover:bg-red-50"
+                className="border-red-500 text-red-500 hover:bg-red-50 w-full md:w-auto"
               >
                 Request Cancellation
+              </Button>
+            </div>
+          )}
+
+          {/* File Complaint Button */}
+          {["delivered", "cancelled"].includes(order.status) && (
+            <div className="flex justify-center">
+              <Button
+                onClick={() => navigate(`/file-complaint?orderId=${order._id}`)}
+                variant="outline"
+                className="border-orange-500 text-orange-600 hover:bg-orange-50 flex items-center gap-2 w-full md:w-auto"
+              >
+                <FiAlertTriangle className="w-4 h-4" />
+                File Complaint
               </Button>
             </div>
           )}

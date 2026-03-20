@@ -6,7 +6,7 @@ import { useCart } from '../context/CartContext'
 import { setDefaultAddress } from '../api/auth'
 import { getUnreadCount } from '../api/chat'
 import { getSocket } from '../utils/socket'
-import { FiShoppingCart, FiPackage, FiMessageCircle } from 'react-icons/fi'
+import { FiShoppingCart, FiPackage, FiMessageCircle, FiAlertTriangle } from 'react-icons/fi'
 import { usePWA } from '../utils/usePWA'
 
 const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) => {
@@ -243,6 +243,17 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
               >
                 <FiPackage className="h-5 w-5" />
                 <span className="hidden sm:inline text-sm font-medium">Orders</span>
+              </button>
+
+              {/* Complaints Button */}
+              <button
+                type="button"
+                onClick={() => navigate('/complaints')}
+                className="flex items-center gap-1 rounded-lg border border-gray-200 p-2 text-gray-600 hover:bg-gray-50 transition-colors"
+                title="My Complaints"
+              >
+                <FiAlertTriangle className="h-5 w-5" />
+                <span className="hidden sm:inline text-sm font-medium">Complaints</span>
               </button>
 
               {/* Cart Button */}

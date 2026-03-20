@@ -310,6 +310,30 @@ const Dashboard = () => {
               </div>
             </button>
 
+            {/* Complaints Card */}
+            <button
+              type="button"
+              onClick={() => handleCardClick('/complaints')}
+              className="group relative overflow-hidden rounded-lg bg-white p-5 sm:p-8 text-left shadow-sm border border-gray-200 transition-all hover:shadow-md hover:border-orange-200 active:scale-[0.98]"
+            >
+              <div className="mb-3 sm:mb-4 inline-flex rounded-lg bg-orange-100 p-2 sm:p-3 text-orange-600 shadow-sm">
+                <svg className="h-6 w-6 sm:h-8 sm:w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-gray-500">Support</p>
+              <h3 className="mt-1.5 sm:mt-2 text-lg sm:text-2xl font-bold text-gray-900">Complaints</h3>
+              <p className="mt-2 sm:mt-3 text-xs sm:text-sm leading-relaxed text-gray-600">
+                File and track complaints regarding orders or customers.
+              </p>
+              <div className="mt-4 sm:mt-6 flex items-center text-xs sm:text-sm font-semibold text-orange-600">
+                <span>View complaints</span>
+                <svg className="ml-1.5 sm:ml-2 h-3 w-3 sm:h-4 sm:w-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            </button>
+
             {/* Chats Card */}
             <button
               type="button"

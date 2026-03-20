@@ -55,6 +55,9 @@ const cookSchema = new mongoose.Schema(
       max: 50,
     },
 
+    /** Warning count from admin */
+    warningsCount: { type: Number, default: 0 },
+
   },
   { timestamps: true }
 );

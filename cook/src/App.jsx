@@ -20,6 +20,8 @@ import OrderDetails from './pages/OrderDetails'
 import Chats from './pages/Chats'
 import Reviews from './pages/Reviews'
 import SalesDashboard from './pages/SalesDashboard'
+import Complaints from './pages/Complaints'
+import FileComplaint from './pages/FileComplaint'
 
 const App = () => {
   return (
@@ -131,6 +133,22 @@ const App = () => {
             element={
               <ProtectedRoute>
                 <SalesDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/complaints"
+            element={
+              <ProtectedRoute>
+                <Complaints />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/file-complaint"
+            element={
+              <ProtectedRoute>
+                <FileComplaint />
               </ProtectedRoute>
             }
           />
