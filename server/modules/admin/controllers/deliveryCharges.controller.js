@@ -4,18 +4,17 @@ export const createOrUpdateDeliveryCharges = async (req, res) => {
   try {
     const { pricePerKm, minimumCharge, maxDeliveryDistance } = req.body;
 
-    // Delete existing settings (singleton pattern)
-    await DeliveryCharges.deleteMany({});
-
-    // Create new settings
-    const settings = new DeliveryCharges({
-      pricePerKm: pricePerKm || 20,
-      minimumCharge: minimumCharge || 0,
-      maxDeliveryDistance: maxDeliveryDistance || null,
-      isActive: true
-    });
-
-    await settings.save();
+    // Use upsert to avoid race conditions with delete-then-create
+    const settings = await DeliveryCharges.findOneAndUpdate(
+      {},
+      {
+        pricePerKm: pricePerKm ?? 20,
+        minimumCharge: minimumCharge ?? 0,
+        maxDeliveryDistance: maxDeliveryDistance ?? null,
+        isActive: true
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
 
     res.status(200).json({
       message: "Delivery charges updated successfully",
@@ -32,7 +31,7 @@ export const getDeliveryCharges = async (req, res) => {
     const settings = await DeliveryCharges.findOne();
     
     if (!settings) {
-      return res.status(404).json({ message: "Delivery charges not configured" });
+      return res.status(404).json({ message: "Delivery charges not configured. Please configure delivery charges in admin settings." });
     }
 
     res.status(200).json({ settings });

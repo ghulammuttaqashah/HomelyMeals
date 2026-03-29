@@ -1,8 +1,12 @@
 // ABSA Service using Groq API
 import { Groq } from 'groq-sdk';
 
+if (!process.env.GROQ_API_KEY) {
+  throw new Error('GROQ_API_KEY environment variable is required for ABSA service');
+}
+
 const client = new Groq({
-  apiKey: process.env.GROQ_API_KEY || "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"
+  apiKey: process.env.GROQ_API_KEY
 });
 
 /**
