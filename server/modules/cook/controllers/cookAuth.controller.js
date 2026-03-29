@@ -149,15 +149,15 @@ export const cookSignin = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    // Save latitude/longitude if provided (for internal use only)
+    // Save latitude/longitude if provided (stored in address.location)
     try {
       const { latitude, longitude } = req.body || {};
       const latNum = latitude !== undefined ? parseFloat(latitude) : NaN;
       const lngNum = longitude !== undefined ? parseFloat(longitude) : NaN;
       if (Number.isFinite(latNum) && Number.isFinite(lngNum)) {
-        cook.location = {
-          type: "Point",
-          coordinates: [lngNum, latNum],
+        cook.address.location = {
+          latitude: latNum,
+          longitude: lngNum,
         };
         await cook.save();
       }

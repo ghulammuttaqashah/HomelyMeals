@@ -275,11 +275,10 @@ export const verifyPayment = async (req, res) => {
         return res.status(400).json({ message: "Rejection reason is required" });
       }
 
-      order.paymentStatus = "rejected";
       order.paymentRejectionReason = reason;
       order.paymentRejectionCount += 1;
       order.paymentProof = undefined; // Clear proof so customer can re-upload
-      order.paymentStatus = "unpaid";
+      order.paymentStatus = "unpaid"; // Reset so customer can re-upload proof
       
       emitToCustomer(order.customerId.toString(), "payment_rejected", {
         orderId: order._id,

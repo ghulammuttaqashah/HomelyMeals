@@ -58,7 +58,13 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/customer", customerRoutes);
 app.use("/api/cook", cookRoutes);
 
+// Global error-handling middleware (must be after all routes)
+app.use((err, req, res, next) => {
+  console.error("Unhandled error:", err);
+  res.status(err.status || 500).json({ message: err.message || "Internal server error" });
+});
+
 // Start Server
 server.listen(PORT, () => {
-  console.log(`🚀 Server unning on http://localhost:${PORT}`);
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
 });

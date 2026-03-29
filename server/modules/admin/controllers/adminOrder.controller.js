@@ -204,13 +204,13 @@ export const cancelOrder = async (req, res) => {
     await order.save();
 
     // Notify customer and cook
-    emitToCustomer(order.customerId, "orderUpdate", {
+    emitToCustomer(order.customerId.toString(), "orderUpdate", {
       orderId: order._id,
       status: order.status,
       message: `Your order has been cancelled by admin: ${reason}`,
     });
 
-    emitToCook(order.cookId, "orderUpdate", {
+    emitToCook(order.cookId.toString(), "orderUpdate", {
       orderId: order._id,
       status: order.status,
       message: `Order has been cancelled by admin: ${reason}`,
@@ -257,13 +257,13 @@ export const updatePaymentStatus = async (req, res) => {
     await order.save();
 
     // Notify customer and cook
-    emitToCustomer(order.customerId, "orderUpdate", {
+    emitToCustomer(order.customerId.toString(), "orderUpdate", {
       orderId: order._id,
       paymentStatus: order.paymentStatus,
       message: `Payment status updated to ${paymentStatus}`,
     });
 
-    emitToCook(order.cookId, "orderUpdate", {
+    emitToCook(order.cookId.toString(), "orderUpdate", {
       orderId: order._id,
       paymentStatus: order.paymentStatus,
       message: `Payment status updated to ${paymentStatus}`,

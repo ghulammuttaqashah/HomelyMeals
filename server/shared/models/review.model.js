@@ -1,5 +1,29 @@
 import mongoose from 'mongoose';
 
+const aspectSentimentSchema = new mongoose.Schema(
+    {
+        aspect: { type: String, required: true },
+        sentiment: {
+            type: String,
+            enum: ['positive', 'negative', 'neutral'],
+            required: true,
+        },
+        keywords: { type: [String], default: [] },
+    },
+    { _id: false }
+);
+
+const sentimentAnalysisSchema = new mongoose.Schema(
+    {
+        overallSentiment: {
+            type: String,
+            enum: ['positive', 'negative', 'neutral'],
+        },
+        aspects: { type: [aspectSentimentSchema], default: [] },
+    },
+    { _id: false }
+);
+
 const reviewSchema = new mongoose.Schema(
     {
         customerId: {
@@ -37,6 +61,10 @@ const reviewSchema = new mongoose.Schema(
             type: String,
             enum: ['cook', 'meal'],
             required: true,
+        },
+        sentimentAnalysis: {
+            type: sentimentAnalysisSchema,
+            default: null,
         },
     },
     {

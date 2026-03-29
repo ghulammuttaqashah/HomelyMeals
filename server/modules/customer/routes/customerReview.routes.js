@@ -1,9 +1,20 @@
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import Review from '../../../shared/models/review.model.js';
 import { Order } from '../../../shared/models/order.model.js';
 import { protect } from '../../../shared/middleware/auth.js';
+import { analyzeReviewSentiment, buildSentimentSummary } from '../../../shared/utils/absa.js';
 
 const router = express.Router();
+
+// Rate limiter for ABSA summary endpoints: max 30 requests per minute per IP
+const summaryRateLimit = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  message: { message: "Too many requests. Please try again later." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // Submit a new review
 router.post('/', protect, async (req, res) => {
@@ -72,6 +83,7 @@ router.post('/', protect, async (req, res) => {
             rating,
             reviewText: reviewText || '',
             reviewType,
+            sentimentAnalysis: analyzeReviewSentiment(reviewText || '', rating),
         });
 
         await review.save();
@@ -227,6 +239,12 @@ router.put('/:reviewId', protect, async (req, res) => {
         if (rating) review.rating = rating;
         if (reviewText !== undefined) review.reviewText = reviewText;
 
+        // Re-run sentiment analysis when text or rating changes
+        review.sentimentAnalysis = analyzeReviewSentiment(
+            review.reviewText || '',
+            review.rating
+        );
+
         await review.save();
         await review.populate('customerId', 'name');
 
@@ -348,6 +366,33 @@ router.get('/can-review-meal/:mealId', protect, async (req, res) => {
     } catch (error) {
         console.error('Can review meal check error:', error);
         res.status(500).json({ message: 'Failed to check review eligibility', error: error.message });
+    }
+});
+
+// Get ABSA sentiment summary for a cook's reviews
+// Returns aggregated aspect sentiments across all reviews for the cook
+router.get('/sentiment-summary/cook/:cookId', summaryRateLimit, async (req, res) => {
+    try {
+        const { cookId } = req.params;
+        const reviews = await Review.find({ cookId, reviewType: 'cook' }).lean();
+        const summary = buildSentimentSummary(reviews);
+        res.json({ cookId, ...summary });
+    } catch (error) {
+        console.error('ABSA cook summary error:', error);
+        res.status(500).json({ message: 'Failed to generate sentiment summary', error: error.message });
+    }
+});
+
+// Get ABSA sentiment summary for a meal's reviews
+router.get('/sentiment-summary/meal/:mealId', summaryRateLimit, async (req, res) => {
+    try {
+        const { mealId } = req.params;
+        const reviews = await Review.find({ mealId, reviewType: 'meal' }).lean();
+        const summary = buildSentimentSummary(reviews);
+        res.json({ mealId, ...summary });
+    } catch (error) {
+        console.error('ABSA meal summary error:', error);
+        res.status(500).json({ message: 'Failed to generate sentiment summary', error: error.message });
     }
 });
 

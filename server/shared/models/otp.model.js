@@ -20,4 +20,7 @@ const otpVerificationSchema = new mongoose.Schema({
 
 }, { timestamps: true });
 
+// Automatically delete OTP documents 1 hour after expiryTime
+otpVerificationSchema.index({ expiryTime: 1 }, { expireAfterSeconds: 3600 });
+
 export const OTPVerification = mongoose.model("OTPVerification", otpVerificationSchema);

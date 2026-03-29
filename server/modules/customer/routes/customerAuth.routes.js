@@ -1,4 +1,5 @@
 import express from "express";
+import rateLimit from "express-rate-limit";
 import {
   signupRequest,
   verifyOtpAndCreateAccount,
@@ -15,10 +16,20 @@ import {
   updateAddress,
   deleteAddress,
   setDefaultAddress,
+  changePassword,
 } from "../controllers/customerAuth.controller.js";
 import { protect } from "../../../shared/middleware/auth.js";
 
 const router = express.Router();
+
+// Rate limiter for sensitive password operations: max 5 requests per 15 minutes per IP
+const passwordRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { message: "Too many requests. Please try again later." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // STEP 1: Send OTP (signup request)
 router.post("/signup/request", signupRequest);
@@ -46,6 +57,9 @@ router.post("/forgot-password/resend", resendForgotPasswordOtp);
 
 // Profile Management (protected)
 router.put("/profile", protect, updateProfile);
+
+// Change Password (while logged in)
+router.put("/change-password", passwordRateLimit, protect, changePassword);
 
 // Address Management (protected)
 router.post("/addresses", protect, addAddress);
