@@ -676,3 +676,38 @@ export const setDefaultAddress = async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
+
+/**
+ * Change Password (while logged in)
+ */
+export const changePassword = async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+
+  try {
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: "Current password and new password are required" });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: "New password must be at least 6 characters" });
+    }
+
+    const customer = await Customer.findById(req.user._id);
+    if (!customer) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+
+    const isPasswordValid = await bcrypt.compare(currentPassword, customer.password);
+    if (!isPasswordValid) {
+      return res.status(400).json({ message: "Current password is incorrect" });
+    }
+
+    customer.password = await bcrypt.hash(newPassword, 10);
+    await customer.save();
+
+    return res.status(200).json({ message: "Password changed successfully" });
+  } catch (err) {
+    console.error("Change Password Error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};

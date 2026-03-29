@@ -1,8 +1,19 @@
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import Review from '../../../shared/models/review.model.js';
 import { protect } from '../../../shared/middleware/auth.js';
+import { buildSentimentSummary } from '../../../shared/utils/absa.js';
 
 const router = express.Router();
+
+// Rate limiter for ABSA summary endpoints: max 30 requests per minute per IP
+const summaryRateLimit = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  message: { message: "Too many requests. Please try again later." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // Get all reviews for the authenticated cook
 router.get('/', protect, async (req, res) => {
@@ -80,6 +91,20 @@ router.get('/stats', protect, async (req, res) => {
     } catch (error) {
         console.error('Get review stats error:', error);
         res.status(500).json({ message: 'Failed to fetch stats', error: error.message });
+    }
+});
+
+// Get ABSA sentiment summary for the authenticated cook's reviews
+// GET /api/cook/reviews/sentiment-summary
+router.get('/sentiment-summary', summaryRateLimit, protect, async (req, res) => {
+    try {
+        const cookId = req.user._id;
+        const reviews = await Review.find({ cookId }).lean();
+        const summary = buildSentimentSummary(reviews);
+        res.json(summary);
+    } catch (error) {
+        console.error('Get sentiment summary error:', error);
+        res.status(500).json({ message: 'Failed to fetch sentiment summary', error: error.message });
     }
 });
 
