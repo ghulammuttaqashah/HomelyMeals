@@ -38,6 +38,14 @@ const reviewSchema = new mongoose.Schema(
             enum: ['cook', 'meal'],
             required: true,
         },
+        // ABSA: aspect-based sentiment analysis results derived from reviewText
+        aspects: [
+            {
+                aspect: { type: String },
+                label: { type: String },
+                sentiment: { type: String, enum: ['positive', 'negative', 'neutral'] },
+            },
+        ],
     },
     {
         timestamps: true,

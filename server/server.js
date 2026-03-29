@@ -60,5 +60,5 @@ app.use("/api/cook", cookRoutes);
 
 // Start Server
 server.listen(PORT, () => {
-  console.log(`🚀 Server unning on http://localhost:${PORT}`);
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
 });

@@ -1,6 +1,10 @@
 import express from 'express';
+import { rateLimit } from 'express-rate-limit';
 import Review from '../../../shared/models/review.model.js';
 import { protect } from '../../../shared/middleware/auth.js';
+import { buildAbsaSummary } from '../../../shared/utils/absa.js';
+
+const absaSummaryLimiter = rateLimit({ windowMs: 60 * 1000, max: 30 });
 
 const router = express.Router();
 
@@ -48,6 +52,7 @@ router.get('/', protect, async (req, res) => {
                 averageRating: Math.round(averageRating * 10) / 10,
                 totalReviews,
                 ratingDistribution,
+                aspectSummary: buildAbsaSummary(reviews),
             },
         });
     } catch (error) {
@@ -80,6 +85,21 @@ router.get('/stats', protect, async (req, res) => {
     } catch (error) {
         console.error('Get review stats error:', error);
         res.status(500).json({ message: 'Failed to fetch stats', error: error.message });
+    }
+});
+
+// Get ABSA (Aspect-Based Sentiment Analysis) summary for the authenticated cook
+router.get('/absa-summary', absaSummaryLimiter, protect, async (req, res) => {
+    try {
+        const cookId = req.user._id;
+
+        const reviews = await Review.find({ cookId }).select('aspects');
+        const aspectSummary = buildAbsaSummary(reviews);
+
+        res.json({ aspectSummary });
+    } catch (error) {
+        console.error('Get ABSA summary error:', error);
+        res.status(500).json({ message: 'Failed to fetch ABSA summary', error: error.message });
     }
 });
 

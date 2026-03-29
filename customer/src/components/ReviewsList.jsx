@@ -1,6 +1,14 @@
 import { FiStar, FiX } from 'react-icons/fi'
 import StarRating from './StarRating'
 
+const sentimentColors = {
+    positive: { bg: 'bg-green-100', text: 'text-green-700' },
+    negative: { bg: 'bg-red-100', text: 'text-red-700' },
+    neutral: { bg: 'bg-gray-100', text: 'text-gray-600' },
+}
+
+const sentimentEmoji = { positive: '😊', negative: '😟', neutral: '😐' }
+
 const ReviewsList = ({ reviews, isOpen, onClose, title }) => {
     if (!isOpen) return null
 
@@ -53,6 +61,21 @@ const ReviewsList = ({ reviews, isOpen, onClose, title }) => {
                                         </div>
                                         {review.reviewText && (
                                             <p className="text-gray-700 text-sm">{review.reviewText}</p>
+                                        )}
+                                        {review.aspects && review.aspects.length > 0 && (
+                                            <div className="flex flex-wrap gap-1.5 mt-2">
+                                                {review.aspects.map((a) => {
+                                                    const colors = sentimentColors[a.sentiment]
+                                                    return (
+                                                        <span
+                                                            key={a.aspect}
+                                                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${colors.bg} ${colors.text}`}
+                                                        >
+                                                            {sentimentEmoji[a.sentiment]} {a.label}
+                                                        </span>
+                                                    )
+                                                })}
+                                            </div>
                                         )}
                                     </div>
                                 ))}
