@@ -6,7 +6,15 @@ import Header from '../components/Header'
 import Footer from '../components/Footer'
 import Loader from '../components/Loader'
 import StarRating from '../components/StarRating'
-import { FiStar, FiFilter } from 'react-icons/fi'
+import { FiStar, FiFilter, FiTrendingUp } from 'react-icons/fi'
+
+const sentimentColors = {
+    positive: { bg: 'bg-green-100', text: 'text-green-700', bar: 'bg-green-500' },
+    negative: { bg: 'bg-red-100', text: 'text-red-700', bar: 'bg-red-500' },
+    neutral: { bg: 'bg-gray-100', text: 'text-gray-600', bar: 'bg-gray-400' },
+}
+
+const sentimentEmoji = { positive: '😊', negative: '😟', neutral: '😐' }
 
 const Reviews = () => {
     const navigate = useNavigate()
@@ -108,6 +116,57 @@ const Reviews = () => {
                         </div>
                     )}
 
+                    {/* ABSA – Aspect-Based Sentiment Analysis */}
+                    {stats && stats.aspectSummary && stats.aspectSummary.length > 0 && (
+                        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+                            <div className="flex items-center gap-2 mb-4">
+                                <FiTrendingUp className="w-5 h-5 text-orange-600" />
+                                <h2 className="text-lg font-semibold text-gray-900">Aspect Insights</h2>
+                                <span className="ml-auto text-xs text-gray-500">Powered by ABSA</span>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {stats.aspectSummary.map((item) => {
+                                    const dominant =
+                                        item.positive >= item.negative && item.positive >= item.neutral
+                                            ? 'positive'
+                                            : item.negative >= item.neutral
+                                            ? 'negative'
+                                            : 'neutral'
+                                    const colors = sentimentColors[dominant]
+                                    return (
+                                        <div key={item.aspect} className={`rounded-lg p-4 ${colors.bg}`}>
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className={`text-sm font-semibold ${colors.text}`}>
+                                                    {item.label}
+                                                </span>
+                                                <span className="text-lg">{sentimentEmoji[dominant]}</span>
+                                            </div>
+                                            <div className="space-y-1">
+                                                {[
+                                                    { key: 'positive', label: 'Positive', count: item.positive, pct: item.positivePercent },
+                                                    { key: 'negative', label: 'Negative', count: item.negative, pct: item.negativePercent },
+                                                    { key: 'neutral', label: 'Neutral', count: item.neutral, pct: item.neutralPercent },
+                                                ].map(({ key, label, count, pct }) => (
+                                                    <div key={key} className="flex items-center gap-2 text-xs">
+                                                        <span className="w-14 text-gray-600">{label}</span>
+                                                        <div className="flex-1 bg-white bg-opacity-60 rounded-full h-1.5">
+                                                            <div
+                                                                className={`${sentimentColors[key].bar} h-1.5 rounded-full`}
+                                                                style={{ width: `${pct}%` }}
+                                                            />
+                                                        </div>
+                                                        <span className="w-6 text-right text-gray-600">{count}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            <p className="mt-2 text-xs text-gray-500">{item.total} mention{item.total !== 1 ? 's' : ''}</p>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Filter */}
                     <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
                         <div className="flex items-center gap-3">
@@ -139,6 +198,23 @@ const Reviews = () => {
 
                                     {review.reviewText && (
                                         <p className="text-gray-700 mb-3">{review.reviewText}</p>
+                                    )}
+
+                                    {/* Aspect tags */}
+                                    {review.aspects && review.aspects.length > 0 && (
+                                        <div className="flex flex-wrap gap-2 mb-3">
+                                            {review.aspects.map((a) => {
+                                                const colors = sentimentColors[a.sentiment]
+                                                return (
+                                                    <span
+                                                        key={a.aspect}
+                                                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${colors.bg} ${colors.text}`}
+                                                    >
+                                                        {sentimentEmoji[a.sentiment]} {a.label}
+                                                    </span>
+                                                )
+                                            })}
+                                        </div>
                                     )}
 
                                     {review.reviewType === 'meal' && review.mealId && (

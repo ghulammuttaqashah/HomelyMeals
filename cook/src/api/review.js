@@ -15,3 +15,9 @@ export const getReviewStats = async () => {
     const { data } = await api.get('/api/cook/reviews/stats')
     return data
 }
+
+// Get ABSA (Aspect-Based Sentiment Analysis) summary for the cook
+export const getAbsaSummary = async () => {
+    const { data } = await api.get('/api/cook/reviews/absa-summary')
+    return data
+}

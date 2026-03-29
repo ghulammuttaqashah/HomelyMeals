@@ -1,7 +1,11 @@
 import express from 'express';
+import { rateLimit } from 'express-rate-limit';
 import Review from '../../../shared/models/review.model.js';
 import { Order } from '../../../shared/models/order.model.js';
 import { protect } from '../../../shared/middleware/auth.js';
+import { analyzeAspects, buildAbsaSummary } from '../../../shared/utils/absa.js';
+
+const absaLimiter = rateLimit({ windowMs: 60 * 1000, max: 30 });
 
 const router = express.Router();
 
@@ -72,6 +76,7 @@ router.post('/', protect, async (req, res) => {
             rating,
             reviewText: reviewText || '',
             reviewType,
+            aspects: analyzeAspects(reviewText),
         });
 
         await review.save();
@@ -225,7 +230,10 @@ router.put('/:reviewId', protect, async (req, res) => {
 
         // Update fields
         if (rating) review.rating = rating;
-        if (reviewText !== undefined) review.reviewText = reviewText;
+        if (reviewText !== undefined) {
+            review.reviewText = reviewText;
+            review.aspects = analyzeAspects(reviewText);
+        }
 
         await review.save();
         await review.populate('customerId', 'name');
@@ -348,6 +356,21 @@ router.get('/can-review-meal/:mealId', protect, async (req, res) => {
     } catch (error) {
         console.error('Can review meal check error:', error);
         res.status(500).json({ message: 'Failed to check review eligibility', error: error.message });
+    }
+});
+
+// Get ABSA (Aspect-Based Sentiment Analysis) summary for a cook
+router.get('/cook/:cookId/absa', absaLimiter, async (req, res) => {
+    try {
+        const { cookId } = req.params;
+
+        const reviews = await Review.find({ cookId, reviewType: 'cook' }).select('aspects');
+        const aspectSummary = buildAbsaSummary(reviews);
+
+        res.json({ aspectSummary });
+    } catch (error) {
+        console.error('Get cook ABSA error:', error);
+        res.status(500).json({ message: 'Failed to fetch ABSA summary', error: error.message });
     }
 });
 
