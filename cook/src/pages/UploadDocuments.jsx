@@ -15,6 +15,7 @@ const UploadDocuments = () => {
     cnicFront: null,
     cnicBack: null,
     kitchenPhotos: [],
+    profilePicture: null,
     sfaLicense: null,
     other: null,
   })
@@ -22,6 +23,7 @@ const UploadDocuments = () => {
     cnicFront: null,
     cnicBack: null,
     kitchenPhotos: [],
+    profilePicture: null,
     sfaLicense: null,
     other: null,
   })
@@ -63,8 +65,8 @@ const UploadDocuments = () => {
   const handleSubmit = async (event) => {
     event.preventDefault()
 
-    if (!files.cnicFront || !files.cnicBack) {
-      toast.error('CNIC front and back are required')
+    if (!files.cnicFront || !files.cnicBack || !files.profilePicture) {
+      toast.error('CNIC front, back, and profile picture are required')
       return
     }
 
@@ -83,6 +85,9 @@ const UploadDocuments = () => {
       
       toast.loading('Uploading CNIC Back...', { id: loadingToast })
       const cnicBackUrl = await uploadToCloudinary(files.cnicBack)
+
+      toast.loading('Uploading Profile Picture...', { id: loadingToast })
+      const profilePictureUrl = await uploadToCloudinary(files.profilePicture)
       
       toast.loading('Uploading Kitchen Photos...', { id: loadingToast })
       const kitchenPhotosUrls = []
@@ -108,6 +113,7 @@ const UploadDocuments = () => {
       const payload = {
         cnicFront: cnicFrontUrl,
         cnicBack: cnicBackUrl,
+        profilePicture: profilePictureUrl,
         kitchenPhotos: kitchenPhotosUrls,
         sfaLicense: sfaLicenseUrl,
         other: otherUrl,
@@ -130,7 +136,7 @@ const UploadDocuments = () => {
     }
   }
 
-  const isSubmitDisabled = !files.cnicFront || !files.cnicBack || files.kitchenPhotos.length === 0 || loading
+  const isSubmitDisabled = !files.cnicFront || !files.cnicBack || !files.profilePicture || files.kitchenPhotos.length === 0 || loading
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
@@ -164,6 +170,22 @@ const UploadDocuments = () => {
                 onChange={(e) => handleFileChange(e, 'cnicBack')}
                 preview={previews.cnicBack}
               />
+
+              {/* Profile Picture / Logo */}
+              <div className="rounded-lg border border-orange-100 bg-orange-50/50 p-4">
+                <FileUploadField
+                  label="Profile Picture / Logo"
+                  required
+                  accept="image/*"
+                  onChange={(e) => handleFileChange(e, 'profilePicture')}
+                  preview={previews.profilePicture}
+                  helperText={
+                    <span className="text-orange-600 font-medium">
+                      Note: This will be visible to your customers. Please upload a clear photo of yourself or your brand logo.
+                    </span>
+                  }
+                />
+              </div>
 
               {/* Kitchen Photos */}
               <FileUploadField

@@ -31,3 +31,19 @@ export const getMyWarnings = async () => {
   const response = await axiosInstance.get("/api/customer/complaints/my-warnings");
   return response.data;
 };
+
+/**
+ * Get complaints filed against me
+ */
+export const getComplaintsAgainstMe = async () => {
+  const response = await axiosInstance.get("/api/customer/complaints/against-me");
+  return response.data;
+};
+
+/**
+ * Submit a reply to a complaint thread
+ */
+export const submitComplaintReply = async (id, data) => {
+  const response = await axiosInstance.post(`/api/customer/complaints/${id}/reply`, data);
+  return response.data;
+};

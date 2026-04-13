@@ -163,29 +163,36 @@ export const updateComplaint = async (req, res) => {
 
     await complaint.save();
 
-    // Send email to complainant about status update
+    // Send email to both parties about status update
     try {
-      let email, name;
+      let complainantEmail, complainantName, accusedEmail, accusedName;
       if (complaint.complainantType === "customer") {
-        const user = await Customer.findById(complaint.complainantId).select("name email");
-        email = user?.email;
-        name = user?.name;
+        const cUser = await Customer.findById(complaint.complainantId).select("name email");
+        complainantEmail = cUser?.email;
+        complainantName = cUser?.name;
+        const aUser = await Cook.findById(complaint.againstUserId).select("name email");
+        accusedEmail = aUser?.email;
+        accusedName = aUser?.name;
       } else {
-        const user = await Cook.findById(complaint.complainantId).select("name email");
-        email = user?.email;
-        name = user?.name;
+        const cUser = await Cook.findById(complaint.complainantId).select("name email");
+        complainantEmail = cUser?.email;
+        complainantName = cUser?.name;
+        const aUser = await Customer.findById(complaint.againstUserId).select("name email");
+        accusedEmail = aUser?.email;
+        accusedName = aUser?.name;
       }
 
       const order = await import("../../../shared/models/order.model.js").then(
         (m) => m.Order.findById(complaint.orderId).select("orderNumber")
       );
 
-      if (email) {
-        await sendEmail(
-          email,
-          `Complaint Update — HomelyMeals`,
-          `Hi ${name},\n\nYour complaint regarding order #${order?.orderNumber || "N/A"} has been updated.\n\nStatus: ${complaint.status.replace("_", " ").toUpperCase()}\n${complaint.adminResponse ? `Admin Response: ${complaint.adminResponse}\n` : ""}\nThank you,\nHomelyMeals Team`
-        );
+      const emailBody = `Your complaint regarding order #${order?.orderNumber || "N/A"} has been updated.\n\nStatus: ${complaint.status.replace("_", " ").toUpperCase()}\n${complaint.adminResponse ? `Admin Response: ${complaint.adminResponse}\n` : ""}\nThank you,\nHomelyMeals Team`;
+
+      if (complainantEmail) {
+        await sendEmail(complainantEmail, `Complaint Update — HomelyMeals`, `Hi ${complainantName},\n\n${emailBody}`);
+      }
+      if (accusedEmail) {
+        await sendEmail(accusedEmail, `Complaint Update — HomelyMeals`, `Hi ${accusedName},\n\n${emailBody}`);
       }
     } catch (emailErr) {
       console.error("Failed to send complaint update email:", emailErr.message);

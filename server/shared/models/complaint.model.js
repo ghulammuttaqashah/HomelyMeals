@@ -9,9 +9,8 @@ export const CUSTOMER_COMPLAINT_TYPES = [
 ];
 
 export const COOK_COMPLAINT_TYPES = [
-  "False Claim by Customer",
-  "Customer Misuse",
-  "Payment Issue",
+  "Fake Payment",
+  "Customer Didn't Receive Order Even Though I Delivered",
 ];
 
 const proofSchema = new mongoose.Schema(
@@ -64,6 +63,24 @@ const complaintSchema = new mongoose.Schema(
         message: "Maximum 5 proof images allowed",
       },
     },
+    // Open response thread between complainant and accused
+    responses: [
+      {
+        senderId: { type: mongoose.Schema.Types.ObjectId, required: true },
+        senderRole: { type: String, enum: ["customer", "cook"], required: true },
+        senderName: { type: String, default: "" },
+        text: { type: String, required: true, trim: true, maxlength: 1000 },
+        proofUrls: {
+          type: [proofSchema],
+          default: [],
+          validate: {
+            validator: (v) => v.length <= 5,
+            message: "Maximum 5 proof images per response",
+          },
+        },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
     status: {
       type: String,
       enum: ["pending", "in_progress", "resolved", "rejected"],

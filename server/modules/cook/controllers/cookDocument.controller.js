@@ -7,7 +7,7 @@ import { Cook } from "../models/cook.model.js";
  */
 export const submitDocuments = async (req, res) => {
   const cookId = req.user._id; // from protect middleware
-  const { cnicFront, cnicBack, kitchenPhotos, sfaLicense, other } = req.body;
+  const { cnicFront, cnicBack, kitchenPhotos, sfaLicense, other, profilePicture } = req.body;
 
   try {
     // 0️⃣ Verify cook exists
@@ -17,9 +17,9 @@ export const submitDocuments = async (req, res) => {
     }
 
     // 1️⃣ Validate required documents
-    if (!cnicFront || !cnicBack) {
+    if (!cnicFront || !cnicBack || !profilePicture) {
       return res.status(400).json({
-        message: "Both CNIC front and back are required.",
+        message: "CNIC front, back, and profile picture are required.",
       });
     }
 
@@ -36,6 +36,11 @@ export const submitDocuments = async (req, res) => {
     }
 
     const currentTime = new Date();
+
+    // Profile Picture
+    cookDoc.profilePicture.url = profilePicture;
+    cookDoc.profilePicture.status = "submitted";
+    cookDoc.profilePicture.uploadedAt = currentTime;
 
     // CNIC Front
     cookDoc.cnicFront.url = cnicFront;
@@ -70,6 +75,10 @@ export const submitDocuments = async (req, res) => {
 
     // Save CookDocument
     await cookDoc.save();
+
+    // Also update profilePicture in Cook model (initial upload)
+    cook.profilePicture = profilePicture;
+    await cook.save();
 
     // Update cook verificationStatus to pending if not started
     if (cook.verificationStatus === "not_started") {

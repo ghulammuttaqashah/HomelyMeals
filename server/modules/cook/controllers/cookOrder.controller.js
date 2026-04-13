@@ -165,11 +165,11 @@ export const updateOrderStatus = async (req, res) => {
       });
     }
 
-    // For preparing: check payment is verified (for online payments)
+    // For preparing: check payment is verified or paid (for online payments)
     if (status === "preparing" && order.paymentMethod !== "cod") {
-      if (order.paymentStatus !== "verified") {
+      if (order.paymentStatus !== "verified" && order.paymentStatus !== "paid") {
         return res.status(400).json({
-          message: "Cannot start preparing until payment is verified",
+          message: "Cannot start preparing until payment is verified or paid",
         });
       }
     }
@@ -426,6 +426,70 @@ export const respondToCancellationRequest = async (req, res) => {
     }
   } catch (error) {
     console.error("Respond to cancellation request error:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+/**
+ * Cancel order explicitly by cook
+ * PATCH /api/cook/orders/:id/cancel
+ */
+export const cancelOrderByCook = async (req, res) => {
+  try {
+    const cookId = req.user._id;
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    if (!reason || !reason.trim()) {
+      return res.status(400).json({ message: "Cancellation reason is required" });
+    }
+
+    const order = await Order.findOne({ _id: id, cookId });
+
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    if (["delivered", "cancelled"].includes(order.status)) {
+      return res.status(400).json({
+        message: "Order cannot be cancelled in current status",
+        currentStatus: order.status,
+      });
+    }
+
+    if (order.cancellationRequest?.status === "pending") {
+      order.cancellationRequest.status = "accepted";
+      order.cancellationRequest.respondedAt = new Date();
+      order.cancellationRequest.cookResponse = reason.trim();
+    }
+
+    order.status = "cancelled";
+    order.cancelledBy = "cook";
+    order.cancellationReason = reason.trim();
+    order.cancelledAt = new Date();
+    await order.save();
+
+    emitToCustomer(order.customerId.toString(), "order_cancelled", {
+      orderId: order._id,
+      orderNumber: order.orderNumber,
+      reason: reason.trim(),
+      cancelledBy: "cook",
+      message: `Your order #${order.orderNumber} was cancelled by the cook: ${reason.trim()}`,
+    });
+
+    return res.status(200).json({
+      message: "Order cancelled successfully",
+      order: {
+        _id: order._id,
+        orderNumber: order.orderNumber,
+        status: order.status,
+        cancelledBy: order.cancelledBy,
+        cancellationReason: order.cancellationReason,
+        cancelledAt: order.cancelledAt,
+      },
+    });
+  } catch (error) {
+    console.error("Cook cancel order error:", error);
     return res.status(500).json({ message: "Server error" });
   }
 };

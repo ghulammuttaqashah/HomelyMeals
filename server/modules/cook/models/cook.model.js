@@ -33,10 +33,12 @@ const cookSchema = new mongoose.Schema(
     serviceStatus: {
       type: String,
       enum: ["open", "closed"],
-      default: "open", // ✔ requested change
+      default: "closed",
     },
 
     registrationDate: { type: Date, default: Date.now },
+    
+    profilePicture: { type: String, default: null },
 
     /** Account status */
     status: {
@@ -52,11 +54,35 @@ const cookSchema = new mongoose.Schema(
       type: Number,
       default: 5, // Default 5 km
       min: 1,
-      max: 50,
+      max: 15,
     },
 
     /** Warning count from admin */
     warningsCount: { type: Number, default: 0 },
+
+    /** Stripe Connect Integration for Online Payments */
+    stripeAccountId: {
+      type: String,
+      default: null,
+      index: true,
+    },
+
+    isOnlinePaymentEnabled: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+
+    stripeAccountStatus: {
+      type: String,
+      enum: ["not_started", "pending", "active", "restricted", "disabled"],
+      default: "not_started",
+    },
+
+    stripeOnboardingCompletedAt: {
+      type: Date,
+      default: null,
+    },
 
   },
   { timestamps: true }

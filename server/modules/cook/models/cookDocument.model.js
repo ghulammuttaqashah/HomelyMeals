@@ -7,6 +7,18 @@ const cookDocumentSchema = new mongoose.Schema(
       ref: "Cook",
       required: true,
     },
+    
+    /** PROFILE PICTURE / LOGO */
+    profilePicture: {
+      url: { type: String, default: null },
+      status: {
+        type: String,
+        enum: ["not_submitted", "submitted", "approved", "rejected"],
+        default: "not_submitted",
+      },
+      uploadedAt: { type: Date, default: null },
+      rejectedReason: { type: String, default: null },
+    },
 
     /** REQUIRED DOCUMENTS */
     cnicFront: {

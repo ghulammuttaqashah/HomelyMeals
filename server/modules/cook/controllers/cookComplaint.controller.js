@@ -172,3 +172,75 @@ export const getMyWarnings = async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
+
+/**
+ * Submit a reply to a complaint thread
+ * POST /api/cook/complaints/:id/reply
+ */
+export const submitReply = async (req, res) => {
+  try {
+    const cookId = req.user._id;
+    const { id } = req.params;
+    const { text, proofUrls } = req.body;
+
+    if (!text || !text.trim() || text.trim().length < 10) {
+      return res.status(400).json({ message: "Reply text is required (minimum 10 characters)" });
+    }
+
+    if (proofUrls && proofUrls.length > 5) {
+      return res.status(400).json({ message: "Maximum 5 proof images allowed" });
+    }
+
+    const complaint = await Complaint.findById(id);
+    if (!complaint) {
+      return res.status(404).json({ message: "Complaint not found" });
+    }
+
+    // Verify this cook is either the complainant or the accused
+    const isComplainant = String(complaint.complainantId) === String(cookId);
+    const isAccused = String(complaint.againstUserId) === String(cookId);
+    if (!isComplainant && !isAccused) {
+      return res.status(403).json({ message: "You are not authorized to reply to this complaint" });
+    }
+
+    // Check complaint is still open
+    if (["resolved", "rejected"].includes(complaint.status)) {
+      return res.status(400).json({ message: "This complaint has been closed. No further replies allowed." });
+    }
+
+    const cook = await Cook.findById(cookId).select("name");
+
+    // Push reply
+    complaint.responses.push({
+      senderId: cookId,
+      senderRole: "cook",
+      senderName: cook?.name || "Cook",
+      text: text.trim(),
+      proofUrls: proofUrls
+        ? proofUrls.map((url) => ({ url, uploadedAt: new Date() }))
+        : [],
+    });
+
+    await complaint.save();
+
+    // Email admin about new reply
+    try {
+      const order = await Order.findById(complaint.orderId).select("orderNumber");
+      await sendEmail(
+        process.env.EMAIL_USER,
+        "New Complaint Reply — Review Required",
+        `Cook "${cook?.name || "Unknown"}" has posted a new reply on complaint for order #${order?.orderNumber || "N/A"}.\n\nReply:\n${text.trim()}\n${proofUrls?.length ? `\nProof images: ${proofUrls.length} attached` : ""}\n\nPlease log in to the admin panel to review.\n\nHomelyMeals System`
+      );
+    } catch (emailErr) {
+      console.error("Failed to send reply notification to admin:", emailErr.message);
+    }
+
+    return res.status(201).json({
+      message: "Your reply has been submitted successfully.",
+      complaint,
+    });
+  } catch (error) {
+    console.error("Submit reply error:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};

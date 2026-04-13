@@ -238,18 +238,6 @@ const Chats = () => {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
   }
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen flex-col bg-gray-50">
-        <Header showSignOut />
-        <main className="flex-1 flex items-center justify-center">
-          <Loader size="lg" />
-        </main>
-        <Footer />
-      </div>
-    )
-  }
-
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
       <Header showSignOut />
@@ -263,21 +251,34 @@ const Chats = () => {
             <FiArrowLeft className="w-4 h-4" />
             Back to Dashboard
           </button>
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden h-[calc(100vh-200px)] min-h-[500px] flex">
-            {/* Customer List - Hidden on mobile when chat is selected */}
-            <div className={`w-full md:w-80 lg:w-96 border-r border-gray-200 flex flex-col ${selectedCustomer ? 'hidden md:flex' : 'flex'}`}>
-              <div className="p-4 border-b border-gray-200 bg-gray-50">
-                <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                  <FiMessageCircle className="w-5 h-5 text-orange-500" />
-                  Customer Chats
-                </h2>
-                <p className="text-sm text-gray-500 mt-1">Messages from customers</p>
-              </div>
+          <div className="mb-6">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Messages</h1>
+            <p className="mt-1 text-sm text-gray-600">Chat with customers about their orders</p>
+          </div>
 
-              <div className="flex-1 overflow-y-auto">
-                {chats.length === 0 ? (
-                  <div className="p-8 text-center text-gray-500">
-                    <FiInbox className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+          {loading ? (
+            <div className="rounded-lg border border-gray-200 bg-white py-16 shadow-sm">
+              <div className="flex flex-col items-center gap-3">
+                <Loader size="lg" />
+                <p className="text-sm font-medium text-gray-600">Loading chats...</p>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden h-[calc(100vh-200px)] min-h-[500px] flex">
+              {/* Customer List - Hidden on mobile when chat is selected */}
+              <div className={`w-full md:w-80 lg:w-96 border-r border-gray-200 flex flex-col ${selectedCustomer ? 'hidden md:flex' : 'flex'}`}>
+                <div className="p-4 border-b border-gray-200 bg-gray-50">
+                  <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    <FiMessageCircle className="w-5 h-5 text-orange-500" />
+                    Customer Chats
+                  </h2>
+                  <p className="text-sm text-gray-500 mt-1">Messages from customers</p>
+                </div>
+
+                <div className="flex-1 overflow-y-auto">
+                  {chats.length === 0 ? (
+                    <div className="p-8 text-center text-gray-500">
+                      <FiInbox className="w-12 h-12 mx-auto mb-3 text-gray-300" />
                     <p className="font-medium">No messages yet</p>
                     <p className="text-sm mt-1">When customers message you, they'll appear here</p>
                   </div>
@@ -327,43 +328,43 @@ const Chats = () => {
                 <>
                   {/* Chat Header */}
                   <div className="p-4 border-b border-gray-200 bg-gray-50 flex items-center gap-3">
-                    <button
-                      onClick={handleBack}
-                      className="md:hidden p-2 -ml-2 hover:bg-gray-200 rounded-lg transition-colors"
-                    >
-                      <FiArrowLeft className="w-5 h-5" />
-                    </button>
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold">
-                      {selectedCustomer.name?.charAt(0).toUpperCase() || <FiUser />}
+                      <button
+                        onClick={handleBack}
+                        className="md:hidden p-2 -ml-2 hover:bg-gray-200 rounded-lg transition-colors"
+                      >
+                        <FiArrowLeft className="w-5 h-5" />
+                      </button>
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold">
+                        {selectedCustomer.name?.charAt(0).toUpperCase() || <FiUser />}
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-gray-900">{selectedCustomer.name}</h3>
+                        <p className="text-sm text-gray-500">{selectedCustomer.email}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-900">{selectedCustomer.name}</h3>
-                      <p className="text-sm text-gray-500">{selectedCustomer.email}</p>
-                    </div>
-                  </div>
 
-                  {/* Messages */}
-                  <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                    {loadingMessages ? (
-                      <div className="flex justify-center py-8">
-                        <Loader />
-                      </div>
-                    ) : messages.length === 0 ? (
-                      <div className="text-center py-12 text-gray-500">
-                        <FiMessageCircle className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                        <p className="text-lg font-medium">No messages yet</p>
-                        <p className="text-sm">The conversation will appear here</p>
-                      </div>
-                    ) : (
-                      messages.map((msg, index) => {
+                    {/* Messages */}
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                      {loadingMessages ? (
+                        <div className="flex justify-center py-8">
+                          <Loader />
+                        </div>
+                      ) : messages.length === 0 ? (
+                        <div className="text-center py-12 text-gray-500">
+                          <FiMessageCircle className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                          <p className="text-lg font-medium">No messages yet</p>
+                          <p className="text-sm">The conversation will appear here</p>
+                        </div>
+                      ) : (
+                        messages.map((msg, index) => {
                         const isCook = msg.senderType === 'Cook'
                         const showName = index === 0 || messages[index - 1]?.senderType !== msg.senderType
 
-                        return (
-                          <div
-                            key={msg._id || index}
-                            className={`flex ${isCook ? 'justify-end' : 'justify-start'} items-end gap-2`}
-                          >
+                          return (
+                            <div
+                              key={msg._id || index}
+                              className={`flex ${isCook ? 'justify-end' : 'justify-start'} items-end gap-2`}
+                            >
                             {/* Customer Avatar - shown on left for customer messages */}
                             {!isCook && (
                               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0 mb-1">
@@ -439,7 +440,8 @@ const Chats = () => {
                 </div>
               )}
             </div>
-          </div>
+            </div>
+          )}
         </div>
       </main>
 

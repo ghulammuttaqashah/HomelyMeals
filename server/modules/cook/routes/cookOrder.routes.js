@@ -6,6 +6,7 @@ import {
   verifyPayment,
   addDeliveryNote,
   respondToCancellationRequest,
+  cancelOrderByCook,
 } from "../controllers/cookOrder.controller.js";
 import { protect } from "../../../shared/middleware/auth.js";
 
@@ -31,5 +32,8 @@ router.patch("/:id/delivery-note", addDeliveryNote);
 
 // Respond to cancellation request (accept/reject)
 router.patch("/:id/cancellation-response", respondToCancellationRequest);
+
+// Cancel order by cook with reason
+router.patch("/:id/cancel", cancelOrderByCook);
 
 export default router;

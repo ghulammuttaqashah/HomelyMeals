@@ -1,4 +1,5 @@
 import CookMeal from "../models/cookMeal.model.js";
+import { hasActiveCookSubscription } from "../../../shared/utils/subscriptionAccess.js";
 
 // ----------------------------------------------------
 // Add Meal
@@ -10,19 +11,28 @@ export const addMeal = async (req, res) => {
     const { name, description, price, category, availability, itemImage } =
       req.body;
 
+    const isSubscribed = await hasActiveCookSubscription(cookId);
+    const requestedAvailability = availability || "Available";
+    const finalAvailability = !isSubscribed && requestedAvailability === "Available"
+      ? "OutOfStock"
+      : requestedAvailability;
+
     const newMeal = await CookMeal.create({
       cookId,
       name,
       description,
       price,
       category,
-      availability,
+      availability: finalAvailability,
       itemImage,
     });
 
     return res.status(201).json({
       success: true,
-      message: "Meal added successfully",
+      message:
+        !isSubscribed && requestedAvailability === "Available"
+          ? "Meal added as OutOfStock. Activate subscription to sell this meal."
+          : "Meal added successfully",
       meal: newMeal,
     });
   } catch (error) {
@@ -69,6 +79,16 @@ export const updateMeal = async (req, res) => {
     // Check if the meal belongs to the logged-in cook
     if (meal.cookId.toString() !== cookId.toString()) {
       return res.status(403).json({ success: false, message: "Unauthorized to edit this meal" });
+    }
+
+    if (availability === "Available") {
+      const isSubscribed = await hasActiveCookSubscription(cookId);
+      if (!isSubscribed) {
+        return res.status(403).json({
+          success: false,
+          message: "Activate subscription before making meals available to customers",
+        });
+      }
     }
 
     // Update meal fields

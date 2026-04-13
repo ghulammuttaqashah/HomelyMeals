@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  main h1,
+  main h2 {
+    color: #ea580c !important;
+  }
+}
+
 @layer utilities {
   .animate-in {
     animation: fadeIn 0.3s ease-in-out;

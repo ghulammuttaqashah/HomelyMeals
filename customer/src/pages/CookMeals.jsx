@@ -253,30 +253,38 @@ const CookMeals = () => {
               Back to Cooks
             </button>
 
-            <div className="rounded-lg bg-white p-6 shadow-sm border border-gray-200">
-              <div className="flex items-center gap-4">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-orange-100">
-                  <svg
-                    className="h-8 w-8 text-orange-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+            <div className="rounded-xl bg-white p-6 sm:p-8 shadow-sm border border-orange-100/50">
+              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+                <div className="flex h-28 w-28 sm:h-32 sm:w-32 flex-shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-orange-100 shadow-md ring-4 ring-orange-50">
+                  {cook?.profilePicture ? (
+                    <img
+                      src={cook.profilePicture}
+                      alt={cook.name}
+                      className="h-full w-full object-cover"
                     />
-                  </svg>
+                  ) : (
+                    <svg
+                      className="h-12 w-12 text-orange-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                      />
+                    </svg>
+                  )}
                 </div>
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900">{cook?.name}</h1>
-                  <p className="text-gray-600 mb-4">{cook.bio || 'No bio available'}</p>
+                <div className="text-center sm:text-left">
+                  <h1 className="text-3xl font-bold text-gray-900">{cook?.name}</h1>
+                  {cook.bio && <p className="text-gray-600 mt-2 max-w-2xl">{cook.bio}</p>}
 
                   {/* Cook Rating */}
                   {cookRating > 0 && (
-                    <div className="flex items-center gap-3 mb-4">
+                    <div className="flex items-center justify-center sm:justify-start gap-3 mb-4 mt-4">
                       <StarRating rating={cookRating} size="md" />
                       <span className="text-sm font-medium text-gray-700">
                         {cookRating.toFixed(1)}
@@ -295,7 +303,7 @@ const CookMeals = () => {
                     <button
                       onClick={handleCookReviewClick}
                       disabled={checkingCookEligibility}
-                      className="mb-4 py-2.5 px-5 text-sm font-semibold text-orange-600 hover:text-white hover:bg-orange-600 border-2 border-orange-600 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="mx-auto sm:mx-0 mb-4 py-2.5 px-5 text-sm font-semibold text-orange-600 hover:text-white hover:bg-orange-600 border-2 border-orange-600 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
@@ -304,7 +312,7 @@ const CookMeals = () => {
                     </button>
                   )}
 
-                  <div className="flex items-center gap-4 text-sm text-gray-600">
+                  <div className="flex items-center justify-center sm:justify-start gap-4 text-sm text-gray-600">
                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
                         strokeLinecap="round"

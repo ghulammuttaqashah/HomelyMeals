@@ -39,3 +39,11 @@ export const getMyWarnings = async () => {
   const response = await axiosInstance.get("/api/cook/complaints/my-warnings");
   return response.data;
 };
+
+/**
+ * Submit a reply to a complaint thread
+ */
+export const submitComplaintReply = async (id, data) => {
+  const response = await axiosInstance.post(`/api/cook/complaints/${id}/reply`, data);
+  return response.data;
+};

@@ -119,8 +119,10 @@ export const getComplaintById = async (req, res) => {
     const customerId = req.user._id;
     const { id } = req.params;
 
-    const complaint = await Complaint.findOne({ _id: id, complainantId: customerId })
-      .populate("orderId", "orderNumber totalAmount status items createdAt");
+    const complaint = await Complaint.findOne({ 
+      _id: id, 
+      $or: [{ complainantId: customerId }, { againstUserId: customerId }]
+    }).populate("orderId", "orderNumber totalAmount status items createdAt");
 
     if (!complaint) {
       return res.status(404).json({ message: "Complaint not found" });
@@ -149,6 +151,97 @@ export const getMyWarnings = async (req, res) => {
     return res.status(200).json({ warnings });
   } catch (error) {
     console.error("Get my warnings error:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+/**
+ * Get complaints filed against the customer
+ * GET /api/customer/complaints/against-me
+ */
+export const getComplaintsAgainstMe = async (req, res) => {
+  try {
+    const customerId = req.user._id;
+
+    const complaints = await Complaint.find({ againstUserId: customerId, complainantType: "cook" })
+      .sort({ createdAt: -1 })
+      .populate("orderId", "orderNumber totalAmount status");
+
+    return res.status(200).json({ complaints });
+  } catch (error) {
+    console.error("Get complaints against me error:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+/**
+ * Submit a reply to a complaint thread
+ * POST /api/customer/complaints/:id/reply
+ */
+export const submitReply = async (req, res) => {
+  try {
+    const customerId = req.user._id;
+    const { id } = req.params;
+    const { text, proofUrls } = req.body;
+
+    if (!text || !text.trim() || text.trim().length < 10) {
+      return res.status(400).json({ message: "Reply text is required (minimum 10 characters)" });
+    }
+
+    if (proofUrls && proofUrls.length > 5) {
+      return res.status(400).json({ message: "Maximum 5 proof images allowed" });
+    }
+
+    const complaint = await Complaint.findById(id);
+    if (!complaint) {
+      return res.status(404).json({ message: "Complaint not found" });
+    }
+
+    // Verify this customer is either the complainant or the accused
+    const isComplainant = String(complaint.complainantId) === String(customerId);
+    const isAccused = String(complaint.againstUserId) === String(customerId);
+    if (!isComplainant && !isAccused) {
+      return res.status(403).json({ message: "You are not authorized to reply to this complaint" });
+    }
+
+    // Check complaint is still open
+    if (["resolved", "rejected"].includes(complaint.status)) {
+      return res.status(400).json({ message: "This complaint has been closed. No further replies allowed." });
+    }
+
+    const customer = await Customer.findById(customerId).select("name");
+
+    // Push reply
+    complaint.responses.push({
+      senderId: customerId,
+      senderRole: "customer",
+      senderName: customer?.name || "Customer",
+      text: text.trim(),
+      proofUrls: proofUrls
+        ? proofUrls.map((url) => ({ url, uploadedAt: new Date() }))
+        : [],
+    });
+
+    await complaint.save();
+
+    // Email admin about new reply
+    try {
+      const order = await Order.findById(complaint.orderId).select("orderNumber");
+      await sendEmail(
+        process.env.EMAIL_USER,
+        "New Complaint Reply — Review Required",
+        `Customer "${customer?.name || "Unknown"}" has posted a new reply on complaint for order #${order?.orderNumber || "N/A"}.\n\nReply:\n${text.trim()}\n${proofUrls?.length ? `\nProof images: ${proofUrls.length} attached` : ""}\n\nPlease log in to the admin panel to review.\n\nHomelyMeals System`
+      );
+    } catch (emailErr) {
+      console.error("Failed to send reply notification to admin:", emailErr.message);
+    }
+
+    return res.status(201).json({
+      message: "Your reply has been submitted successfully.",
+      complaint,
+    });
+  } catch (error) {
+    console.error("Submit reply error:", error);
     return res.status(500).json({ message: "Server error" });
   }
 };

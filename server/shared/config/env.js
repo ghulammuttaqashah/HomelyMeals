@@ -7,3 +7,5 @@ export const EMAIL_USER = process.env.EMAIL_USER;
 export const EMAIL_PASS = process.env.EMAIL_PASS;
 export const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey";
 export const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
+export const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || "";
+export const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || "";

@@ -3,7 +3,6 @@ import toast from 'react-hot-toast'
 import ProtectedLayout from '../../../components/ProtectedLayout'
 import { getCooks, updateCookStatus } from '../../../api/cooks'
 import Loader from '../../../components/Loader'
-import ProgressBar from '../../../components/ProgressBar'
 import BackButton from '../../../components/BackButton'
 import SuspensionModal from '../../../components/SuspensionModal'
 import StatusManagementTable from '../../../components/StatusManagementTable'
@@ -18,6 +17,10 @@ const CookStatus = () => {
   const [updatingId, setUpdatingId] = useState(null)
   const [error, setError] = useState(null)
   const [retryCount, setRetryCount] = useState(0)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [paymentFilter, setPaymentFilter] = useState('all')
+  const [kycFilter, setKycFilter] = useState('all')
 
   const fetchCooks = async (showRefreshing = false) => {
     if (showRefreshing) {
@@ -51,6 +54,22 @@ const CookStatus = () => {
     setRetryCount((prev) => prev + 1)
     fetchCooks()
   }
+
+  const filteredCooks = cooks.filter((cook) => {
+    const searchLower = searchTerm.toLowerCase()
+    const name = cook.name || ''
+    const email = cook.email || ''
+    const matchesSearch = name.toLowerCase().includes(searchLower) || email.toLowerCase().includes(searchLower)
+    const matchesStatus = statusFilter === 'all' || cook.status === statusFilter
+    
+    const matchesPayment = paymentFilter === 'all' || 
+      (paymentFilter === 'enabled' && cook.isOnlinePaymentEnabled) || 
+      (paymentFilter === 'disabled' && !cook.isOnlinePaymentEnabled)
+    
+    const matchesKyc = kycFilter === 'all' || cook.stripeAccountStatus === kycFilter
+    
+    return matchesSearch && matchesStatus && matchesPayment && matchesKyc
+  })
 
   const openModal = (cook) => {
     setReason('')
@@ -138,10 +157,9 @@ const CookStatus = () => {
 
   return (
     <ProtectedLayout title="Manage Cook Status">
-      <ProgressBar isLoading={loading || refreshing} />
       <div className="rounded-lg bg-white shadow-sm border border-gray-200">
         <div className="border-b border-gray-200 bg-gray-50 px-6 py-4">
-          <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
             <div className="flex items-center gap-3">
               <BackButton />
               <p className="text-sm font-medium text-gray-600">Manage cook account status</p>
@@ -169,9 +187,99 @@ const CookStatus = () => {
               </button>
             )}
           </div>
+          <div className="flex items-center gap-3">
+            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Search by name or email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-sm placeholder-gray-500 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="inline-flex items-center rounded-lg p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                title="Clear search"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center gap-4 mt-6">
+            <div className="flex items-center gap-3">
+              <label htmlFor="statusFilter" className="text-sm font-semibold text-gray-700 whitespace-nowrap">Account:</label>
+              <select
+                id="statusFilter"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:border-gray-400 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all cursor-pointer"
+              >
+                <option value="all">All</option>
+                <option value="active">Active</option>
+                <option value="suspended">Suspended</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <label htmlFor="paymentFilter" className="text-sm font-semibold text-gray-700 whitespace-nowrap">Payments:</label>
+              <select
+                id="paymentFilter"
+                value={paymentFilter}
+                onChange={(e) => setPaymentFilter(e.target.value)}
+                className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:border-gray-400 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all cursor-pointer"
+              >
+                <option value="all">All</option>
+                <option value="enabled">Enabled</option>
+                <option value="disabled">Disabled</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <label htmlFor="kycFilter" className="text-sm font-semibold text-gray-700 whitespace-nowrap">KYC Status:</label>
+              <select
+                id="kycFilter"
+                value={kycFilter}
+                onChange={(e) => setKycFilter(e.target.value)}
+                className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:border-gray-400 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all cursor-pointer"
+              >
+                <option value="all">All</option>
+                <option value="not_started">Not Started</option>
+                <option value="pending">Pending</option>
+                <option value="active">Active (Verified)</option>
+                <option value="restricted">Restricted</option>
+                <option value="disabled">Disabled</option>
+              </select>
+            </div>
+
+            {(searchTerm || statusFilter !== 'all' || paymentFilter !== 'all' || kycFilter !== 'all') && (
+              <button
+                onClick={() => {
+                  setSearchTerm('')
+                  setStatusFilter('all')
+                  setPaymentFilter('all')
+                  setKycFilter('all')
+                }}
+                className="text-xs font-bold text-orange-600 hover:text-orange-700 transition-colors"
+              >
+                Clear All
+              </button>
+            )}
+          </div>
         </div>
+        {(searchTerm || statusFilter !== 'all' || paymentFilter !== 'all' || kycFilter !== 'all') && (
+          <div className="border-b border-gray-200 bg-blue-50 px-6 py-2">
+            <p className="text-xs font-medium text-blue-700">
+              Showing {filteredCooks.length} of {cooks.length} cooks
+            </p>
+          </div>
+        )}
         <StatusManagementTable
-          data={cooks}
+          data={filteredCooks}
           loading={loading}
           error={error}
           updatingId={updatingId}
@@ -179,6 +287,7 @@ const CookStatus = () => {
           onRetry={handleRetry}
           retryCount={retryCount}
           entityType="cook"
+          showPaymentStatus={true}
         />
         {refreshing && !loading && cooks.length > 0 && (
           <div className="border-t border-slate-100 bg-slate-50/50 px-6 py-3 text-center">

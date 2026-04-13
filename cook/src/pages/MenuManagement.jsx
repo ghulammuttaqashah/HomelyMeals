@@ -2,18 +2,33 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
-import { getMeals, updateMeal, deleteMeal } from '../api/meals'
+import { addMeal, getMeals, updateMeal, deleteMeal } from '../api/meals'
 import { uploadToCloudinary } from '../utils/cloudinary'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
-import Loader, { SkeletonCard } from '../components/Loader'
+import Loader from '../components/Loader'
 import MealCard from '../components/MealCard'
+import { FiArrowLeft } from 'react-icons/fi'
 
 const MenuManagement = () => {
   const navigate = useNavigate()
   const { cook, isAuthenticated } = useAuth()
   const [meals, setMeals] = useState([])
   const [loading, setLoading] = useState(true)
+
+  // Add Modal State
+  const [addModalOpen, setAddModalOpen] = useState(false)
+  const [addFormData, setAddFormData] = useState({
+    name: '',
+    description: '',
+    price: '',
+    category: 'main course',
+    availability: 'Available',
+  })
+  const [addImageFile, setAddImageFile] = useState(null)
+  const [addImagePreview, setAddImagePreview] = useState(null)
+  const [addLoading, setAddLoading] = useState(false)
+  const [addErrors, setAddErrors] = useState({})
 
   // Edit Modal State
   const [editModalOpen, setEditModalOpen] = useState(false)
@@ -82,6 +97,102 @@ const MenuManagement = () => {
     setEditImagePreview(meal.itemImage || null)
     setEditImageFile(null)
     setEditModalOpen(true)
+  }
+
+  const openAddModal = () => {
+    setAddFormData({
+      name: '',
+      description: '',
+      price: '',
+      category: 'main course',
+      availability: 'Available',
+    })
+    setAddImageFile(null)
+    setAddImagePreview(null)
+    setAddErrors({})
+    setAddModalOpen(true)
+  }
+
+  const handleAddFormChange = (event) => {
+    const { name, value } = event.target
+    setAddFormData((prev) => ({ ...prev, [name]: value }))
+    if (addErrors[name]) {
+      setAddErrors((prev) => ({ ...prev, [name]: '' }))
+    }
+  }
+
+  const handleAddImageChange = (event) => {
+    const file = event.target.files[0]
+    if (file) {
+      setAddImageFile(file)
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setAddImagePreview(reader.result)
+      }
+      reader.readAsDataURL(file)
+      if (addErrors.image) {
+        setAddErrors((prev) => ({ ...prev, image: '' }))
+      }
+    }
+  }
+
+  const validateAddForm = () => {
+    const newErrors = {}
+
+    if (!addFormData.name.trim()) {
+      newErrors.name = 'Meal name is required'
+    }
+
+    if (!addFormData.price || Number(addFormData.price) <= 0) {
+      newErrors.price = 'Valid price is required'
+    }
+
+    if (!addImageFile) {
+      newErrors.image = 'Meal image is required'
+    }
+
+    setAddErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  const handleAddSubmit = async (event) => {
+    event.preventDefault()
+
+    if (!validateAddForm()) {
+      toast.error('Please fix the errors in the form')
+      return
+    }
+
+    setAddLoading(true)
+    const loadingToast = toast.loading('Adding meal...', { duration: Infinity })
+
+    try {
+      toast.loading('Uploading image...', { id: loadingToast })
+      const itemImage = await uploadToCloudinary(addImageFile)
+
+      toast.loading('Saving meal...', { id: loadingToast })
+      const payload = {
+        name: addFormData.name.trim(),
+        description: addFormData.description.trim(),
+        price: parseFloat(addFormData.price),
+        category: addFormData.category,
+        availability: addFormData.availability,
+        itemImage,
+      }
+
+      await addMeal(payload)
+
+      toast.dismiss(loadingToast)
+      toast.success('Meal added successfully!')
+      setAddModalOpen(false)
+      await fetchMeals()
+    } catch (error) {
+      toast.dismiss(loadingToast)
+      const message = error.response?.data?.message || 'Failed to add meal'
+      toast.error(message)
+    } finally {
+      setAddLoading(false)
+    }
   }
 
   const handleEditFormChange = (event) => {
@@ -186,11 +297,9 @@ const MenuManagement = () => {
           <div className="mb-6 sm:mb-8">
             <button
               onClick={() => navigate('/dashboard')}
-              className="mb-3 sm:mb-4 flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium text-gray-600 hover:text-orange-600 transition-colors"
+              className="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-orange-600 transition-colors"
             >
-              <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
+              <FiArrowLeft className="w-4 h-4" />
               Back to Dashboard
             </button>
             
@@ -202,7 +311,7 @@ const MenuManagement = () => {
                 </p>
               </div>
               <button
-                onClick={() => navigate('/add-meal')}
+                onClick={openAddModal}
                 className="flex items-center justify-center gap-1.5 sm:gap-2 rounded-lg bg-orange-600 px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm font-semibold text-white shadow-sm hover:bg-orange-700 transition-colors w-full sm:w-auto"
               >
                 <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -215,10 +324,11 @@ const MenuManagement = () => {
 
           {/* Meals Grid */}
           {loading ? (
-            <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-              {[...Array(6)].map((_, i) => (
-                <SkeletonCard key={i} />
-              ))}
+            <div className="flex items-center justify-center rounded-lg border border-gray-200 bg-white py-16">
+              <div className="flex flex-col items-center gap-3">
+                <Loader size="lg" />
+                <p className="text-sm font-medium text-gray-600">Loading your meals...</p>
+              </div>
             </div>
           ) : meals.length > 0 ? (
             <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
@@ -252,7 +362,7 @@ const MenuManagement = () => {
                 Start by adding your first meal to your menu
               </p>
               <button
-                onClick={() => navigate('/add-meal')}
+                onClick={openAddModal}
                 className="mt-4 sm:mt-6 rounded-lg bg-orange-600 px-5 py-2 sm:px-6 sm:py-2.5 text-xs sm:text-sm font-semibold text-white shadow-sm hover:bg-orange-700 transition-colors"
               >
                 Add Your First Meal
@@ -263,6 +373,165 @@ const MenuManagement = () => {
       </main>
 
       <Footer />
+
+      {/* Add Modal */}
+      {addModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-lg bg-white p-6 shadow-xl">
+            <button
+              onClick={() => setAddModalOpen(false)}
+              className="absolute right-4 top-4 text-gray-400 hover:text-gray-600"
+              disabled={addLoading}
+            >
+              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            <h2 className="text-xl font-bold text-gray-900 mb-6">Add New Meal</h2>
+
+            <form onSubmit={handleAddSubmit} className="space-y-4">
+              <div>
+                <label htmlFor="add-name" className="block text-sm font-medium text-gray-700 mb-1">
+                  Meal Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="add-name"
+                  name="name"
+                  value={addFormData.name}
+                  onChange={handleAddFormChange}
+                  className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="e.g., Chicken Biryani"
+                  disabled={addLoading}
+                />
+                {addErrors.name && <p className="mt-1 text-xs text-red-500">{addErrors.name}</p>}
+              </div>
+
+              <div>
+                <label htmlFor="add-description" className="block text-sm font-medium text-gray-700 mb-1">
+                  Description
+                </label>
+                <textarea
+                  id="add-description"
+                  name="description"
+                  rows={3}
+                  value={addFormData.description}
+                  onChange={handleAddFormChange}
+                  className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Describe your meal..."
+                  disabled={addLoading}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="add-price" className="block text-sm font-medium text-gray-700 mb-1">
+                  Price (PKR) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  id="add-price"
+                  name="price"
+                  value={addFormData.price}
+                  onChange={handleAddFormChange}
+                  className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="e.g., 350"
+                  disabled={addLoading}
+                />
+                {addErrors.price && <p className="mt-1 text-xs text-red-500">{addErrors.price}</p>}
+              </div>
+
+              <div>
+                <label htmlFor="add-category" className="block text-sm font-medium text-gray-700 mb-1">
+                  Category
+                </label>
+                <select
+                  id="add-category"
+                  name="category"
+                  value={addFormData.category}
+                  onChange={handleAddFormChange}
+                  className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 capitalize"
+                  disabled={addLoading}
+                >
+                  {categories.map((cat) => (
+                    <option key={cat} value={cat} className="capitalize">
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor="add-availability" className="block text-sm font-medium text-gray-700 mb-1">
+                  Availability
+                </label>
+                <select
+                  id="add-availability"
+                  name="availability"
+                  value={addFormData.availability}
+                  onChange={handleAddFormChange}
+                  className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  disabled={addLoading}
+                >
+                  {availabilityOptions.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt === 'OutOfStock' ? 'Out of Stock' : opt}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Meal Image <span className="text-red-500">*</span>
+                </label>
+                {addImagePreview && (
+                  <div className="mb-2 aspect-video w-full overflow-hidden rounded-lg bg-gray-100">
+                    <img
+                      src={addImagePreview}
+                      alt="Preview"
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAddImageChange}
+                  className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm file:mr-4 file:rounded file:border-0 file:bg-orange-50 file:px-4 file:py-1 file:text-sm file:font-medium file:text-orange-700 hover:file:bg-orange-100"
+                  disabled={addLoading}
+                />
+                {addErrors.image && <p className="mt-1 text-xs text-red-500">{addErrors.image}</p>}
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setAddModalOpen(false)}
+                  className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                  disabled={addLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 rounded-lg bg-orange-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-orange-700 transition-colors disabled:opacity-60"
+                  disabled={addLoading}
+                >
+                  {addLoading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <Loader size="sm" className="text-white" />
+                      Adding...
+                    </span>
+                  ) : (
+                    'Add Meal'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Edit Modal */}
       {editModalOpen && (

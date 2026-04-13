@@ -7,6 +7,18 @@ import { isValidEmail } from "../../../shared/utils/validateEmail.js";
 import { verifyEmailAPI } from "../../../shared/utils/verifyEmailAPI.js";
 import jwt from "jsonwebtoken";
 import { JWT_SECRET, JWT_EXPIRES_IN } from "../../../shared/config/env.js";
+import { hasActiveCookSubscription } from "../../../shared/utils/subscriptionAccess.js";
+
+const syncCookSubscriptionAccess = async (cook) => {
+  const hasActiveSubscription = await hasActiveCookSubscription(cook._id);
+
+  if (!hasActiveSubscription && cook.serviceStatus !== "closed") {
+    cook.serviceStatus = "closed";
+    await cook.save();
+  }
+
+  return hasActiveSubscription;
+};
 
 /**
  * STEP 1: Request Signup OTP
@@ -92,7 +104,7 @@ export const verifyOtpAndCreateAccount = async (req, res) => {
       password,
       address,
       verificationStatus: "not_started",
-      serviceStatus: "open", // ✔ requested change
+      serviceStatus: "closed",
       status: "active",
     });
 
@@ -109,6 +121,7 @@ export const verifyOtpAndCreateAccount = async (req, res) => {
         verificationStatus: cook.verificationStatus,
         serviceStatus: cook.serviceStatus,
         status: cook.status,
+        profilePicture: cook.profilePicture,
       },
     });
   } catch (err) {
@@ -137,6 +150,8 @@ export const cookSignin = async (req, res) => {
     const isPasswordValid = await bcrypt.compare(password, cook.password);
     if (!isPasswordValid)
       return res.status(401).json({ message: "Incorrect password" });
+
+    const hasActiveSubscription = await syncCookSubscriptionAccess(cook);
 
     const token = jwt.sign({ id: cook._id }, JWT_SECRET, {
       expiresIn: JWT_EXPIRES_IN,
@@ -175,8 +190,10 @@ export const cookSignin = async (req, res) => {
         address: cook.address,
         verificationStatus: cook.verificationStatus,
         serviceStatus: cook.serviceStatus,
+        hasActiveSubscription,
         status: cook.status,
         statusReason: cook.statusReason,
+        profilePicture: cook.profilePicture,
       },
     });
   } catch (err) {
@@ -195,6 +212,8 @@ export const getCurrentCook = async (req, res) => {
       return res.status(404).json({ message: "Cook not found" });
     }
 
+    const hasActiveSubscription = await syncCookSubscriptionAccess(cook);
+
     return res.status(200).json({
       cook: {
         id: cook._id,
@@ -204,9 +223,11 @@ export const getCurrentCook = async (req, res) => {
         address: cook.address,
         verificationStatus: cook.verificationStatus,
         serviceStatus: cook.serviceStatus,
+        hasActiveSubscription,
         status: cook.status,
         statusReason: cook.statusReason,
         maxDeliveryDistance: cook.maxDeliveryDistance,
+        profilePicture: cook.profilePicture,
         location: cook.address?.location, // Location is now part of address
       },
     });
@@ -508,13 +529,27 @@ export const toggleServiceStatus = async (req, res) => {
       return res.status(404).json({ message: "Cook not found" });
     }
 
-    // Toggle between open and closed
-    cook.serviceStatus = cook.serviceStatus === "open" ? "closed" : "open";
+    const hasActiveSubscription = await syncCookSubscriptionAccess(cook);
+
+    if (cook.serviceStatus === "closed") {
+      if (!hasActiveSubscription) {
+        return res.status(403).json({
+          message: "Subscribe to a plan before opening your kitchen",
+          serviceStatus: "closed",
+          hasActiveSubscription: false,
+        });
+      }
+      cook.serviceStatus = "open";
+    } else {
+      cook.serviceStatus = "closed";
+    }
+
     await cook.save();
 
     return res.status(200).json({
       message: `Kitchen is now ${cook.serviceStatus}`,
       serviceStatus: cook.serviceStatus,
+      hasActiveSubscription,
     });
   } catch (err) {
     console.error("Toggle Service Status Error:", err);
@@ -528,7 +563,7 @@ export const toggleServiceStatus = async (req, res) => {
  */
 export const updateProfile = async (req, res) => {
   try {
-    const { name, contact, address, maxDeliveryDistance, latitude, longitude } = req.body;
+    const { name, contact, address, maxDeliveryDistance, latitude, longitude, profilePicture } = req.body;
 
     const cook = await Cook.findById(req.user._id);
     if (!cook) {
@@ -568,6 +603,7 @@ export const updateProfile = async (req, res) => {
     // Update fields if provided
     if (name !== undefined) cook.name = name.trim();
     if (contact !== undefined) cook.contact = contact.trim();
+    if (profilePicture !== undefined) cook.profilePicture = profilePicture;
 
     // Update address fields if provided
     if (address) {
@@ -584,6 +620,8 @@ export const updateProfile = async (req, res) => {
 
     await cook.save();
 
+    const hasActiveSubscription = await syncCookSubscriptionAccess(cook);
+
     return res.status(200).json({
       message: "Profile updated successfully",
       cook: {
@@ -594,8 +632,10 @@ export const updateProfile = async (req, res) => {
         address: cook.address,
         verificationStatus: cook.verificationStatus,
         serviceStatus: cook.serviceStatus,
+        hasActiveSubscription,
         status: cook.status,
         maxDeliveryDistance: cook.maxDeliveryDistance,
+        profilePicture: cook.profilePicture,
         location: cook.address?.location, // Location is now part of address
       },
     });

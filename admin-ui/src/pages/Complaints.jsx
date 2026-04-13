@@ -19,6 +19,8 @@ import {
   FiAlertCircle,
   FiUser,
   FiShield,
+  FiMessageSquare,
+  FiSend,
 } from 'react-icons/fi'
 
 const STATUS_OPTIONS = [
@@ -54,7 +56,6 @@ const Complaints = () => {
   const [sendingWarning, setSendingWarning] = useState(false)
   const [showWarningForm, setShowWarningForm] = useState(false)
   const [warningTarget, setWarningTarget] = useState(null) // { userId, userType, userName }
-
   const fetchComplaints = useCallback(async (page = 1) => {
     setLoading(true)
     try {
@@ -148,6 +149,7 @@ const Complaints = () => {
     })
   }
 
+
   const closeDetail = () => {
     setSelectedComplaint(null)
     setShowWarningForm(false)
@@ -162,11 +164,12 @@ const Complaints = () => {
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header />
       <main className="flex-grow container mx-auto px-4 py-6 max-w-6xl">
-        <BackButton />
-
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-800">Complaints Management</h1>
           <p className="text-gray-500 text-sm mt-1">Review, respond to, and manage complaints from customers and cooks.</p>
+          <div className="mt-3">
+            <BackButton to="/dashboard" label="Back to Dashboard" />
+          </div>
         </div>
 
         {/* Filters */}
@@ -198,19 +201,20 @@ const Complaints = () => {
         </div>
 
         {/* Table */}
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-16">
-            <Loader />
-            <p className="text-gray-400 text-sm mt-3">Loading complaints...</p>
-          </div>
-        ) : complaints.length === 0 ? (
+        <div className="relative">
+          {loading && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-white/70 backdrop-blur-[1px]">
+              <Loader label="Loading Complaints" />
+            </div>
+          )}
+          {complaints.length === 0 && !loading ? (
           <div className="text-center py-16 bg-white rounded-xl shadow-sm border border-gray-100">
             <FiAlertTriangle className="w-16 h-16 mx-auto text-gray-300 mb-4" />
             <p className="text-gray-500 font-medium">No complaints found</p>
             <p className="text-gray-400 text-sm mt-1">Try adjusting your filters</p>
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow overflow-hidden">
+          <div className="bg-white rounded-lg shadow overflow-hidden min-h-[300px]">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 border-b">
@@ -247,9 +251,21 @@ const Complaints = () => {
                       </td>
                       <td className="px-4 py-3 text-gray-700">{c.type}</td>
                       <td className="px-4 py-3">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[c.status]}`}>
-                          {c.status.replace('_', ' ')}
-                        </span>
+                        <div className="flex flex-col gap-1 items-start">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[c.status]}`}>
+                            {c.status.replace('_', ' ')}
+                          </span>
+                          {!['resolved', 'rejected'].includes(c.status) && c.justification?.requested && !c.justification?.submitted && (
+                            <span className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-600">
+                              Wait: Defense
+                            </span>
+                          )}
+                          {!['resolved', 'rejected'].includes(c.status) && c.rebuttal?.requested && !c.rebuttal?.submitted && (
+                            <span className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-600">
+                              Wait: Rebuttal
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">
                         {formatDate(c.createdAt)}
@@ -280,13 +296,14 @@ const Complaints = () => {
             ))}
           </div>
         )}
+        </div>
       </main>
       <Footer />
 
       {/* Loading overlay for detail */}
       {detailLoading && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-          <Loader />
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm">
+          <Loader size="lg" label="Loading Details" />
         </div>
       )}
       {/* Inline Detail Modal */}
@@ -404,6 +421,63 @@ const Complaints = () => {
                   </div>
                 )}
 
+                {/* Open Response Thread */}
+                <div className="border-t pt-4 space-y-4">
+                  <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+                    <FiMessageSquare className="w-5 h-5 text-orange-500" />
+                    Response Thread
+                  </h3>
+                  
+                  {c.responses && c.responses.length > 0 ? (
+                    <div className="space-y-4">
+                      {c.responses.map((res, index) => {
+                        const isComplainant = res.senderId === c.complainantId;
+                        return (
+                          <div 
+                            key={index} 
+                            className={`p-4 rounded-xl border ${isComplainant ? 'bg-orange-50 border-orange-100' : 'bg-gray-50 border-gray-200'}`}
+                          >
+                            <div className="flex justify-between items-center mb-2">
+                              <div>
+                                <span className="font-semibold text-gray-800">{res.senderName}</span>
+                                <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-white border text-gray-500 uppercase tracking-wide">
+                                  {res.senderRole} {isComplainant ? '(Complainant)' : '(Accused)'}
+                                </span>
+                              </div>
+                              <span className="text-xs text-gray-400">{formatDate(res.createdAt)}</span>
+                            </div>
+                            <p className="text-sm text-gray-700 whitespace-pre-wrap">{res.text}</p>
+                            
+                            {res.proofUrls && res.proofUrls.length > 0 && (
+                              <div className="mt-3 pt-3 border-t border-gray-200/50">
+                                <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
+                                  <FiImage className="w-3 h-3" /> Attached Proof
+                                </p>
+                                <div className="flex gap-2 overflow-x-auto pb-2">
+                                  {res.proofUrls.map((proof, i) => (
+                                    <a key={i} href={proof.url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
+                                      <img
+                                        src={proof.url}
+                                        alt={`Proof ${i + 1}`}
+                                        className="h-20 w-32 object-cover rounded border hover:opacity-80 transition-opacity"
+                                      />
+                                    </a>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="bg-gray-50 border border-gray-200 p-4 rounded-lg flex items-center gap-3 text-gray-500">
+                      <FiMessageSquare className="w-5 h-5 opacity-50" />
+                      <p className="text-sm">No responses have been submitted on this thread yet.</p>
+                    </div>
+                  )}
+                </div>
+
                 {/* Admin Actions */}
                 <div className="border-t pt-4 space-y-4">
                   <h3 className="font-semibold text-gray-800">Admin Actions</h3>
@@ -443,9 +517,17 @@ const Complaints = () => {
                   <button
                     onClick={handleUpdate}
                     disabled={updating}
-                    className="w-full py-2.5 bg-orange-600 text-white font-semibold rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-colors"
+                    className="w-full py-2.5 bg-orange-600 text-white font-semibold rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
                   >
-                    {updating ? 'Updating...' : 'Save Changes'}
+                    {updating ? (
+                      <>
+                        <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Updating...
+                      </>
+                    ) : 'Save Changes'}
                   </button>
                 </div>
 
@@ -506,9 +588,17 @@ const Complaints = () => {
                         <button
                           onClick={handleSendWarning}
                           disabled={sendingWarning || !warningMessage.trim()}
-                          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors text-sm font-medium"
+                          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors text-sm font-medium flex items-center gap-1.5"
                         >
-                          {sendingWarning ? 'Sending...' : 'Send Warning'}
+                          {sendingWarning ? (
+                            <>
+                              <svg className="animate-spin -ml-1 h-3.5 w-3.5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              Sending...
+                            </>
+                          ) : 'Send Warning'}
                         </button>
                         <button
                           onClick={() => {

@@ -6,13 +6,15 @@ const FileUploadField = ({
   onChange,
   preview,
   onRemove,
-  fileName
+  fileName,
+  helperText
 }) => {
   return (
     <div>
-      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
+      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-0.5 sm:mb-1">
         {label} {required && <span className="text-red-500">*</span>}
       </label>
+      {helperText && <div className="mb-2 text-xs">{helperText}</div>}
       <input
         type="file"
         accept={accept}

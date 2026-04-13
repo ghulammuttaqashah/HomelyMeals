@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { 
-  FiArrowLeft, FiPackage, FiUser, FiMapPin, FiPhone, FiClock, 
+  FiPackage, FiUser, FiMapPin, FiPhone, FiClock, 
   FiCheckCircle, FiXCircle, FiTruck, FiDollarSign, FiImage,
   FiAlertTriangle
 } from 'react-icons/fi'
@@ -9,6 +9,7 @@ import toast from 'react-hot-toast'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import Loader from '../components/Loader'
+import BackButton from '../components/BackButton'
 import { getOrder } from '../api/orders'
 
 const OrderDetails = () => {
@@ -70,7 +71,7 @@ const OrderDetails = () => {
       <div className="flex min-h-screen flex-col bg-gray-50">
         <Header />
         <main className="flex-1 flex items-center justify-center">
-          <Loader />
+          <Loader size="lg" label="Loading Details" />
         </main>
         <Footer />
       </div>
@@ -95,14 +96,9 @@ const OrderDetails = () => {
       
       <main className="flex-1">
         <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
-          {/* Back Button */}
-          <button
-            onClick={() => navigate('/orders')}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
-          >
-            <FiArrowLeft className="h-5 w-5" />
-            <span>Back to Orders</span>
-          </button>
+          <div className="mb-6">
+            <BackButton onClick={() => navigate('/orders')} label="Back to Orders" />
+          </div>
 
           {/* Order Header */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">

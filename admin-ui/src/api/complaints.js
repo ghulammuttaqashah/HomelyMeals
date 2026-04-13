@@ -34,3 +34,4 @@ export const sendWarning = (complaintId, data) => {
 export const getWarningHistory = (userId) => {
   return api.get(`/api/admin/complaints/warnings/${userId}`);
 };
+

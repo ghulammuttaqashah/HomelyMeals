@@ -44,7 +44,7 @@ const orderSchema = new mongoose.Schema(
     // Payment
     paymentMethod: {
       type: String,
-      enum: ["cod"],
+      enum: ["cod", "card"],
       required: true,
     },
     paymentStatus: {
@@ -55,6 +55,20 @@ const orderSchema = new mongoose.Schema(
     paymentProof: { type: String }, // Cloudinary URL
     paymentRejectionReason: { type: String },
     paymentRejectionCount: { type: Number, default: 0 },
+
+    // Stripe Payment Tracking
+    paymentIntentId: {
+      type: String,
+      default: null,
+    },
+    stripeTransferId: {
+      type: String,
+      default: null,
+    },
+    paymentCompletedAt: {
+      type: Date,
+      default: null,
+    },
 
     // Order Status
     status: {
@@ -121,5 +135,7 @@ orderSchema.pre("save", async function (next) {
 // Index for efficient queries
 orderSchema.index({ customerId: 1, status: 1 });
 orderSchema.index({ cookId: 1, status: 1 });
+orderSchema.index({ paymentIntentId: 1 });
+orderSchema.index({ paymentMethod: 1, paymentStatus: 1 });
 
 export const Order = mongoose.model("Order", orderSchema);

@@ -6,7 +6,7 @@ import { subscribeToNewOrders, subscribeToOrderUpdates, initializeSocket } from 
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import Loader from "../components/Loader";
-import { FiCheck, FiX, FiChevronRight, FiPackage, FiRefreshCw, FiAlertTriangle } from "react-icons/fi";
+import { FiCheck, FiX, FiChevronRight, FiPackage, FiRefreshCw, FiAlertTriangle, FiArrowLeft } from "react-icons/fi";
 
 const STATUS_CONFIG = {
   confirmed: { label: "Confirmed", color: "bg-blue-100 text-blue-800", icon: FiCheck },
@@ -159,8 +159,16 @@ const Orders = () => {
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header showSignOut={true} />
       <main className="flex-grow mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-        <div className="flex items-center justify-between mb-4 sm:mb-6">
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Orders</h1>
+        <div className="mb-4 sm:mb-6">
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-orange-600 transition-colors"
+          >
+            <FiArrowLeft className="w-4 h-4" />
+            Back to Dashboard
+          </button>
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Orders</h1>
           <button
             onClick={handleRefresh}
             disabled={refreshing || loading}
@@ -169,6 +177,7 @@ const Orders = () => {
             <FiRefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">Refresh</span>
           </button>
+          </div>
         </div>
 
         {/* Tabs */}
@@ -190,8 +199,11 @@ const Orders = () => {
 
         {/* Orders List */}
         {loading ? (
-          <div className="flex justify-center py-12">
-            <Loader />
+          <div className="rounded-lg border border-gray-200 bg-white py-16 shadow-sm">
+            <div className="flex flex-col items-center gap-3">
+              <Loader size="lg" />
+              <p className="text-sm font-medium text-gray-600">Loading orders...</p>
+            </div>
           </div>
         ) : orders.length === 0 ? (
           <div className="text-center py-12">

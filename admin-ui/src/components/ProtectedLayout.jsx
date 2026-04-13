@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import ProgressBar from './ProgressBar'
 import Header from './Header'
@@ -5,10 +6,17 @@ import Footer from './Footer'
 
 const ProtectedLayout = ({ children, title }) => {
   const location = useLocation()
+  const [routeLoading, setRouteLoading] = useState(true)
+
+  useEffect(() => {
+    setRouteLoading(true)
+    const timer = setTimeout(() => setRouteLoading(false), 450)
+    return () => clearTimeout(timer)
+  }, [location.pathname])
 
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-br from-slate-50 via-white to-slate-100">
-      <ProgressBar isLoading={false} />
+      <ProgressBar isLoading={routeLoading} duration={700} />
       <Header showNav={true} />
       <main className="mx-auto flex-1 w-full max-w-7xl px-4 py-8 lg:px-6">
         {title && (

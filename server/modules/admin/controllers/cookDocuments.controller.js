@@ -12,6 +12,7 @@ export const getCooksWithSubmittedDocs = async (req, res) => {
       $or: [
         { "cnicFront.status": "submitted" },
         { "cnicBack.status": "submitted" },
+        { "profilePicture.status": "submitted" },
         { "kitchenPhotos.status": "submitted" },
         { "sfaLicense.status": "submitted" },
         { "other.status": "submitted" }
@@ -40,6 +41,7 @@ export const getCooksWithSubmittedDocs = async (req, res) => {
         documents: {
           cnicFront: doc.cnicFront,
           cnicBack: doc.cnicBack,
+          profilePicture: doc.profilePicture,
           kitchenPhotos: doc.kitchenPhotos,
           sfaLicense: doc.sfaLicense,
           other: doc.other,
@@ -87,6 +89,7 @@ export const getCookDocumentsById = async (req, res) => {
       documents: {
         cnicFront: doc.cnicFront,
         cnicBack: doc.cnicBack,
+        profilePicture: doc.profilePicture,
         kitchenPhotos: doc.kitchenPhotos,
         sfaLicense: doc.sfaLicense,
         other: doc.other,
@@ -238,6 +241,7 @@ export const approveAllDocuments = async (req, res) => {
     const fields = [
       "cnicFront",
       "cnicBack",
+      "profilePicture",
       "sfaLicense",
       "other",
       "kitchenPhotos",
@@ -291,6 +295,7 @@ const updateCookVerificationStatus = async (cookId) => {
   const requiredDocs = [
     doc.cnicFront,
     doc.cnicBack,
+    doc.profilePicture,
   ];
 
   // Kitchen photos: at least one must be approved
@@ -401,6 +406,10 @@ const sendRejectionEmail = async (cook, doc) => {
 
     if (doc.cnicBack?.status === "rejected") {
       rejectionReasons.push(`- CNIC Back: ${doc.cnicBack.rejectedReason || "Not specified"}`);
+    }
+
+    if (doc.profilePicture?.status === "rejected") {
+      rejectionReasons.push(`- Profile Picture / Logo: ${doc.profilePicture.rejectedReason || "Not specified"}`);
     }
 
     if (doc.sfaLicense?.status === "rejected") {

@@ -4,6 +4,7 @@ import CookMeal from "../../cook/models/cookMeal.model.js";
 import { calculateDistance, isWithinDeliveryRange, calculateEstimatedDeliveryTime } from "../../../shared/utils/distance.js";
 import { calculateDeliveryCharges } from "../../../shared/utils/deliveryCharges.js";
 import { emitToCook, emitToCustomer, emitToAdmins } from "../../../shared/utils/socket.js";
+import { hasActiveCookSubscription } from "../../../shared/utils/subscriptionAccess.js";
 
 /**
  * Place a new order
@@ -41,6 +42,11 @@ export const placeOrder = async (req, res) => {
 
     if (cook.serviceStatus !== "open") {
       return res.status(400).json({ message: "Cook's kitchen is currently closed" });
+    }
+
+    const hasActiveSubscription = await hasActiveCookSubscription(cookId);
+    if (!hasActiveSubscription) {
+      return res.status(400).json({ message: "Cook is not currently accepting paid orders" });
     }
 
     // Check cook has coordinates
@@ -433,6 +439,11 @@ export const calculateDeliveryInfo = async (req, res) => {
     const cook = await Cook.findById(cookId);
     if (!cook) {
       return res.status(404).json({ message: "Cook not found" });
+    }
+
+    const hasActiveSubscription = await hasActiveCookSubscription(cookId);
+    if (!hasActiveSubscription) {
+      return res.status(400).json({ message: "Cook is not currently accepting paid orders" });
     }
 
     if (!cook.address?.location?.latitude || !cook.address?.location?.longitude) {

@@ -4,6 +4,7 @@ import { Customer } from "../models/customer.model.js";
 import DeliveryCharges from "../../admin/models/deliveryCharges.model.js";
 import { Order } from "../../../shared/models/order.model.js";
 import mongoose from "mongoose";
+import { hasActiveCookSubscription, getActiveSubscribedCookIds } from "../../../shared/utils/subscriptionAccess.js";
 
 /**
  * Get all active cooks for customers
@@ -44,11 +45,14 @@ export const getAllCooksForCustomer = async (req, res) => {
     }
 
     // Find all matching cooks
-    const cooks = await Cook.find(cookQuery).select("_id name address");
+    const cooks = await Cook.find(cookQuery).select("_id name address profilePicture");
+
+    const subscribedCookIds = await getActiveSubscribedCookIds(cooks.map((cook) => cook._id));
+    const sellableCooks = cooks.filter((cook) => subscribedCookIds.has(String(cook._id)));
 
     // Get meal counts for each cook and filter by search if provided
     const cooksWithMeals = await Promise.all(
-      cooks.map(async (cook) => {
+      sellableCooks.map(async (cook) => {
         // Build meal query
         const mealQuery = {
           cookId: cook._id,
@@ -68,6 +72,7 @@ export const getAllCooksForCustomer = async (req, res) => {
         return {
           cookId: cook._id,
           name: cook.name,
+          profilePicture: cook.profilePicture || null,
           city: cook.address?.city || "Sukkur",
           mealCount,
         };
@@ -107,13 +112,21 @@ export const getMealsByCookId = async (req, res) => {
   try {
     const { cookId } = req.params;
 
+    const hasActiveSubscription = await hasActiveCookSubscription(cookId);
+    if (!hasActiveSubscription) {
+      return res.status(404).json({
+        success: false,
+        message: "Cook not found or currently unavailable",
+      });
+    }
+
     // Verify cook is active, approved, and open
     const cook = await Cook.findOne({
       _id: cookId,
       status: "active",
       verificationStatus: "approved",
       serviceStatus: "open",
-    }).select("name address");
+    }).select("name address profilePicture");
 
     if (!cook) {
       return res.status(404).json({
@@ -145,6 +158,7 @@ export const getMealsByCookId = async (req, res) => {
         _id: cook._id,
         cookId: cook._id, // kept for backward compatibility
         name: cook.name,
+        profilePicture: cook.profilePicture || null,
         city: cook.address?.city || "Sukkur",
       },
       count: formatted.length,
@@ -171,18 +185,25 @@ export const getAllMealsForCustomer = async (req, res) => {
     const meals = await Meal.find({ availability: "Available" })
       .populate({
         path: "cookId",
-        select: "name status verificationStatus serviceStatus",
+        select: "name status verificationStatus serviceStatus profilePicture",
       })
       .sort({ createdAt: -1 });
 
-    // Filter out meals from suspended, non-approved, or closed cooks
+    const cookIds = meals
+      .map((meal) => meal.cookId?._id)
+      .filter(Boolean);
+
+    const subscribedCookIds = await getActiveSubscribedCookIds(cookIds);
+
+    // Filter out meals from suspended, non-approved, closed, or unsubscribed cooks
     const formatted = meals
       .filter(m => {
-        // Only show meals from active, approved, and open cooks
+        // Only show meals from active, approved, open, and actively subscribed cooks
         return m.cookId &&
           m.cookId.status === "active" &&
           m.cookId.verificationStatus === "approved" &&
-          m.cookId.serviceStatus === "open";
+          m.cookId.serviceStatus === "open" &&
+          subscribedCookIds.has(String(m.cookId._id));
       })
       .map(m => ({
         mealId: m._id,
@@ -193,6 +214,7 @@ export const getAllMealsForCustomer = async (req, res) => {
         availability: m.availability,
         itemImage: m.itemImage,
         cookName: m.cookId?.name || "Unknown Cook",
+        cookProfilePicture: m.cookId?.profilePicture || null,
         createdAt: m.createdAt,
       }));
 
@@ -218,11 +240,19 @@ export const getCookDeliveryInfo = async (req, res) => {
   try {
     const { cookId } = req.params;
 
+    const hasActiveSubscription = await hasActiveCookSubscription(cookId);
+    if (!hasActiveSubscription) {
+      return res.status(404).json({
+        success: false,
+        message: "Cook not found",
+      });
+    }
+
     const cook = await Cook.findOne({
       _id: cookId,
       status: "active",
       verificationStatus: "approved",
-    }).select("name address maxDeliveryDistance");
+    }).select("name address maxDeliveryDistance isOnlinePaymentEnabled stripeAccountId");
 
     if (!cook) {
       return res.status(404).json({
@@ -239,6 +269,8 @@ export const getCookDeliveryInfo = async (req, res) => {
         latitude: cook.address?.location?.latitude || null,
         longitude: cook.address?.location?.longitude || null,
         maxDeliveryDistance: cook.maxDeliveryDistance || 10,
+        isOnlinePaymentEnabled: cook.isOnlinePaymentEnabled || false,
+        stripeAccountId: cook.stripeAccountId || null,
       },
     });
   } catch (error) {
@@ -285,6 +317,15 @@ export const getDeliverySettings = async (req, res) => {
 export const getTopSellingMeals = async (req, res) => {
   try {
     const { cookId } = req.params;
+
+    const hasActiveSubscription = await hasActiveCookSubscription(cookId);
+    if (!hasActiveSubscription) {
+      return res.status(200).json({
+        success: true,
+        topMeals: [],
+      });
+    }
+
     const cookObjectId = new mongoose.Types.ObjectId(cookId);
 
     // Aggregate delivered orders for this cook, group by meal

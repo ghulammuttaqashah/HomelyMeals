@@ -1,25 +1,44 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { FiPackage, FiClock, FiTruck, FiCheckCircle, FiXCircle, FiSearch, FiFilter, FiChevronRight, FiRefreshCw } from 'react-icons/fi'
+import { FiPackage, FiClock, FiTruck, FiCheckCircle, FiXCircle, FiSearch, FiChevronRight, FiRefreshCw } from 'react-icons/fi'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import Loader from '../components/Loader'
+import BackButton from '../components/BackButton'
 import { getOrders } from '../api/orders'
 import { initializeSocket, subscribeToOrderUpdates, disconnectSocket } from '../utils/socket'
 
 const Orders = () => {
   const navigate = useNavigate()
   const [orders, setOrders] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [initialLoading, setInitialLoading] = useState(true)
+  const [sectionLoading, setSectionLoading] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
-  const [activeTab, setActiveTab] = useState('all')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [dateFilter, setDateFilter] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [pagination, setPagination] = useState({ page: 1, totalPages: 1 })
+
+  const statusOptions = [
+    { value: 'all', label: 'All Statuses' },
+    { value: 'preparing', label: 'Preparing' },
+    { value: 'out_for_delivery', label: 'Out for Delivery' },
+    { value: 'delivered', label: 'Delivered' },
+    { value: 'cancelled', label: 'Cancelled' },
+  ]
+
+  const dateOptions = [
+    { value: 'today', label: 'Today' },
+    { value: 'yesterday', label: 'Yesterday' },
+    { value: 'this_week', label: 'This Week' },
+    { value: 'this_month', label: 'This Month' },
+    { value: 'all', label: 'All Time' },
+  ]
 
   useEffect(() => {
     initializeSocket()
     const unsubscribe = subscribeToOrderUpdates(() => {
-      fetchOrders(false)
+      fetchOrders({ mode: 'refresh' })
     })
 
     return () => {
@@ -29,18 +48,59 @@ const Orders = () => {
   }, [])
 
   useEffect(() => {
-    fetchOrders()
-  }, [activeTab, pagination.page])
+    fetchOrders({ mode: initialLoading ? 'initial' : 'section' })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter, dateFilter, pagination.page])
 
-  const fetchOrders = async (showLoader = true) => {
+  const getDateRange = (filter) => {
+    const now = new Date()
+    const start = new Date(now)
+    const end = new Date(now)
+
+    if (filter === 'today') {
+      start.setHours(0, 0, 0, 0)
+      end.setHours(23, 59, 59, 999)
+      return { startDate: start.toISOString(), endDate: end.toISOString() }
+    }
+
+    if (filter === 'yesterday') {
+      start.setDate(start.getDate() - 1)
+      end.setDate(end.getDate() - 1)
+      start.setHours(0, 0, 0, 0)
+      end.setHours(23, 59, 59, 999)
+      return { startDate: start.toISOString(), endDate: end.toISOString() }
+    }
+
+    if (filter === 'this_week') {
+      const day = start.getDay()
+      const diff = day === 0 ? 6 : day - 1
+      start.setDate(start.getDate() - diff)
+      start.setHours(0, 0, 0, 0)
+      end.setHours(23, 59, 59, 999)
+      return { startDate: start.toISOString(), endDate: end.toISOString() }
+    }
+
+    if (filter === 'this_month') {
+      start.setDate(1)
+      start.setHours(0, 0, 0, 0)
+      end.setHours(23, 59, 59, 999)
+      return { startDate: start.toISOString(), endDate: end.toISOString() }
+    }
+
+    return {}
+  }
+
+  const fetchOrders = async ({ mode = 'section' } = {}) => {
     try {
-      if (showLoader) setLoading(true)
-      else setRefreshing(true)
+      if (mode === 'initial') setInitialLoading(true)
+      else if (mode === 'refresh') setRefreshing(true)
+      else setSectionLoading(true)
 
       const params = { page: pagination.page, limit: 20 }
-      if (activeTab !== 'all') {
-        params.status = activeTab
+      if (statusFilter !== 'all') {
+        params.status = statusFilter
       }
+      Object.assign(params, getDateRange(dateFilter))
 
       const response = await getOrders(params)
       // axios wraps response in data, backend returns { orders, pagination, counts }
@@ -53,7 +113,8 @@ const Orders = () => {
     } catch (error) {
       console.error('Failed to fetch orders:', error)
     } finally {
-      setLoading(false)
+      setInitialLoading(false)
+      setSectionLoading(false)
       setRefreshing(false)
     }
   }
@@ -139,29 +200,6 @@ const Orders = () => {
     )
   })
 
-  const tabs = [
-    { id: 'all', label: 'All Orders' },
-    { id: 'pending', label: 'Pending' },
-    { id: 'confirmed', label: 'Confirmed' },
-    { id: 'preparing', label: 'Preparing' },
-    { id: 'out_for_delivery', label: 'Out for Delivery' },
-    { id: 'delivery_pending_confirmation', label: 'Delivery Pending' },
-    { id: 'delivered', label: 'Delivered' },
-    { id: 'cancelled', label: 'Cancelled' }
-  ]
-
-  if (loading) {
-    return (
-      <div className="flex min-h-screen flex-col bg-gray-50">
-        <Header />
-        <main className="flex-1 flex items-center justify-center">
-          <Loader />
-        </main>
-        <Footer />
-      </div>
-    )
-  }
-
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
       <Header />
@@ -174,11 +212,14 @@ const Orders = () => {
               <p className="mt-1 text-sm text-gray-500">
                 Monitor and manage all orders across the platform
               </p>
+              <div className="mt-3">
+                <BackButton onClick={() => navigate('/dashboard')} label="Back to Dashboard" />
+              </div>
             </div>
             <button
-              onClick={() => fetchOrders(false)}
+              onClick={() => fetchOrders({ mode: 'refresh' })}
               disabled={refreshing}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors"
             >
               <FiRefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
               Refresh
@@ -188,46 +229,82 @@ const Orders = () => {
           {/* Search */}
           <div className="mb-6">
             <div className="relative">
-              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search by order ID, customer, or cook..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                className="w-full pl-12 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
               />
             </div>
           </div>
 
-          {/* Tabs */}
-          <div className="mb-6 border-b border-gray-200 overflow-x-auto">
-            <nav className="flex -mb-px space-x-4 min-w-max">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => {
-                    setActiveTab(tab.id)
+          {/* Dropdown Filters */}
+          <div className="mb-6 rounded-lg border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-5">
+            <div className="grid gap-4 md:grid-cols-12">
+              <div className="md:col-span-4">
+                <label htmlFor="dateFilter" className="mb-2 block text-sm font-semibold text-gray-700">Date Filter</label>
+                <select
+                  id="dateFilter"
+                  value={dateFilter}
+                  onChange={(e) => {
+                    setDateFilter(e.target.value)
                     setPagination(prev => ({ ...prev, page: 1 }))
                   }}
-                  className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
-                    activeTab === tab.id
-                      ? 'border-orange-500 text-orange-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all cursor-pointer"
                 >
-                  {tab.label}
+                  {dateOptions.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="md:col-span-4">
+                <label htmlFor="statusFilter" className="mb-2 block text-sm font-semibold text-gray-700">Status Filter</label>
+                <select
+                  id="statusFilter"
+                  value={statusFilter}
+                  onChange={(e) => {
+                    setStatusFilter(e.target.value)
+                    setPagination(prev => ({ ...prev, page: 1 }))
+                  }}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all cursor-pointer"
+                >
+                  {statusOptions.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="md:col-span-4 flex items-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDateFilter('all')
+                    setStatusFilter('all')
+                    setSearchQuery('')
+                    setPagination({ page: 1, totalPages: pagination.totalPages })
+                  }}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Clear Filters
                 </button>
-              ))}
-            </nav>
+              </div>
+            </div>
           </div>
 
           {/* Orders Table */}
+          <div className="relative">
+          {(initialLoading || sectionLoading) && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-white/70 backdrop-blur-[1px]">
+              <Loader label="Loading Orders" />
+            </div>
+          )}
           {filteredOrders.length === 0 ? (
             <div className="text-center py-12 bg-white rounded-lg shadow-sm">
               <FiPackage className="mx-auto h-12 w-12 text-gray-300" />
               <h3 className="mt-2 text-sm font-medium text-gray-900">No orders found</h3>
               <p className="mt-1 text-sm text-gray-500">
-                {searchQuery ? 'Try a different search term' : 'No orders in this category'}
+                {searchQuery ? 'Try a different search term' : 'No orders in selected filters'}
               </p>
             </div>
           ) : (
@@ -332,6 +409,7 @@ const Orders = () => {
               )}
             </div>
           )}
+          </div>
         </div>
       </main>
 

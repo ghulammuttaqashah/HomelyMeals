@@ -22,6 +22,8 @@ import Reviews from './pages/Reviews'
 import SalesDashboard from './pages/SalesDashboard'
 import Complaints from './pages/Complaints'
 import FileComplaint from './pages/FileComplaint'
+import Subscription from './pages/Subscription'
+import PaymentSettings from './pages/PaymentSettings'
 
 const App = () => {
   return (
@@ -149,6 +151,22 @@ const App = () => {
             element={
               <ProtectedRoute>
                 <FileComplaint />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/subscription"
+            element={
+              <ProtectedRoute>
+                <Subscription />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/payment-settings"
+            element={
+              <ProtectedRoute>
+                <PaymentSettings />
               </ProtectedRoute>
             }
           />

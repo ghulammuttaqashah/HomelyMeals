@@ -6,6 +6,7 @@ import {
     Tooltip, ResponsiveContainer, ComposedChart, Line
 } from 'recharts'
 import { getSalesAnalytics } from '../api/sales'
+import { FiArrowLeft } from 'react-icons/fi'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import Loader from '../components/Loader'
@@ -73,20 +74,17 @@ const SalesDashboard = () => {
             <main className="flex-1">
                 <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8 py-6 sm:py-8">
                     {/* Page Header */}
-                    <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                         <div>
-                            <div className="flex items-center gap-2 mb-1">
-                                <button
-                                    onClick={() => navigate('/dashboard')}
-                                    className="text-gray-400 hover:text-gray-600 transition-colors"
-                                >
-                                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                                    </svg>
-                                </button>
-                                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Sales Analytics</h1>
-                            </div>
-                            <p className="text-xs sm:text-sm text-gray-500 ml-7">
+                            <button
+                                onClick={() => navigate('/dashboard')}
+                                className="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-orange-600 transition-colors"
+                            >
+                                <FiArrowLeft className="w-4 h-4" />
+                                Back to Dashboard
+                            </button>
+                            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Sales Analytics</h1>
+                            <p className="text-xs sm:text-sm text-gray-500 mt-1">
                                 {currentPeriod.description} &middot; Track your revenue and order trends
                             </p>
                         </div>
@@ -109,8 +107,11 @@ const SalesDashboard = () => {
                     </div>
 
                     {loading ? (
-                        <div className="flex items-center justify-center h-64">
-                            <Loader />
+                        <div className="rounded-lg border border-gray-200 bg-white py-16 shadow-sm">
+                            <div className="flex flex-col items-center gap-3">
+                                <Loader size="lg" />
+                                <p className="text-sm font-medium text-gray-600">Loading sales analytics...</p>
+                            </div>
                         </div>
                     ) : !data ? (
                         <div className="rounded-lg bg-white p-12 text-center shadow-sm border border-gray-200">

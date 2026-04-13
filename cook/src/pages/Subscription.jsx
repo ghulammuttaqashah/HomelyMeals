@@ -1,0 +1,320 @@
+import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { toast } from 'react-hot-toast'
+import { CardElement, Elements, useElements, useStripe } from '@stripe/react-stripe-js'
+import { loadStripe } from '@stripe/stripe-js'
+import Header from '../components/Header'
+import Footer from '../components/Footer'
+import {
+  getActivePlans,
+  createPaymentIntent,
+  confirmSubscription,
+  getMySubscription,
+} from '../api/subscriptions'
+import { useAuth } from '../context/AuthContext'
+import Loader from '../components/Loader'
+import { FiArrowLeft } from 'react-icons/fi'
+
+const stripePublicKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || ''
+const stripePromise = stripePublicKey ? loadStripe(stripePublicKey) : null
+
+const cardElementOptions = {
+  style: {
+    base: {
+      fontSize: '16px',
+      color: '#1f2937',
+      '::placeholder': { color: '#9ca3af' },
+    },
+    invalid: { color: '#dc2626' },
+  },
+}
+
+const CheckoutForm = ({ clientSecret, onSuccess, cook }) => {
+  const stripe = useStripe()
+  const elements = useElements()
+  const [processing, setProcessing] = useState(false)
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    if (!stripe || !elements || !clientSecret) return
+
+    setProcessing(true)
+    try {
+      const cardElement = elements.getElement(CardElement)
+
+      const result = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: {
+          card: cardElement,
+          billing_details: {
+            name: cook?.name || 'Cook User',
+            email: cook?.email || undefined,
+          },
+        },
+      })
+
+      if (result.error) {
+        toast.error(result.error.message || 'Payment failed')
+        return
+      }
+
+      if (result.paymentIntent?.status === 'succeeded') {
+        await onSuccess(result.paymentIntent.id)
+      } else {
+        toast.error('Payment did not complete. Please try again.')
+      }
+    } catch (error) {
+      toast.error(error?.response?.data?.message || 'Payment failed')
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+      <h3 className="text-lg font-bold text-gray-900">Pay with Stripe</h3>
+      <div className="rounded-lg border border-gray-300 p-3">
+        <CardElement options={cardElementOptions} />
+      </div>
+      <button
+        type="submit"
+        disabled={!stripe || processing}
+        className="inline-flex items-center justify-center gap-2 rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {processing ? (
+          <>
+            <Loader size="sm" className="text-white" />
+            Processing...
+          </>
+        ) : (
+          'Pay & Activate Subscription'
+        )}
+      </button>
+    </form>
+  )
+}
+
+const Subscription = () => {
+  const navigate = useNavigate()
+  const { cook } = useAuth()
+  const [plans, setPlans] = useState([])
+  const [subscription, setSubscription] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  const [selectedPlan, setSelectedPlan] = useState(null)
+  const [clientSecret, setClientSecret] = useState('')
+  const [intentLoading, setIntentLoading] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
+
+  const hasStripeKey = useMemo(() => Boolean(stripePublicKey), [])
+
+  const fetchData = async (showPageLoader = true) => {
+    try {
+      if (showPageLoader) setLoading(true)
+      const [plansRes, mySubRes] = await Promise.all([getActivePlans(), getMySubscription()])
+      setPlans(plansRes.plans || [])
+      setSubscription(mySubRes.subscription || null)
+    } catch (error) {
+      toast.error(error?.response?.data?.message || 'Failed to load subscription data')
+    } finally {
+      if (showPageLoader) setLoading(false)
+    }
+  }
+
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true)
+      await fetchData(false)
+    } finally {
+      setRefreshing(false)
+    }
+  }
+
+  const statusPillClass =
+    subscription?.status === 'active'
+      ? 'bg-green-50 text-green-700 border-green-200'
+      : subscription?.status === 'pending'
+        ? 'bg-amber-50 text-amber-700 border-amber-200'
+        : 'bg-red-50 text-red-700 border-red-200'
+
+  useEffect(() => {
+    fetchData(true)
+  }, [])
+
+  const handleStartCheckout = async (plan) => {
+    if (!hasStripeKey) {
+      toast.error('Stripe publishable key is missing in cook .env')
+      return
+    }
+
+    try {
+      setIntentLoading(true)
+      const res = await createPaymentIntent(plan._id)
+      setSelectedPlan(plan)
+      setClientSecret(res.clientSecret)
+      toast.success('Payment started. Complete card details below.')
+    } catch (error) {
+      toast.error(error?.response?.data?.message || 'Failed to start payment')
+    } finally {
+      setIntentLoading(false)
+    }
+  }
+
+  const handleConfirmSuccess = async (paymentIntentId) => {
+    try {
+      await confirmSubscription(paymentIntentId)
+      toast.success('Subscription activated successfully')
+      setClientSecret('')
+      setSelectedPlan(null)
+      await fetchData()
+    } catch (error) {
+      toast.error(error?.response?.data?.message || 'Failed to activate subscription')
+    }
+  }
+
+  return (
+    <div className="flex min-h-screen flex-col bg-gray-50">
+      <Header showSignOut={true} />
+
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mb-6">
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-orange-600 transition-colors"
+          >
+            <FiArrowLeft className="w-4 h-4" />
+            Back to Dashboard
+          </button>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Subscription</h1>
+              <p className="mt-1 text-sm text-gray-600">Choose a plan and subscribe securely using Stripe test mode.</p>
+            </div>
+            <button
+              type="button"
+              onClick={handleRefresh}
+              disabled={refreshing || loading}
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {refreshing ? <Loader size="sm" /> : null}
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="rounded-lg border border-gray-200 bg-white py-16 shadow-sm">
+            <div className="flex flex-col items-center gap-3">
+              <Loader size="lg" />
+              <p className="text-sm font-medium text-gray-600">Loading subscription details...</p>
+            </div>
+          </div>
+        ) : (
+          <div className="relative">
+            {refreshing && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-white/70 backdrop-blur-[1px]">
+                <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 shadow-sm">
+                  <Loader size="sm" />
+                  <span className="text-sm font-medium text-gray-700">Refreshing subscription data...</span>
+                </div>
+              </div>
+            )}
+
+            <div className="grid gap-6 lg:grid-cols-3">
+              <section className="rounded-xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-5 shadow-sm lg:col-span-1">
+                <div className="flex items-center justify-between gap-2">
+                  <h2 className="text-xl font-bold text-gray-900">Current Status</h2>
+                  {subscription?.status ? (
+                    <span className={`inline-flex rounded-lg border px-3 py-1 text-sm font-semibold capitalize ${statusPillClass}`}>
+                      {subscription.status}
+                    </span>
+                  ) : null}
+                </div>
+
+                {!subscription ? (
+                  <div className="mt-4 rounded-lg border border-dashed border-gray-300 bg-white/80 p-4">
+                    <p className="text-sm font-medium text-gray-700">No active subscription yet.</p>
+                    <p className="mt-1 text-xs text-gray-500">Choose a plan from the right panel to activate your kitchen.</p>
+                  </div>
+                ) : (
+                  <div className="mt-4 space-y-3">
+                    <div className="rounded-lg bg-white p-3">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Plan</p>
+                      <p className="mt-1 text-base font-semibold text-gray-900">{subscription.plan?.name || '-'}</p>
+                    </div>
+
+                    <div className="rounded-lg bg-white p-3">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Status</p>
+                      <p className="mt-1 text-base font-semibold capitalize text-gray-900">{subscription.status}</p>
+                    </div>
+
+                    <div className="rounded-lg bg-white p-3">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Expiry Date</p>
+                      <p className="mt-1 text-base font-semibold text-gray-900">
+                        {subscription.end_date
+                          ? new Date(subscription.end_date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
+                          : '-'}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </section>
+
+              <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm lg:col-span-2">
+                <h2 className="text-lg font-bold text-gray-900">Available Plans</h2>
+                {plans.length === 0 ? (
+                  <p className="mt-3 text-sm text-gray-600">No active plans available right now.</p>
+                ) : (
+                  <div className="mt-4 grid gap-4 md:grid-cols-2">
+                    {plans.map((plan) => (
+                      <div key={plan._id} className="rounded-lg border border-gray-200 p-4">
+                        <h3 className="text-base font-bold text-gray-900">{plan.name}</h3>
+                        <p className="mt-1 text-sm text-gray-600">
+                          Rs. {plan.price} for {plan.duration} days
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => handleStartCheckout(plan)}
+                          disabled={intentLoading || Boolean(subscription?.status === 'active')}
+                          className="mt-3 inline-flex items-center gap-2 rounded-lg bg-orange-600 px-3 py-2 text-sm font-semibold text-white hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {subscription?.status === 'active' ? (
+                            'Already Subscribed'
+                          ) : intentLoading && selectedPlan?._id === plan._id ? (
+                            <>
+                              <Loader size="sm" className="text-white" />
+                              Starting...
+                            </>
+                          ) : (
+                            'Subscribe'
+                          )}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            </div>
+          </div>
+        )}
+
+        {selectedPlan && clientSecret && stripePromise && (
+          <div className="mt-6">
+            <Elements stripe={stripePromise} options={{ clientSecret }}>
+              <CheckoutForm clientSecret={clientSecret} onSuccess={handleConfirmSuccess} cook={cook} />
+            </Elements>
+          </div>
+        )}
+
+        {!hasStripeKey && (
+          <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            Missing VITE_STRIPE_PUBLISHABLE_KEY in cook .env. Add it to enable Stripe checkout.
+          </p>
+        )}
+      </main>
+
+      <Footer />
+    </div>
+  )
+}
+
+export default Subscription

@@ -200,8 +200,8 @@ const Signup = () => {
     }
 
     const distance = Number(formData.maxDeliveryDistance)
-    if (isNaN(distance) || distance < 1 || distance > 50) {
-      newErrors.maxDeliveryDistance = 'Distance must be between 1 and 50 km'
+    if (isNaN(distance) || distance < 1 || distance > 15) {
+      newErrors.maxDeliveryDistance = 'Distance must be between 1 and 15 km'
     }
 
     setErrors(newErrors)
@@ -519,7 +519,7 @@ const Signup = () => {
                       id="maxDeliveryDistance"
                       name="maxDeliveryDistance"
                       min="1"
-                      max="50"
+                      max="15"
                       value={formData.maxDeliveryDistance}
                       onChange={handleChange}
                       className={`w-full rounded-lg border ${
@@ -532,7 +532,7 @@ const Signup = () => {
                   {errors.maxDeliveryDistance && (
                     <p className="mt-1 text-xs text-red-500">{errors.maxDeliveryDistance}</p>
                   )}
-                  <p className="mt-1 text-xs text-gray-400">Must be between 1 and 50 kilometers</p>
+                  <p className="mt-1 text-xs text-gray-400">Must be between 1 and 15 kilometers</p>
                 </div>
 
                 {/* Visual indicator of delivery range */}

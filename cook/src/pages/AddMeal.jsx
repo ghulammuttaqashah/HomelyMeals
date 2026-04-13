@@ -8,6 +8,7 @@ import Header from '../components/Header'
 import Footer from '../components/Footer'
 import Loader from '../components/Loader'
 import FormInput from '../components/FormInput'
+import { FiArrowLeft } from 'react-icons/fi'
 
 const AddMeal = () => {
   const navigate = useNavigate()
@@ -133,11 +134,9 @@ const AddMeal = () => {
               <button
                 type="button"
                 onClick={() => navigate('/menu')}
-                className="mb-3 sm:mb-4 flex items-center text-xs sm:text-sm text-gray-600 hover:text-orange-600 transition-colors"
+                className="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-orange-600 transition-colors"
               >
-                <svg className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
+                <FiArrowLeft className="w-4 h-4" />
                 Back to Menu
               </button>
               <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Add New Meal</h1>

@@ -8,6 +8,7 @@ import Footer from '../components/Footer'
 import Container from '../components/Container'
 import FormInput from '../components/FormInput'
 import Loader, { Skeleton } from '../components/Loader'
+import ConfirmationModal from '../components/ConfirmationModal'
 import { useAuth } from '../context/AuthContext'
 import {
   updateProfile,
@@ -74,6 +75,15 @@ const Profile = () => {
   const [savingAddress, setSavingAddress] = useState(false)
   const [gettingLocation, setGettingLocation] = useState(false)
   const [deletingAddressId, setDeletingAddressId] = useState(null)
+
+  // Confirmation modal state
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => { },
+    type: 'warning'
+  })
 
   // Default map center (Lahore, Pakistan)
   const defaultCenter = [31.5204, 74.3587]
@@ -148,9 +158,11 @@ const Profile = () => {
           latitude: lat,
           longitude: lon,
         }))
-        toast.success('Location found on map!')
+        toast.success('Location verified on map!')
       } else {
-        toast.error('Address not found. Try using "Use My Location" instead.')
+        setMapPosition(null)
+        setAddressForm(prev => ({ ...prev, latitude: null, longitude: null }))
+        toast.error('Address not found. You MUST find it on map or use "Detect Location" to proceed.')
       }
     } catch (error) {
       console.error('Forward geocode error:', error)
@@ -280,39 +292,59 @@ const Profile = () => {
       return
     }
 
-    setSavingAddress(true)
-    try {
-      if (editingAddress) {
-        await updateAddress(editingAddress._id, addressForm)
-        toast.success('Address updated successfully')
-      } else {
-        await addAddress(addressForm)
-        toast.success('Address added successfully')
-      }
-      await fetchCustomerData()
-      await refreshCustomer()
-      closeAddressModal()
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Couldn\'t save address. Please try again.')
-    } finally {
-      setSavingAddress(false)
+    if (!addressForm.latitude || !addressForm.longitude) {
+      toast.error('Please use "Find on Map" or "Use My Location" to verify this address.')
+      return
     }
+
+    setConfirmModal({
+      isOpen: true,
+      title: editingAddress ? 'Update Address?' : 'Add New Address?',
+      message: `Are you sure you want to ${editingAddress ? 'update' : 'add'} this address? It will be used for delivery calculations.`,
+      confirmText: editingAddress ? 'Update' : 'Add',
+      onConfirm: async () => {
+        setSavingAddress(true)
+        try {
+          if (editingAddress) {
+            await updateAddress(editingAddress._id, addressForm)
+            toast.success('Address updated successfully')
+          } else {
+            await addAddress(addressForm)
+            toast.success('Address added successfully')
+          }
+          await fetchCustomerData()
+          await refreshCustomer()
+          closeAddressModal()
+        } catch (error) {
+          toast.error(error.response?.data?.message || 'Couldn\'t save address. Please try again.')
+        } finally {
+          setSavingAddress(false)
+        }
+      }
+    })
   }
 
   const handleDeleteAddress = async (addressId) => {
-    if (!confirm('Are you sure you want to delete this address?')) return
-
-    setDeletingAddressId(addressId)
-    try {
-      await deleteAddress(addressId)
-      toast.success('Address deleted successfully')
-      await fetchCustomerData()
-      await refreshCustomer()
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Couldn\'t delete address. Please try again.')
-    } finally {
-      setDeletingAddressId(null)
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: 'Delete Address?',
+      message: 'Are you sure you want to delete this address? This action cannot be undone.',
+      confirmText: 'Delete',
+      type: 'danger',
+      onConfirm: async () => {
+        setDeletingAddressId(addressId)
+        try {
+          await deleteAddress(addressId)
+          toast.success('Address deleted successfully')
+          await fetchCustomerData()
+          await refreshCustomer()
+        } catch (error) {
+          toast.error(error.response?.data?.message || 'Couldn\'t delete address. Please try again.')
+        } finally {
+          setDeletingAddressId(null)
+        }
+      }
+    })
   }
 
   const handleSetDefault = async (addressId) => {
@@ -772,6 +804,17 @@ const Profile = () => {
           </div>
         </div>
       )}
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmText={confirmModal.confirmText}
+        type={confirmModal.type}
+      />
     </div>
   )
 }

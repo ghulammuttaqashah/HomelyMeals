@@ -48,10 +48,21 @@ export const respondToCancellation = async (orderId, action, response = "") => {
   return res.data;
 };
 
+/**
+ * Cancel order explicitly by cook
+ */
+export const cancelOrder = async (orderId, reason) => {
+  const res = await axiosInstance.patch(`/api/cook/orders/${orderId}/cancel`, {
+    reason,
+  });
+  return res.data;
+};
+
 export default {
   getOrders,
   getOrderById,
   updateOrderStatus,
   addDeliveryNote,
   respondToCancellation,
+  cancelOrder,
 };

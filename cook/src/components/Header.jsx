@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { usePWA } from '../utils/usePWA'
 import { getUnreadCount } from '../api/chat'
 import { getSocket } from '../utils/socket'
+import { FiMenu, FiX, FiChevronRight, FiBell } from 'react-icons/fi'
 
 const Header = ({ showSignOut = false }) => {
   const navigate = useNavigate()
@@ -12,13 +13,19 @@ const Header = ({ showSignOut = false }) => {
   const { isInstallable, isInstalled, installApp } = usePWA()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [unreadChats, setUnreadChats] = useState(0)
+  const [scrolled, setScrolled] = useState(false)
+  const hasActiveSubscription = Boolean(cook?.hasActiveSubscription)
 
-  // Fetch unread count on mount and listen for new messages
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 20)
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
   useEffect(() => {
     if (!isAuthenticated) return
 
     const fetchUnread = async () => {
-      // Skip fetch if on chats page — messages are being read, badge resets to 0
       if (location.pathname.startsWith('/chats')) return
       try {
         const res = await getUnreadCount()
@@ -29,7 +36,6 @@ const Header = ({ showSignOut = false }) => {
 
     const socket = getSocket()
     const onNewMessage = () => {
-      // If not on chats page, increment badge
       if (!location.pathname.startsWith('/chats')) {
         setUnreadChats(prev => prev + 1)
       }
@@ -38,7 +44,6 @@ const Header = ({ showSignOut = false }) => {
     return () => socket.off('new_message', onNewMessage)
   }, [isAuthenticated, location.pathname])
 
-  // Reset unread when navigating to chats
   useEffect(() => {
     if (location.pathname.startsWith('/chats')) {
       setUnreadChats(0)
@@ -48,15 +53,10 @@ const Header = ({ showSignOut = false }) => {
   const handleLogoClick = () => {
     if (isAuthenticated) {
       const status = cook?.verificationStatus
-      if (status === 'not_started') {
-        navigate('/upload-docs')
-      } else if (status === 'pending' || status === 'rejected') {
-        navigate('/status')
-      } else if (status === 'approved' || status === 'verified') {
-        navigate('/dashboard')
-      } else {
-        navigate('/status')
-      }
+      if (status === 'not_started') navigate('/upload-docs')
+      else if (status === 'pending' || status === 'rejected') navigate('/status')
+      else if (status === 'approved' || status === 'verified') navigate('/dashboard')
+      else navigate('/status')
     } else {
       const customerUrl = import.meta.env.VITE_CUSTOMER_URL || 'http://localhost:5173'
       window.location.href = customerUrl
@@ -64,14 +64,16 @@ const Header = ({ showSignOut = false }) => {
   }
 
   const navLinks = [
-    { path: '/dashboard', label: 'Home', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
-    { path: '/sales', label: 'Sales', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
-    { path: '/orders', label: 'Orders', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
-    { path: '/chats', label: 'Chats', icon: 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z' },
-    { path: '/menu', label: 'Menu', icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253' },
-    { path: '/reviews', label: 'Reviews', icon: 'M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z' },
-    { path: '/complaints', label: 'Complaints', icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z' },
-    { path: '/profile', label: 'Profile', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
+    { path: '/dashboard', label: 'Home' },
+    { path: '/sales', label: 'Sales' },
+    { path: '/orders', label: 'Orders' },
+    { path: '/menu', label: 'Menu' },
+    { path: '/chats', label: 'Chats' },
+    { path: '/reviews', label: 'Reviews' },
+    { path: '/complaints', label: 'Complaints' },
+    { path: '/payment-settings', label: 'Payments' },
+    { path: '/subscription', label: 'Subscription' },
+    { path: '/profile', label: 'Profile' },
   ]
 
   const isApproved = cook?.verificationStatus === 'approved' || cook?.verificationStatus === 'verified'
@@ -82,100 +84,88 @@ const Header = ({ showSignOut = false }) => {
   }
 
   return (
-    <header className="border-b border-gray-200 bg-white shadow-sm sticky top-0 z-50">
+    <header className={`sticky top-0 z-50 w-full transition-all border-b ${scrolled ? 'bg-white/95 backdrop-blur shadow-sm border-gray-200' : 'bg-white border-gray-100'}`}>
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-14 sm:h-16 items-center justify-between">
-          {/* Logo */}
+        <div className="flex h-16 items-center justify-between">
+          
+          {/* Logo - Restored Original Style */}
           <div className="flex-shrink-0 cursor-pointer" onClick={handleLogoClick}>
-            <h1 className="text-xl sm:text-2xl font-bold text-orange-600">HomelyMeals</h1>
-            <p className="text-[9px] sm:text-[10px] font-medium text-gray-500 -mt-1">Cook Portal</p>
+            <h1 className="text-[22px] sm:text-[26px] font-bold text-orange-600">HomelyMeals</h1>
+            <p className="text-[10px] sm:text-[11px] font-medium text-gray-500 -mt-1">Cook Portal</p>
           </div>
 
-          {/* Desktop Navigation + Sign Out */}
+          {/* Desktop Navigation - Original styling with improved spacing */}
+          {showSignOut && isApproved && (
+            <nav className="hidden lg:flex items-center justify-end gap-1 flex-1 px-4 overflow-x-auto">
+              {navLinks.map((link) => {
+                const isActive = location.pathname === link.path
+                const isSub = link.path === '/subscription' && !hasActiveSubscription
+                return (
+                  <button
+                    key={link.path}
+                    onClick={() => handleNavClick(link.path)}
+                    className={`relative flex items-center whitespace-nowrap px-3 py-2 rounded-lg text-[15px] font-medium transition-all ${
+                      isActive
+                        ? 'bg-orange-100 text-orange-700'
+                        : isSub
+                          ? 'bg-amber-50 text-amber-700 hover:bg-amber-100'
+                          : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                    }`}
+                  >
+                    <span>{link.label}</span>
+                    {link.path === '/chats' && unreadChats > 0 && (
+                      <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-orange-600 text-[10px] font-bold text-white shadow-sm">
+                        {unreadChats > 9 ? '9+' : unreadChats}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </nav>
+          )}
+
+          {/* Actions */}
           <div className="flex items-center gap-2">
-            {/* PWA Install Button - Always visible when installable */}
             {isInstallable && !isInstalled && (
               <button
-                type="button"
                 onClick={installApp}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-orange-200 bg-orange-50 px-2.5 py-1.5 text-sm font-semibold text-orange-600 hover:bg-orange-100 transition-colors"
-                title="Install App"
+                className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-orange-200 bg-orange-50 px-2.5 py-1.5 text-sm font-semibold text-orange-600 hover:bg-orange-100"
               >
                 <img src="/mobileapp.png" alt="" className="h-5 w-5" style={{ filter: 'invert(37%) sepia(98%) saturate(1800%) hue-rotate(11deg) brightness(94%) contrast(94%)' }} />
-                <span className="hidden sm:inline">Install</span>
+                <span>Install</span>
               </button>
             )}
 
             {showSignOut && (
               <>
-                {/* Desktop Nav Links */}
-                {isApproved && (
-                  <nav className="hidden lg:flex items-center gap-1 mr-2">
-                    {navLinks.map((link) => {
-                      const isActive = location.pathname === link.path
-                      return (
-                        <button
-                          key={link.path}
-                          onClick={() => handleNavClick(link.path)}
-                          className={`relative flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${isActive
-                            ? 'bg-orange-100 text-orange-700'
-                            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                            }`}
-                        >
-                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={link.icon} />
-                          </svg>
-                          <span>{link.label}</span>
-                          {link.path === '/chats' && unreadChats > 0 && (
-                            <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-orange-600 text-xs font-bold text-white">
-                              {unreadChats > 9 ? '9+' : unreadChats}
-                            </span>
-                          )}
-                        </button>
-                      )
-                    })}
-                  </nav>
-                )}
-
-                {/* Mobile Menu Button */}
+                {/* Mobile Menu Toggle */}
                 {isApproved && (
                   <button
-                    type="button"
                     onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                    className="lg:hidden inline-flex items-center justify-center p-2 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors"
-                    aria-expanded={mobileMenuOpen}
+                    className="lg:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
                   >
-                    <span className="sr-only">Open menu</span>
-                    {mobileMenuOpen ? (
-                      <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    ) : (
-                      <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                      </svg>
-                    )}
+                    {mobileMenuOpen ? <FiX className="h-6 w-6" /> : <FiMenu className="h-6 w-6" />}
                   </button>
                 )}
 
-                {/* Sign Out Button */}
                 <button
                   type="button"
                   onClick={signout}
-                  className="hidden sm:inline-flex items-center gap-1.5 rounded-lg bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 transition-colors"
+                  className="hidden lg:inline-flex items-center gap-2 rounded-lg bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
                 >
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                   </svg>
                   <span>Sign Out</span>
                 </button>
-                {/* Mobile Sign Out - Icon only */}
+                
+                {/* Mobile Sign Out Icon */}
                 <button
                   type="button"
                   onClick={signout}
-                  className="sm:hidden inline-flex items-center justify-center p-2 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors"
-                  title="Sign Out"
+                  className="lg:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100"
                 >
+                  <FiMenu className="hidden" /> {/* Placeholder for consistency */}
                   <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                   </svg>
@@ -186,54 +176,88 @@ const Header = ({ showSignOut = false }) => {
         </div>
       </div>
 
-      {/* Mobile Navigation Menu */}
+      {/* Side Menu Overlay - Improved Responsiveness without over-designing */}
       {showSignOut && isApproved && mobileMenuOpen && (
-        <div className="lg:hidden border-t border-gray-200 bg-white">
-          <nav className="px-4 py-3 space-y-1">
-            {navLinks.map((link) => {
-              const isActive = location.pathname === link.path
-              return (
-                <button
-                  key={link.path}
-                  onClick={() => handleNavClick(link.path)}
-                  className={`relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${isActive
-                    ? 'bg-orange-100 text-orange-700'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                    }`}
-                >
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={link.icon} />
-                  </svg>
-                  <span>{link.label}</span>
-                  {link.path === '/chats' && unreadChats > 0 && (
-                    <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-orange-600 text-xs font-bold text-white">
-                      {unreadChats > 9 ? '9+' : unreadChats}
-                    </span>
-                  )}
+        <div className="fixed inset-0 z-[60] lg:hidden">
+          <div className="absolute inset-0 bg-gray-900/20 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
+          <nav className="absolute right-0 top-0 h-full w-full max-w-[280px] bg-white shadow-xl transition-transform">
+            <div className="flex flex-col h-full bg-white p-4">
+              <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
+                <div>
+                  <h2 className="text-xl font-bold text-orange-600">Menu</h2>
+                </div>
+                <button onClick={() => setMobileMenuOpen(false)} className="p-2 rounded-full bg-gray-50 text-gray-400">
+                  <FiX className="h-5 w-5" />
                 </button>
-              )
-            })}
-            {/* Mobile Sign Out in menu */}
-            <button
-              onClick={signout}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-all mt-2 border-t border-gray-100 pt-3"
-            >
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-              <span>Sign Out</span>
-            </button>
-            {/* Mobile Install App Button */}
-            {isInstallable && !isInstalled && (
-              <button
-                onClick={installApp}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-orange-600 hover:bg-orange-50 transition-all"
-              >
-                <img src="/mobileapp.png" alt="" className="h-5 w-5" style={{ filter: 'invert(37%) sepia(98%) saturate(1800%) hue-rotate(11deg) brightness(94%) contrast(94%)' }} />
-                <span>Install App</span>
-              </button>
-            )}
+              </div>
+
+              <div className="flex-1 space-y-1 overflow-y-auto pr-1">
+                {navLinks.map((link) => {
+                  const isActive = location.pathname === link.path
+                  const isSub = link.path === '/subscription' && !hasActiveSubscription
+                  return (
+                    <button
+                      key={link.path}
+                      onClick={() => handleNavClick(link.path)}
+                      className={`flex w-full items-center justify-between px-4 py-3 rounded-xl text-[15px] font-medium transition-all ${
+                        isActive 
+                          ? 'bg-orange-100 text-orange-700' 
+                          : isSub
+                            ? 'bg-amber-50 text-amber-700'
+                            : 'text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      <span>{link.label}</span>
+                      <div className="flex items-center gap-2">
+                        {link.path === '/chats' && unreadChats > 0 && (
+                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-orange-600 text-[10px] font-bold text-white">
+                            {unreadChats}
+                          </span>
+                        )}
+                        <FiChevronRight className={`h-4 w-4 ${isActive ? 'text-orange-400' : 'text-gray-300'}`} />
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+
+              <div className="mt-auto pt-6 border-t border-gray-100 space-y-3">
+                {isInstallable && !isInstalled && (
+                  <button onClick={installApp} className="flex w-full items-center gap-3 px-4 py-3 rounded-xl bg-orange-50 text-orange-600 font-bold text-sm">
+                    <img src="/mobileapp.png" alt="" className="h-5 w-5" style={{ filter: 'invert(37%) sepia(98%) saturate(1800%) hue-rotate(11deg) brightness(94%) contrast(94%)' }} />
+                    <span>Install App</span>
+                  </button>
+                )}
+                <button onClick={signout} className="flex w-full items-center gap-3 px-4 py-3 rounded-xl bg-red-50 text-red-600 font-bold text-sm">
+                  <FiChevronRight className="rotate-180 h-4 w-4" />
+                  <span>Logout Account</span>
+                </button>
+              </div>
+            </div>
           </nav>
+        </div>
+      )}
+
+      {/* Subscription Banner - Restored Original Logic but Cleaned up */}
+      {showSignOut && isApproved && !hasActiveSubscription && (
+        <div className="bg-amber-50 border-t border-amber-200 py-3 px-4">
+          <div className="mx-auto max-w-7xl flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-3 text-center sm:text-left">
+              <div className="h-8 w-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+                <FiBell className="animate-bounce" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-amber-900 leading-tight">Subscription required to open kitchen</p>
+                <p className="text-xs text-amber-700">Activate a plan to start selling meals to customers.</p>
+              </div>
+            </div>
+            <button
+              onClick={() => handleNavClick('/subscription')}
+              className="whitespace-nowrap rounded-lg bg-amber-600 px-4 py-2 text-xs font-bold uppercase tracking-wider text-white hover:bg-amber-700"
+            >
+              Choose Plan
+            </button>
+          </div>
         </div>
       )}
     </header>

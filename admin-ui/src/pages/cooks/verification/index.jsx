@@ -74,8 +74,8 @@ const VerificationList = () => {
           </button>
         </div>
         {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader size="lg" />
+          <div className="flex flex-col items-center justify-center py-20 bg-white">
+            <Loader size="lg" label="Loading Applications" />
           </div>
         ) : error ? (
           <div className="px-6 py-16 text-center">

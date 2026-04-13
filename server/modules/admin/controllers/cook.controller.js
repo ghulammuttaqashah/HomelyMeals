@@ -7,7 +7,9 @@ import { Cook } from "../../cook/models/cook.model.js";
 export const getAllCooks = async (req, res) => {
   try {
     // Only show approved cooks in "Manage Cook Status"
-    const cooks = await Cook.find({ verificationStatus: "approved" }).select("-password");
+    const cooks = await Cook.find({ verificationStatus: "approved" })
+      .select("-password")
+      .select("+isOnlinePaymentEnabled +stripeAccountId +stripeAccountStatus");
 
     return res.status(200).json({
       message: "Cooks retrieved successfully",

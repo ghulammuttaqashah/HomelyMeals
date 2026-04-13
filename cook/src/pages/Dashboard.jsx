@@ -90,7 +90,8 @@ const Dashboard = () => {
     }
   }
 
-  const isOpen = cook?.serviceStatus === 'open'
+  const hasActiveSubscription = Boolean(cook?.hasActiveSubscription)
+  const isOpen = hasActiveSubscription && cook?.serviceStatus === 'open'
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
@@ -121,7 +122,7 @@ const Dashboard = () => {
               </div>
               <button
                 onClick={handleToggleService}
-                disabled={toggling}
+                disabled={toggling || !hasActiveSubscription}
                 className={`relative inline-flex h-6 w-10 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:cursor-not-allowed ${isOpen
                   ? 'bg-green-500 focus:ring-green-500 hover:bg-green-600'
                   : 'bg-gray-300 focus:ring-gray-400 hover:bg-gray-400'
@@ -261,6 +262,54 @@ const Dashboard = () => {
               )}
               <div className="mt-4 sm:mt-6 flex items-center text-xs sm:text-sm font-semibold text-orange-600">
                 <span>View menu</span>
+                <svg className="ml-1.5 sm:ml-2 h-3 w-3 sm:h-4 sm:w-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            </button>
+
+            {/* Payment Settings Card */}
+            <button
+              type="button"
+              onClick={() => handleCardClick('/payment-settings')}
+              className="group relative overflow-hidden rounded-lg bg-white p-5 sm:p-8 text-left shadow-sm border border-gray-200 transition-all hover:shadow-md hover:border-orange-200 active:scale-[0.98]"
+            >
+              <div className="mb-3 sm:mb-4 inline-flex rounded-lg bg-orange-100 p-2 sm:p-3 text-orange-600 shadow-sm">
+                <svg className="h-6 w-6 sm:h-8 sm:w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                </svg>
+              </div>
+              <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-gray-500">Payments</p>
+              <h3 className="mt-1.5 sm:mt-2 text-lg sm:text-2xl font-bold text-gray-900">Payment Settings</h3>
+              <p className="mt-2 sm:mt-3 text-xs sm:text-sm leading-relaxed text-gray-600">
+                Set up online payments and manage your Stripe account.
+              </p>
+              <div className="mt-4 sm:mt-6 flex items-center text-xs sm:text-sm font-semibold text-orange-600">
+                <span>Manage payments</span>
+                <svg className="ml-1.5 sm:ml-2 h-3 w-3 sm:h-4 sm:w-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            </button>
+
+            {/* Subscription Card */}
+            <button
+              type="button"
+              onClick={() => handleCardClick('/subscription')}
+              className="group relative overflow-hidden rounded-lg bg-white p-5 sm:p-8 text-left shadow-sm border border-gray-200 transition-all hover:shadow-md hover:border-orange-200 active:scale-[0.98]"
+            >
+              <div className="mb-3 sm:mb-4 inline-flex rounded-lg bg-orange-100 p-2 sm:p-3 text-orange-600 shadow-sm">
+                <svg className="h-6 w-6 sm:h-8 sm:w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8V7m0 9v1m8-5a8 8 0 11-16 0 8 8 0 0116 0z" />
+                </svg>
+              </div>
+              <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-gray-500">Billing</p>
+              <h3 className="mt-1.5 sm:mt-2 text-lg sm:text-2xl font-bold text-gray-900">Subscription</h3>
+              <p className="mt-2 sm:mt-3 text-xs sm:text-sm leading-relaxed text-gray-600">
+                View plans, subscribe with Stripe, and track your expiry date.
+              </p>
+              <div className="mt-4 sm:mt-6 flex items-center text-xs sm:text-sm font-semibold text-orange-600">
+                <span>Manage subscription</span>
                 <svg className="ml-1.5 sm:ml-2 h-3 w-3 sm:h-4 sm:w-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>

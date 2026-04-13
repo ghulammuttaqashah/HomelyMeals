@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import ProtectedLayout from '../../../components/ProtectedLayout'
 import Loader from '../../../components/Loader'
+import BackButton from '../../../components/BackButton'
 import {
   approveAllCookDocuments,
   approveCookDocument,
@@ -81,6 +82,7 @@ const normalizeDocuments = (documents) => {
     const fieldLabels = {
       cnicFront: 'CNIC Front',
       cnicBack: 'CNIC Back',
+      profilePicture: 'Profile Picture / Logo',
       sfaLicense: 'SFA License',
       kitchenPhotos: 'Kitchen Photo',
       other: 'Other Document'
@@ -298,8 +300,8 @@ const ViewDocuments = () => {
   if (loading) {
     return (
       <ProtectedLayout title="Document Viewer">
-        <div className="flex min-h-[60vh] items-center justify-center">
-          <Loader size="lg" />
+        <div className="flex min-h-[60vh] flex-col items-center justify-center bg-white rounded-lg border border-gray-100">
+          <Loader size="lg" label="Loading Proofs" />
         </div>
       </ProtectedLayout>
     )
@@ -310,13 +312,9 @@ const ViewDocuments = () => {
       <ProtectedLayout title="Document Viewer">
         <div className="rounded-2xl bg-white p-10 text-center shadow">
           <p className="text-sm font-semibold text-slate-900">Cook not found.</p>
-          <button
-            type="button"
-            onClick={() => navigate('/cooks/verification')}
-            className="mt-6 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white"
-          >
-            Back to Submissions
-          </button>
+          <div className="mt-6 flex justify-center">
+            <BackButton onClick={() => navigate('/cooks/verification')} label="Back to Submissions" />
+          </div>
         </div>
       </ProtectedLayout>
     )
@@ -375,13 +373,7 @@ const ViewDocuments = () => {
               </div>
             </div>
             <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={() => navigate('/cooks/verification')}
-                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm"
-              >
-                ← Back
-              </button>
+              <BackButton onClick={() => navigate('/cooks/verification')} />
               <button
                 type="button"
                 onClick={handleApproveAll}

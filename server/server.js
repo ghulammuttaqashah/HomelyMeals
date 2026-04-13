@@ -8,6 +8,7 @@ import cookieParser from "cookie-parser";
 import adminRoutes from "./modules/admin/index.js";
 import customerRoutes from "./modules/customer/index.js";
 import cookRoutes from "./modules/cook/index.js";
+import webhookRoutes from "./shared/routes/webhook.routes.js";
 
 import { initializeSocket } from "./shared/utils/socket.js";
 import { startOrderJobs } from "./shared/jobs/orderJobs.js";
@@ -38,6 +39,10 @@ app.use(
 );
 
 app.use(cookieParser());
+
+// Webhook routes MUST come before express.json() to preserve raw body
+app.use("/api/webhooks", webhookRoutes);
+
 app.use(express.json());
 
 // Database

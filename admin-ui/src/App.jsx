@@ -12,6 +12,10 @@ import DeliveryChargesSettings from './pages/DeliveryChargesSettings'
 import Complaints from './pages/Complaints'
 import Orders from './pages/Orders'
 import OrderDetails from './pages/OrderDetails'
+import Subscriptions from './pages/subscriptions'
+import SubscriptionRevenue from './pages/subscriptions/revenue'
+import SubscriptionPlans from './pages/subscriptions/plans'
+import ActiveSubscriptions from './pages/subscriptions/active'
 import { AuthProvider } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 
@@ -99,6 +103,38 @@ const App = () => {
             element={
               <ProtectedRoute>
                 <Complaints />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/subscriptions"
+            element={
+              <ProtectedRoute>
+                <Subscriptions />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/subscriptions/revenue"
+            element={
+              <ProtectedRoute>
+                <SubscriptionRevenue />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/subscriptions/plans"
+            element={
+              <ProtectedRoute>
+                <SubscriptionPlans />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/subscriptions/active"
+            element={
+              <ProtectedRoute>
+                <ActiveSubscriptions />
               </ProtectedRoute>
             }
           />

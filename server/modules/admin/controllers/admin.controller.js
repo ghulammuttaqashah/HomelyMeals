@@ -102,20 +102,20 @@ export const verifyAdminSignInOtp = async (req, res) => {
     const admin = await Admin.findOne({ email });
     if (!admin) return res.status(404).json({ message: "Admin not found" });
 
-    // Generate JWT (2 hours)
-    const JWT_EXPIRY_HOURS = 2;
+    // Generate JWT (1 day)
+    const JWT_EXPIRY_HOURS = 24;
     const token = jwt.sign({ id: admin._id }, JWT_SECRET, {
       expiresIn: `${JWT_EXPIRY_HOURS}h`
     });
 
-    // Set cookie (2 hours - must match JWT expiry)
+    // Set cookie (1 day - must match JWT expiry)
     // Use admin-specific cookie name to avoid conflicts with cook/customer
     res.cookie("adminToken", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "Lax", // Changed from "Strict" to "Lax" for better compatibility
       path: "/", // Explicitly set path
-      maxAge: JWT_EXPIRY_HOURS * 60 * 60 * 1000 // 2 hours in milliseconds
+      maxAge: JWT_EXPIRY_HOURS * 60 * 60 * 1000 // 1 day in milliseconds
     });
 
     // Update last login

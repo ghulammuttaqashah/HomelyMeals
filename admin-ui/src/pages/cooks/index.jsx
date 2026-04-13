@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import ProtectedLayout from '../../components/ProtectedLayout'
+import BackButton from '../../components/BackButton'
 
 const cards = [
   {
@@ -29,6 +30,10 @@ const CookManagementLanding = () => {
 
   return (
     <ProtectedLayout title="Manage Cooks">
+      <div className="mb-6">
+        <BackButton onClick={() => navigate('/dashboard')} label="Back to Dashboard" />
+      </div>
+
       <div className="grid gap-6 md:grid-cols-2">
         {cards.map((card) => (
           <button
