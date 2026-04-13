@@ -38,6 +38,18 @@ const reviewSchema = new mongoose.Schema(
             enum: ['cook', 'meal'],
             required: true,
         },
+        aspects: {
+            type: [{
+                aspect: String,
+                sentiment: {
+                    type: String,
+                    enum: ['Positive', 'Negative', 'Neutral']
+                },
+                keywords: [String],
+                reason: String
+            }],
+            default: []
+        },
     },
     {
         timestamps: true,
@@ -49,16 +61,18 @@ reviewSchema.index({ cookId: 1, reviewType: 1 });
 reviewSchema.index({ mealId: 1 });
 reviewSchema.index({ customerId: 1, cookId: 1, mealId: 1 });
 reviewSchema.index({ customerId: 1, orderId: 1 });
+reviewSchema.index({ orderId: 1, reviewType: 1 });
 
-// Ensure one review per customer per meal
+// IMPORTANT: Allow multiple reviews per meal/cook (one per order)
+// Ensure one review per ORDER per meal (not per meal globally)
 reviewSchema.index(
-    { customerId: 1, mealId: 1 },
+    { customerId: 1, orderId: 1, mealId: 1 },
     { unique: true, sparse: true, partialFilterExpression: { mealId: { $ne: null } } }
 );
 
-// Ensure one cook review per customer per cook per order
+// Ensure one cook review per ORDER (not per cook globally)
 reviewSchema.index(
-    { customerId: 1, cookId: 1, reviewType: 1 },
+    { customerId: 1, orderId: 1, reviewType: 1 },
     { unique: true, partialFilterExpression: { reviewType: 'cook' } }
 );
 

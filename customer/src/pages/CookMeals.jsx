@@ -13,6 +13,7 @@ import StarRating from '../components/StarRating'
 import ReviewsList from '../components/ReviewsList'
 import ReviewModal from '../components/ReviewModal'
 import { SkeletonCard } from '../components/Loader'
+import CookAnalytics from '../components/CookAnalytics'
 
 const CookMeals = () => {
   const { cookId } = useParams()
@@ -360,6 +361,13 @@ const CookMeals = () => {
                   </button>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Cook Analytics Section */}
+          {cook && (
+            <div className="mb-8">
+              <CookAnalytics cookId={cook._id} />
             </div>
           )}
 

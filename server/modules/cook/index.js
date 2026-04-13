@@ -11,6 +11,7 @@ import cookComplaintRoutes from "./routes/cookComplaint.routes.js";
 import cookSubscriptionRoutes from "./routes/cookSubscription.routes.js";
 import cookStripeRoutes from "./routes/cookStripe.routes.js";
 import cookPaymentSettingsRoutes from "./routes/cookPaymentSettings.routes.js";
+import cookAnalyticsRoutes from "./routes/cookAnalytics.routes.js";
 import { protect } from "../../shared/middleware/auth.js";
 
 const router = express.Router();
@@ -27,5 +28,6 @@ router.use("/complaints", cookComplaintRoutes);
 router.use("/subscriptions", cookSubscriptionRoutes);
 router.use("/stripe", cookStripeRoutes);
 router.use("/payment-settings", cookPaymentSettingsRoutes);
+router.use("/analytics", cookAnalyticsRoutes);
 
 export default router;

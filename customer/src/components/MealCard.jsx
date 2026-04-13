@@ -8,6 +8,7 @@ import StarRating from './StarRating'
 import ReviewsList from './ReviewsList'
 import ReviewModal from './ReviewModal'
 import { FiShoppingCart, FiPlus, FiMinus, FiCheck, FiStar } from 'react-icons/fi'
+import DishAnalytics from './DishAnalytics'
 
 const MealCard = ({ meal, cook, cookServesArea = true }) => {
   const [imageLoaded, setImageLoaded] = useState(false)
@@ -171,7 +172,7 @@ const MealCard = ({ meal, cook, cookServesArea = true }) => {
 
         {/* Meal Rating */}
         {mealRating > 0 && (
-          <div className="mt-2 flex items-center gap-2">
+          <div className="mt-2 flex items-center gap-2 flex-wrap">
             <StarRating rating={mealRating} size="sm" />
             <span className="text-xs font-medium text-gray-700">
               {mealRating.toFixed(1)}
@@ -180,8 +181,20 @@ const MealCard = ({ meal, cook, cookServesArea = true }) => {
               onClick={() => setShowReviewsModal(true)}
               className="text-xs text-orange-600 hover:text-orange-700 font-medium"
             >
-              ({mealReviews.length})
+              ({mealReviews.length} {mealReviews.length === 1 ? 'review' : 'reviews'})
             </button>
+            {mealReviews.length >= 5 && mealRating >= 4.0 && (
+              <span className="bg-orange-500 text-white text-xs px-2 py-0.5 rounded-full font-semibold">
+                Popular
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Dish Analytics Button - Show BEFORE ordering */}
+        {mealRating > 0 && (
+          <div className="mt-3">
+            <DishAnalytics mealId={meal.id || meal.mealId} />
           </div>
         )}
 

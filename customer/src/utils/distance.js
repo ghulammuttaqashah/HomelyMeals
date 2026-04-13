@@ -1,47 +1,20 @@
 // OpenRouteService API for distance calculation
-// Get your free API key at: https://openrouteservice.org/dev/#/signup
-const OPENROUTE_API_KEY = import.meta.env.VITE_OPENROUTE_API_KEY;
+// NOTE: Direct API calls from frontend cause CORS errors
+// The backend handles distance calculation via /api/customer/orders/calculate-delivery
+// This function now uses Haversine formula as a simple fallback for UI preview
 
 /**
- * Calculate driving distance using OpenRouteService API
+ * Calculate driving distance using Haversine formula
+ * For accurate distance, the backend uses OpenRouteService API
  * @param {Object} from - { latitude, longitude }
  * @param {Object} to - { latitude, longitude }
  * @returns {Promise<{ distance: number, duration: number }>}
  */
 export const calculateDistance = async (from, to) => {
-  // If no API key, use Haversine directly
-  if (!OPENROUTE_API_KEY) {
-    console.warn("OpenRouteService API key not found, using Haversine formula");
-    return calculateHaversineDistance(from, to);
-  }
-
-  try {
-    const url = `https://api.openrouteservice.org/v2/directions/driving-car?api_key=${OPENROUTE_API_KEY}&start=${from.longitude},${from.latitude}&end=${to.longitude},${to.latitude}`;
-    
-    const response = await fetch(url);
-
-    if (!response.ok) {
-      throw new Error("OpenRouteService API error");
-    }
-
-    const data = await response.json();
-    
-    const feature = data.features[0];
-    const properties = feature.properties.summary;
-
-    // OpenRouteService returns distance in meters and duration in seconds
-    const distanceKm = parseFloat((properties.distance / 1000).toFixed(2));
-    const durationMinutes = Math.ceil(properties.duration / 60);
-
-    return {
-      distance: distanceKm,
-      duration: durationMinutes,
-    };
-  } catch (error) {
-    console.error("OpenRouteService error, using Haversine fallback:", error.message);
-    // Fallback to Haversine formula if API fails
-    return calculateHaversineDistance(from, to);
-  }
+  // Use Haversine formula to avoid CORS issues
+  // Backend will calculate accurate distance when order is placed
+  console.log("📍 Calculating distance using Haversine formula (frontend preview)");
+  return calculateHaversineDistance(from, to);
 };
 
 /**

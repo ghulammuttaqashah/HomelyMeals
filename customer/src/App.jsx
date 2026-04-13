@@ -6,6 +6,7 @@ import PublicRoute from './components/PublicRoute'
 import ProtectedRoute from './components/ProtectedRoute'
 import PWAInstallBanner from './components/PWAInstallBanner'
 import SocketListener from './components/SocketListener'
+import Chatbot from './components/Chatbot'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
@@ -156,6 +157,10 @@ const App = () => {
             }}
           />
           <PWAInstallBanner />
+          
+          {/* Global Chatbot - Visible on all pages */}
+          <Chatbot />
+          
         </CartProvider>
       </AuthProvider>
     </BrowserRouter>

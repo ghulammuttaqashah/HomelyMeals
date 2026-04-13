@@ -16,6 +16,17 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     const isSignoutEndpoint = error.config?.url?.includes('/signout')
+    const isAuthMeEndpoint = error.config?.url?.includes('/auth/me')
+    
+    // Silently handle expected 401 on /auth/me (checking if logged in)
+    if (error.response?.status === 401 && isAuthMeEndpoint) {
+      // This is expected when not logged in, silently reject without logging
+      const silentError = new Error('Not authenticated')
+      silentError.response = error.response
+      silentError.config = error.config
+      silentError.__EXPECTED_AUTH_ERROR__ = true
+      return Promise.reject(silentError)
+    }
     
     if (
       error.response?.status === 401 &&

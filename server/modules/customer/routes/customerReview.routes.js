@@ -2,6 +2,7 @@ import express from 'express';
 import Review from '../../../shared/models/review.model.js';
 import { Order } from '../../../shared/models/order.model.js';
 import { protect } from '../../../shared/middleware/auth.js';
+import { analyzeReview } from '../../../shared/services/absa.service.js';
 
 const router = express.Router();
 
@@ -50,17 +51,23 @@ router.post('/', protect, async (req, res) => {
             }
         }
 
-        // Check for duplicate reviews
+        // Check for duplicate reviews FOR THIS ORDER
         if (reviewType === 'meal') {
-            const existingReview = await Review.findOne({ customerId, mealId });
+            const existingReview = await Review.findOne({ customerId, orderId, mealId });
             if (existingReview) {
-                return res.status(400).json({ message: 'You have already reviewed this meal' });
+                return res.status(400).json({ message: 'You have already reviewed this meal for this order' });
             }
         } else {
-            const existingReview = await Review.findOne({ customerId, cookId, reviewType: 'cook' });
+            const existingReview = await Review.findOne({ customerId, orderId, reviewType: 'cook' });
             if (existingReview) {
-                return res.status(400).json({ message: 'You have already reviewed this cook' });
+                return res.status(400).json({ message: 'You have already reviewed this cook for this order' });
             }
+        }
+
+        // Analyze review text with ABSA
+        let aspects = [];
+        if (reviewText && reviewText.trim().length > 0) {
+            aspects = await analyzeReview(reviewText, reviewType);
         }
 
         // Create review
@@ -72,6 +79,7 @@ router.post('/', protect, async (req, res) => {
             rating,
             reviewText: reviewText || '',
             reviewType,
+            aspects
         });
 
         await review.save();
@@ -178,14 +186,14 @@ router.get('/can-review/:orderId', protect, async (req, res) => {
             });
         }
 
-        // Check if cook has been reviewed
-        const cookReview = await Review.findOne({ customerId, cookId: order.cookId, reviewType: 'cook' });
+        // Check if cook has been reviewed FOR THIS ORDER
+        const cookReview = await Review.findOne({ customerId, orderId, reviewType: 'cook' });
         const canReviewCook = !cookReview;
 
-        // Check which meals can be reviewed
+        // Check which meals can be reviewed FOR THIS ORDER
         const canReviewMeals = await Promise.all(
             order.items.map(async (item) => {
-                const mealReview = await Review.findOne({ customerId, mealId: item.mealId });
+                const mealReview = await Review.findOne({ customerId, orderId, mealId: item.mealId });
                 return {
                     mealId: item.mealId,
                     mealName: item.name,
@@ -225,7 +233,15 @@ router.put('/:reviewId', protect, async (req, res) => {
 
         // Update fields
         if (rating) review.rating = rating;
-        if (reviewText !== undefined) review.reviewText = reviewText;
+        if (reviewText !== undefined) {
+            review.reviewText = reviewText;
+            // Re-analyze if text changed
+            if (reviewText && reviewText.trim().length > 0) {
+                review.aspects = await analyzeReview(reviewText, review.reviewType);
+            } else {
+                review.aspects = [];
+            }
+        }
 
         await review.save();
         await review.populate('customerId', 'name');

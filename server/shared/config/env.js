@@ -9,3 +9,5 @@ export const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey";
 export const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
 export const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || "";
 export const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || "";
+export const GROQ_API_KEY = process.env.GROQ_API_KEY;
+export const OPENROUTE_API_KEY = process.env.OPENROUTE_API_KEY;

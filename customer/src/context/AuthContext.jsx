@@ -28,6 +28,17 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true)
   const isLoggingOut = useRef(false)
 
+  // Set up unauthorized handler
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      if (!isLoggingOut.current) {
+        resetState()
+        navigate('/login', { replace: true })
+        toast.error('Session expired. Please login again.')
+      }
+    })
+  }, [navigate])
+
   // Check authentication on mount
   useEffect(() => {
     const checkAuth = async (retries = 1) => {
@@ -38,13 +49,26 @@ export const AuthProvider = ({ children }) => {
         // Initialize socket when authenticated
         initializeSocket()
       } catch (error) {
-        // Retry once after a short delay — handles browser session restore
-        // where cookies may not be available on the very first request
-        if (retries > 0) {
+        // Silently handle expected auth errors (401 on /auth/me)
+        if (error.__EXPECTED_AUTH_ERROR__) {
+          setCustomer(null)
+          setIsAuthenticated(false)
+          setIsLoading(false)
+          return
+        }
+        
+        // Log unexpected errors
+        if (error.response?.status !== 401) {
+          console.error('Auth check error:', error)
+        }
+        
+        // Retry once after a short delay for network issues only
+        if (retries > 0 && error.code === 'ERR_NETWORK') {
           await new Promise((r) => setTimeout(r, 600))
           return checkAuth(retries - 1)
         }
-        // Not authenticated, that's okay
+        
+        // Not authenticated
         setCustomer(null)
         setIsAuthenticated(false)
       } finally {
