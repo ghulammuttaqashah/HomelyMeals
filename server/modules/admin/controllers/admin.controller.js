@@ -113,7 +113,7 @@ export const verifyAdminSignInOtp = async (req, res) => {
     res.cookie("adminToken", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "Lax", // Changed from "Strict" to "Lax" for better compatibility
+      sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax", // Changed from "Strict" to "Lax" for better compatibility
       path: "/", // Explicitly set path
       maxAge: JWT_EXPIRY_HOURS * 60 * 60 * 1000 // 1 day in milliseconds
     });
