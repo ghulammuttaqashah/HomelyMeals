@@ -211,8 +211,9 @@ export const signOut = async (req, res) => {
   try {
     res.clearCookie("customerToken", {
       httpOnly: true,
-      sameSite: "Strict",
-      secure: process.env.NODE_ENV === "production"
+      sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/"
     });
 
     return res.status(200).json({ message: "Sign-out successful" });

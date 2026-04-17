@@ -195,7 +195,7 @@ export const adminSignOut = async (req, res) => {
   try {
     res.clearCookie("adminToken", {
       httpOnly: true,
-      sameSite: "Lax", // Must match the cookie settings
+      sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax", // Must match the cookie settings
       path: "/", // Must match the cookie settings
       secure: process.env.NODE_ENV === "production"
     });

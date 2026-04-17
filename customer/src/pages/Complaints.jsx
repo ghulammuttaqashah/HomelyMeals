@@ -174,11 +174,11 @@ const Complaints = () => {
           <span>Back to Dashboard</span>
         </button>
 
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">Complaints & Warnings</h1>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-4 sm:mb-6">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Complaints & Warnings</h1>
           <button
             onClick={() => navigate("/file-complaint")}
-            className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium"
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium w-full sm:w-auto"
           >
             <FiPlus className="w-4 h-4" />
             File Complaint
@@ -186,7 +186,7 @@ const Complaints = () => {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-4 border-b border-gray-200 mb-6 overflow-x-auto">
+        <div className="flex gap-2 sm:gap-4 border-b border-gray-200 mb-4 sm:mb-6 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
           <button
             onClick={() => setActiveTab("complaints")}
             className={`pb-3 px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap flex items-center gap-1.5 ${
@@ -341,25 +341,25 @@ const Complaints = () => {
                   <div
                     key={complaint._id}
                     onClick={() => viewDetail(complaint._id)}
-                    className={`bg-white rounded-lg shadow-sm p-4 cursor-pointer hover:shadow-md transition-shadow ${needsResponse ? 'border-l-4 border-orange-400' : ''}`}
+                    className={`bg-white rounded-lg shadow-sm p-3 sm:p-4 cursor-pointer hover:shadow-md transition-shadow ${needsResponse ? 'border-l-4 border-orange-400' : ''}`}
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <span className="font-semibold text-gray-800">{complaint.type}</span>
+                          <span className="font-semibold text-gray-800 text-sm sm:text-base">{complaint.type}</span>
                           <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${statusCfg.color}`}>
                             <StatusIcon className="w-3 h-3" />
-                            {statusCfg.label}
+                            <span className="whitespace-nowrap">{statusCfg.label}</span>
                           </span>
                           {needsResponse && (
                             <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
                               <FiMessageSquare className="w-3 h-3" />
-                              New Response
+                              <span className="whitespace-nowrap">New Response</span>
                             </span>
                           )}
                         </div>
                         {complaint.orderId && (
-                          <p className="text-sm text-gray-500">
+                          <p className="text-xs sm:text-sm text-gray-500">
                             Order #{complaint.orderId.orderNumber}
                           </p>
                         )}
@@ -367,7 +367,7 @@ const Complaints = () => {
                           {formatDate(complaint.createdAt)}
                         </p>
                       </div>
-                      <FiChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                      <FiChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0 self-center sm:self-start" />
                     </div>
                   </div>
                 );

@@ -381,16 +381,16 @@ const Checkout = () => {
           <span>Back to Cart</span>
         </button>
 
-        <h1 className="text-2xl font-bold text-gray-800 mb-6">Checkout</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-6">Checkout</h1>
 
         {cart.items.length > 0 && !cart.cookId && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <div className="flex items-start gap-3">
-              <FiAlertCircle className="w-5 h-5 text-red-500 mt-0.5" />
+          <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-start gap-2 sm:gap-3">
+              <FiAlertCircle className="w-4 sm:w-5 h-4 sm:h-5 text-red-500 mt-0.5 flex-shrink-0" />
               <div>
-                <h3 className="font-medium text-red-800">Cart Data Outdated</h3>
-                <p className="text-sm text-red-600 mt-1">Please clear your cart and add items again.</p>
-                <button type="button" onClick={() => { clearCart(); navigate("/dashboard"); }} className="mt-2 text-sm font-medium text-red-700 underline">
+                <h3 className="font-medium text-red-800 text-sm sm:text-base">Cart Data Outdated</h3>
+                <p className="text-xs sm:text-sm text-red-600 mt-1">Please clear your cart and add items again.</p>
+                <button type="button" onClick={() => { clearCart(); navigate("/dashboard"); }} className="mt-2 text-xs sm:text-sm font-medium text-red-700 underline">
                   Clear Cart & Go to Dashboard
                 </button>
               </div>
@@ -398,14 +398,14 @@ const Checkout = () => {
           </div>
         )}
 
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-3 gap-4 sm:gap-6">
           {/* Left Column */}
-          <div className="md:col-span-2 space-y-6">
+          <div className="md:col-span-2 space-y-4 sm:space-y-6">
             {/* Delivery Address */}
-            <div className="bg-white rounded-lg shadow-sm p-5">
-              <div className="flex items-center gap-2 mb-4">
-                <FiMapPin className="w-5 h-5 text-orange-600" />
-                <h2 className="text-lg font-semibold">Delivery Address</h2>
+            <div className="bg-white rounded-lg shadow-sm p-4 sm:p-5">
+              <div className="flex items-center gap-2 mb-3 sm:mb-4">
+                <FiMapPin className="w-4 sm:w-5 h-4 sm:h-5 text-orange-600" />
+                <h2 className="text-base sm:text-lg font-semibold">Delivery Address</h2>
               </div>
 
               {customer?.addresses?.length > 0 && (
@@ -494,13 +494,13 @@ const Checkout = () => {
             </div>
 
             {/* Special Instructions */}
-            <div className="bg-white rounded-lg shadow-sm p-5">
-              <h2 className="text-lg font-semibold mb-4">Special Instructions (Optional)</h2>
+            <div className="bg-white rounded-lg shadow-sm p-4 sm:p-5">
+              <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Special Instructions (Optional)</h2>
               <textarea
                 value={specialInstructions}
                 onChange={(e) => setSpecialInstructions(e.target.value)}
                 placeholder="Any special requests for your order..."
-                className="w-full p-3 border rounded-lg resize-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                className="w-full p-2 sm:p-3 border rounded-lg resize-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm sm:text-base"
                 rows={3}
               />
             </div>

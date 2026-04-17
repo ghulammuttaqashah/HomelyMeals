@@ -372,18 +372,18 @@ const CookMeals = () => {
           )}
 
           {/* Filter Section */}
-          <div className="mb-8 rounded-lg bg-white p-6 shadow-sm border border-gray-200">
-            <h2 className="mb-4 text-lg font-semibold text-gray-900">Filter Meals</h2>
+          <div className="mb-6 sm:mb-8 rounded-lg bg-white p-4 sm:p-6 shadow-sm border border-gray-200">
+            <h2 className="mb-3 sm:mb-4 text-base sm:text-lg font-semibold text-gray-900">Filter Meals</h2>
 
             {/* Search Bar */}
-            <div className="mb-4">
+            <div className="mb-3 sm:mb-4">
               <div className="relative">
                 <input
                   type="text"
                   placeholder="Search meals by name or description..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 pl-10 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 sm:py-3 pl-10 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
                 />
                 <svg
                   className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400"
@@ -402,14 +402,14 @@ const CookMeals = () => {
             </div>
 
             {/* Filters Row */}
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
               {/* Category Filter */}
               <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">Category</label>
+                <label className="mb-2 block text-xs sm:text-sm font-medium text-gray-700">Category</label>
                 <select
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 sm:px-4 py-2.5 sm:py-3 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
                 >
                   {categories.map((category) => (
                     <option key={category} value={category}>
@@ -421,11 +421,11 @@ const CookMeals = () => {
 
               {/* Sort By */}
               <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">Sort By</label>
+                <label className="mb-2 block text-xs sm:text-sm font-medium text-gray-700">Sort By</label>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 sm:px-4 py-2.5 sm:py-3 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
                 >
                   <option value="default">Default</option>
                   <option value="price-low">Price (Low to High)</option>
@@ -491,11 +491,11 @@ const CookMeals = () => {
           {/* Meals Grid */}
           {filteredMeals.length > 0 ? (
             <>
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900">Menu</h2>
-                <p className="text-sm text-gray-600">{filteredMeals.length} meals available</p>
+              <div className="mb-3 sm:mb-4 flex items-center justify-between">
+                <h2 className="text-lg sm:text-xl font-bold text-gray-900">Menu</h2>
+                <p className="text-xs sm:text-sm text-gray-600">{filteredMeals.length} meals available</p>
               </div>
-              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                 {filteredMeals.map((meal) => (
                   <MealCard key={meal.id} meal={meal} cook={cook} cookServesArea={cookServesArea} />
                 ))}

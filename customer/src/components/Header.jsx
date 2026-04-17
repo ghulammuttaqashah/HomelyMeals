@@ -106,14 +106,14 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
   }
 
   return (
-    <header className="border-b border-gray-200 bg-white shadow-sm">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 lg:px-6">
-        <div className="flex items-center gap-4">
-          <div className="cursor-pointer" onClick={handleLogoClick}>
+    <header className="border-b border-gray-200 bg-white shadow-sm sticky top-0 z-40">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-3 sm:px-4 lg:px-6 py-2 sm:py-3">
+        <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
+          <div className="cursor-pointer min-w-0" onClick={handleLogoClick}>
             {showPortalText && (
-              <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Customer Portal</p>
+              <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-gray-500">Customer Portal</p>
             )}
-            <h1 className="text-xl font-bold text-orange-600">HomelyMeals</h1>
+            <h1 className="text-base sm:text-xl font-bold text-orange-600 truncate">HomelyMeals</h1>
           </div>
 
           {/* Address Display - Only for authenticated users */}
@@ -202,13 +202,13 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
           {/* PWA Install Button */}
           {isInstallable && !isInstalled && (
             <button
               type="button"
               onClick={installApp}
-              className="flex items-center gap-1.5 rounded-lg border border-orange-200 bg-orange-50 px-2.5 py-1.5 text-orange-600 hover:bg-orange-100 transition-colors"
+              className="hidden sm:flex items-center gap-1.5 rounded-lg border border-orange-200 bg-orange-50 px-2.5 py-1.5 text-orange-600 hover:bg-orange-100 transition-colors"
               title="Install App"
             >
               <img src="/mobileapp.png" alt="" className="h-5 w-5" style={{ filter: 'invert(37%) sepia(98%) saturate(1800%) hue-rotate(11deg) brightness(94%) contrast(94%)' }} />
@@ -222,13 +222,13 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
               <button
                 type="button"
                 onClick={() => navigate('/chats')}
-                className="relative flex items-center gap-1 rounded-lg border border-gray-200 p-2 text-gray-600 hover:bg-gray-50 transition-colors"
+                className="relative flex items-center gap-1 rounded-lg border border-gray-200 p-1.5 sm:p-2 text-gray-600 hover:bg-gray-50 transition-colors"
                 title="Messages"
               >
-                <FiMessageCircle className="h-5 w-5" />
-                <span className="hidden sm:inline text-sm font-medium">Chats</span>
+                <FiMessageCircle className="h-4 w-4 sm:h-5 sm:w-5" />
+                <span className="hidden md:inline text-sm font-medium">Chats</span>
                 {unreadChats > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-orange-600 text-xs font-bold text-white">
+                  <span className="absolute -top-1 -right-1 flex h-4 w-4 sm:h-5 sm:w-5 items-center justify-center rounded-full bg-orange-600 text-[10px] sm:text-xs font-bold text-white">
                     {unreadChats > 9 ? '9+' : unreadChats}
                   </span>
                 )}
@@ -238,34 +238,34 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
               <button
                 type="button"
                 onClick={() => navigate('/orders')}
-                className="flex items-center gap-1 rounded-lg border border-gray-200 p-2 text-gray-600 hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-1 rounded-lg border border-gray-200 p-1.5 sm:p-2 text-gray-600 hover:bg-gray-50 transition-colors"
                 title="My Orders"
               >
-                <FiPackage className="h-5 w-5" />
-                <span className="hidden sm:inline text-sm font-medium">Orders</span>
+                <FiPackage className="h-4 w-4 sm:h-5 sm:w-5" />
+                <span className="hidden md:inline text-sm font-medium">Orders</span>
               </button>
 
               {/* Complaints Button */}
               <button
                 type="button"
                 onClick={() => navigate('/complaints')}
-                className="flex items-center gap-1 rounded-lg border border-gray-200 p-2 text-gray-600 hover:bg-gray-50 transition-colors"
+                className="hidden sm:flex items-center gap-1 rounded-lg border border-gray-200 p-1.5 sm:p-2 text-gray-600 hover:bg-gray-50 transition-colors"
                 title="My Complaints"
               >
-                <FiAlertTriangle className="h-5 w-5" />
-                <span className="hidden sm:inline text-sm font-medium">Complaints</span>
+                <FiAlertTriangle className="h-4 w-4 sm:h-5 sm:w-5" />
+                <span className="hidden md:inline text-sm font-medium">Complaints</span>
               </button>
 
               {/* Cart Button */}
               <button
                 type="button"
                 onClick={() => navigate('/cart')}
-                className="relative flex items-center gap-1 rounded-lg border border-gray-200 p-2 text-gray-600 hover:bg-gray-50 transition-colors"
+                className="relative flex items-center gap-1 rounded-lg border border-gray-200 p-1.5 sm:p-2 text-gray-600 hover:bg-gray-50 transition-colors"
                 title="Cart"
               >
-                <FiShoppingCart className="h-5 w-5" />
+                <FiShoppingCart className="h-4 w-4 sm:h-5 sm:w-5" />
                 {itemCount > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-orange-600 text-xs font-bold text-white">
+                  <span className="absolute -top-1 -right-1 flex h-4 w-4 sm:h-5 sm:w-5 items-center justify-center rounded-full bg-orange-600 text-[10px] sm:text-xs font-bold text-white">
                     {itemCount > 9 ? '9+' : itemCount}
                   </span>
                 )}
@@ -275,10 +275,10 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
               {customer?.addresses?.length > 0 && (
                 <button
                   onClick={() => navigate('/profile')}
-                  className="flex items-center gap-1 rounded-lg border border-gray-200 p-2 text-gray-600 hover:bg-gray-50 md:hidden"
+                  className="flex items-center gap-1 rounded-lg border border-gray-200 p-1.5 sm:p-2 text-gray-600 hover:bg-gray-50 md:hidden"
                   title="Manage addresses"
                 >
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -292,9 +292,9 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
               <button
                 type="button"
                 onClick={() => navigate('/profile')}
-                className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                className="hidden sm:flex items-center gap-2 rounded-lg border border-gray-200 px-2 sm:px-3 py-1.5 sm:py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
               >
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -302,15 +302,15 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
                     d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
                   />
                 </svg>
-                <span className="hidden font-medium sm:inline">{customer?.name || 'Profile'}</span>
+                <span className="hidden lg:inline font-medium">{customer?.name || 'Profile'}</span>
               </button>
               <button
                 type="button"
                 onClick={signout}
-                className="rounded-lg bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 transition-colors"
+                className="rounded-lg bg-gray-100 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-200 transition-colors"
               >
                 <span className="hidden sm:inline">Sign Out</span>
-                <svg className="h-5 w-5 sm:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="h-4 w-4 sm:h-5 sm:w-5 sm:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>
               </button>
@@ -320,9 +320,10 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
               <button
                 type="button"
                 onClick={() => navigate('/login')}
-                className="rounded-lg border border-orange-600 bg-white px-4 py-2 text-sm font-medium text-orange-600 shadow-sm hover:bg-orange-50 transition-colors"
+                className="rounded-lg border border-orange-600 bg-white px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-orange-600 shadow-sm hover:bg-orange-50 transition-colors whitespace-nowrap"
               >
-                Join as Customer
+                <span className="hidden sm:inline">Join as Customer</span>
+                <span className="sm:hidden">Customer</span>
               </button>
               <button
                 type="button"
@@ -330,9 +331,10 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
                   const cookUrl = import.meta.env.VITE_COOK_URL || 'http://localhost:5174'
                   window.location.href = cookUrl
                 }}
-                className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-orange-700 transition-colors"
+                className="rounded-lg bg-orange-600 px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-white shadow-sm hover:bg-orange-700 transition-colors whitespace-nowrap"
               >
-                Join as Cook
+                <span className="hidden sm:inline">Join as Cook</span>
+                <span className="sm:hidden">Cook</span>
               </button>
             </>
           ) : null}

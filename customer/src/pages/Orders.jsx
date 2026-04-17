@@ -112,18 +112,18 @@ const Orders = () => {
     return (
       <div
         onClick={() => navigate(`/orders/${order._id}`)}
-        className="bg-white rounded-lg shadow-sm p-4 cursor-pointer hover:shadow-md transition-shadow"
+        className="bg-white rounded-lg shadow-sm p-3 sm:p-4 cursor-pointer hover:shadow-md transition-shadow"
       >
-        <div className="flex items-start justify-between mb-3">
-          <div>
-            <p className="font-semibold text-gray-800">#{order.orderNumber}</p>
-            <p className="text-sm text-gray-500">{formatDate(order.createdAt)}</p>
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-3">
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-gray-800 text-sm sm:text-base">#{order.orderNumber}</p>
+            <p className="text-xs sm:text-sm text-gray-500">{formatDate(order.createdAt)}</p>
           </div>
           <span
-            className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${statusConfig.color}`}
+            className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${statusConfig.color} self-start`}
           >
             <StatusIcon className="w-3 h-3" />
-            {statusConfig.label}
+            <span className="whitespace-nowrap">{statusConfig.label}</span>
           </span>
         </div>
 
@@ -154,19 +154,19 @@ const Orders = () => {
           </div>
         </div>
 
-        <div className="flex items-center justify-between pt-3 border-t">
-          <span className="font-bold text-orange-600">Rs. {order.totalAmount}</span>
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 pt-3 border-t">
+          <span className="font-bold text-orange-600 text-base sm:text-lg">Rs. {order.totalAmount}</span>
+          <div className="flex items-center justify-between sm:justify-end gap-2">
             {order.status === "delivered" && (
               <button
                 onClick={(e) => handleReorder(e, order)}
-                className="flex items-center gap-1 px-3 py-1.5 bg-orange-100 text-orange-600 rounded-full text-sm font-medium hover:bg-orange-200 transition-colors"
+                className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 bg-orange-100 text-orange-600 rounded-full text-xs sm:text-sm font-medium hover:bg-orange-200 transition-colors"
               >
-                <FiRepeat className="w-3.5 h-3.5" />
-                Reorder
+                <FiRepeat className="w-3 sm:w-3.5 h-3 sm:h-3.5" />
+                <span className="whitespace-nowrap">Reorder</span>
               </button>
             )}
-            <FiChevronRight className="w-5 h-5 text-gray-400" />
+            <FiChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
           </div>
         </div>
       </div>
@@ -189,12 +189,12 @@ const Orders = () => {
         <h1 className="text-2xl font-bold text-gray-800 mb-6">My Orders</h1>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex gap-2 mb-6 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
           {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2 rounded-full font-medium transition-colors ${
+              className={`px-3 sm:px-4 py-2 rounded-full font-medium transition-colors whitespace-nowrap text-sm sm:text-base ${
                 activeTab === tab.id
                   ? "bg-orange-600 text-white"
                   : "bg-white text-gray-600 hover:bg-gray-100"

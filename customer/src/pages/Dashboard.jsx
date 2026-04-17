@@ -82,15 +82,15 @@ const Dashboard = () => {
           )}
 
           {/* Search Section */}
-          <div className="mb-8 rounded-xl bg-white p-6 shadow-sm border border-gray-200">
-            <h2 className="mb-4 text-lg font-semibold text-gray-900">Search for Meals</h2>
+          <div className="mb-6 sm:mb-8 rounded-xl bg-white p-4 sm:p-6 shadow-sm border border-gray-200">
+            <h2 className="mb-3 sm:mb-4 text-base sm:text-lg font-semibold text-gray-900">Search for Meals</h2>
             <div className="relative">
               <input
                 type="text"
                 placeholder="Search by meal name (e.g., Biryani, Karahi, Pizza...)"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 pl-10 pr-10 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-colors"
+                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 sm:py-3 pl-10 pr-10 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-colors"
               />
               <svg
                 className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400"
@@ -152,7 +152,7 @@ const Dashboard = () => {
                 </h2>
                 <p className="text-sm text-gray-600">{cooks.length} cooks found</p>
               </div>
-              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {cooks.map((cook) => (
                   <CookCard key={cook.cookId} cook={cook} />
                 ))}

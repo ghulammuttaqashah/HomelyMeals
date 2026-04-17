@@ -42,11 +42,11 @@ const Cart = () => {
           <span>Continue Shopping</span>
         </button>
 
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">Your Cart</h1>
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Your Cart</h1>
           <button
             onClick={clearCart}
-            className="text-red-500 hover:text-red-600 text-sm font-medium"
+            className="text-red-500 hover:text-red-600 text-xs sm:text-sm font-medium"
           >
             Clear Cart
           </button>
@@ -64,12 +64,12 @@ const Cart = () => {
           {cart.items.map((item, index) => (
             <div
               key={item.mealId}
-              className={`flex items-center gap-4 p-4 ${
+              className={`flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 ${
                 index !== cart.items.length - 1 ? "border-b" : ""
               }`}
             >
               {/* Item Image */}
-              <div className="w-20 h-20 flex-shrink-0">
+              <div className="w-full sm:w-20 h-32 sm:h-20 flex-shrink-0">
                 <img
                   src={item.imageUrl || "/placeholder-meal.png"}
                   alt={item.name}
@@ -78,42 +78,44 @@ const Cart = () => {
               </div>
 
               {/* Item Details */}
-              <div className="flex-grow">
-                <h3 className="font-medium text-gray-800">{item.name}</h3>
-                <p className="text-orange-600 font-semibold">Rs. {item.price}</p>
+              <div className="flex-grow w-full sm:w-auto">
+                <h3 className="font-medium text-gray-800 text-sm sm:text-base">{item.name}</h3>
+                <p className="text-orange-600 font-semibold text-sm sm:text-base">Rs. {item.price}</p>
               </div>
 
-              {/* Quantity Controls */}
-              <div className="flex items-center gap-2">
+              {/* Quantity Controls - Mobile: Full width, Desktop: Inline */}
+              <div className="flex items-center justify-between sm:justify-start w-full sm:w-auto gap-3 sm:gap-2">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => updateQuantity(item.mealId, item.quantity - 1)}
+                    className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+                  >
+                    <FiMinus className="w-4 h-4" />
+                  </button>
+                  <span className="w-8 text-center font-medium">{item.quantity}</span>
+                  <button
+                    onClick={() => updateQuantity(item.mealId, item.quantity + 1)}
+                    className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+                  >
+                    <FiPlus className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Item Total */}
+                <div className="text-right sm:w-20">
+                  <p className="font-semibold text-gray-800 text-sm sm:text-base">
+                    Rs. {item.price * item.quantity}
+                  </p>
+                </div>
+
+                {/* Remove Button */}
                 <button
-                  onClick={() => updateQuantity(item.mealId, item.quantity - 1)}
-                  className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+                  onClick={() => removeFromCart(item.mealId)}
+                  className="text-red-500 hover:text-red-600 p-2"
                 >
-                  <FiMinus className="w-4 h-4" />
-                </button>
-                <span className="w-8 text-center font-medium">{item.quantity}</span>
-                <button
-                  onClick={() => updateQuantity(item.mealId, item.quantity + 1)}
-                  className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
-                >
-                  <FiPlus className="w-4 h-4" />
+                  <FiTrash2 className="w-5 h-5" />
                 </button>
               </div>
-
-              {/* Item Total */}
-              <div className="w-24 text-right">
-                <p className="font-semibold text-gray-800">
-                  Rs. {item.price * item.quantity}
-                </p>
-              </div>
-
-              {/* Remove Button */}
-              <button
-                onClick={() => removeFromCart(item.mealId)}
-                className="text-red-500 hover:text-red-600 p-2"
-              >
-                <FiTrash2 className="w-5 h-5" />
-              </button>
             </div>
           ))}
         </div>

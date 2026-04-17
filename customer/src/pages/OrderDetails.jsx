@@ -245,31 +245,31 @@ const OrderDetails = () => {
         </div>
 
         {/* Order Header */}
-        <div className="bg-white rounded-lg shadow-sm p-5 mb-4">
-          <div className="flex items-start justify-between mb-4">
+        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-5 mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-0 mb-4">
             <div>
-              <h1 className="text-xl font-bold text-gray-800">Order #{order.orderNumber}</h1>
-              <p className="text-sm text-gray-500">{formatDate(order.createdAt)}</p>
+              <h1 className="text-lg sm:text-xl font-bold text-gray-800">Order #{order.orderNumber}</h1>
+              <p className="text-xs sm:text-sm text-gray-500">{formatDate(order.createdAt)}</p>
             </div>
-            <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusConfig.color} text-white`}>
+            <span className={`px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${statusConfig.color} text-white self-start`}>
               {statusConfig.label}
             </span>
           </div>
 
           {/* Progress Steps */}
           {order.status !== "cancelled" && (
-            <div className="flex items-center justify-between mt-6">
+            <div className="flex items-center justify-between mt-6 overflow-x-auto pb-2">
               {["Confirmed", "Preparing", "On the Way", "Delivered"].map((step, index) => (
-                <div key={step} className="flex flex-col items-center flex-1">
+                <div key={step} className="flex flex-col items-center flex-1 min-w-[60px]">
                   <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center ${index + 1 <= statusConfig.step
+                    className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-sm ${index + 1 <= statusConfig.step
                       ? "bg-orange-600 text-white"
                       : "bg-gray-200 text-gray-400"
                       }`}
                   >
                     {index + 1 <= statusConfig.step ? <FiCheck /> : index + 1}
                   </div>
-                  <span className="text-xs mt-1 text-gray-500">{step}</span>
+                  <span className="text-[10px] sm:text-xs mt-1 text-gray-500 text-center">{step}</span>
                 </div>
               ))}
             </div>
@@ -328,31 +328,31 @@ const OrderDetails = () => {
         )}
 
         {/* Order Items */}
-        <div className="bg-white rounded-lg shadow-sm p-5 mb-4">
-          <h2 className="text-lg font-semibold mb-4">Order Items</h2>
+        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-5 mb-4">
+          <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Order Items</h2>
           <div className="space-y-3">
             {order.items.map((item, index) => {
               const mealReviewInfo = canReview?.canReviewMeals?.find(m => m.mealId.toString() === item.mealId.toString());
 
               return (
                 <div key={index} className="border-b border-gray-100 last:border-0 pb-3 last:pb-0">
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3 sm:gap-4">
                     {item.itemImage ? (
                       <img
                         src={item.itemImage}
                         alt={item.name}
-                        className="w-16 h-16 rounded-lg object-cover bg-gray-100"
+                        className="w-14 h-14 sm:w-16 sm:h-16 rounded-lg object-cover bg-gray-100 flex-shrink-0"
                       />
                     ) : (
-                      <div className="w-16 h-16 rounded-lg bg-orange-100 flex items-center justify-center">
-                        <span className="text-2xl">🍽️</span>
+                      <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-lg bg-orange-100 flex items-center justify-center flex-shrink-0">
+                        <span className="text-xl sm:text-2xl">🍽️</span>
                       </div>
                     )}
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-800">{item.name}</p>
-                      <p className="text-sm text-gray-500">Qty: {item.quantity} × Rs. {item.price}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-800 text-sm sm:text-base truncate">{item.name}</p>
+                      <p className="text-xs sm:text-sm text-gray-500">Qty: {item.quantity} × Rs. {item.price}</p>
                     </div>
-                    <p className="font-semibold">Rs. {item.price * item.quantity}</p>
+                    <p className="font-semibold text-sm sm:text-base whitespace-nowrap">Rs. {item.price * item.quantity}</p>
                   </div>
 
                   {/* Review button for delivered orders */}
@@ -547,7 +547,7 @@ const OrderDetails = () => {
               <Button
                 onClick={handleReorder}
                 variant="primary"
-                className="bg-orange-600 hover:bg-orange-700 flex items-center gap-2"
+                className="bg-orange-600 hover:bg-orange-700 flex items-center gap-2 w-full sm:w-auto"
               >
                 <FiRepeat className="w-4 h-4" />
                 Order Again
@@ -561,7 +561,7 @@ const OrderDetails = () => {
               <Button
                 onClick={() => setShowCancelModal(true)}
                 variant="outline"
-                className="border-red-500 text-red-500 hover:bg-red-50 w-full md:w-auto"
+                className="border-red-500 text-red-500 hover:bg-red-50 w-full sm:w-auto"
               >
                 Request Cancellation
               </Button>
@@ -574,7 +574,7 @@ const OrderDetails = () => {
               <Button
                 onClick={() => navigate(`/file-complaint?orderId=${order._id}`)}
                 variant="outline"
-                className="border-orange-500 text-orange-600 hover:bg-orange-50 flex items-center gap-2 w-full md:w-auto"
+                className="border-orange-500 text-orange-600 hover:bg-orange-50 flex items-center gap-2 w-full sm:w-auto"
               >
                 <FiAlertTriangle className="w-4 h-4" />
                 File Complaint
