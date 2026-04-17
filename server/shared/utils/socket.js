@@ -1,6 +1,6 @@
 import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
-import { JWT_SECRET } from "../config/env.js";
+import { JWT_SECRET, CUSTOMER_APP_URL, COOK_APP_URL, ADMIN_APP_URL } from "../config/env.js";
 
 let io;
 
@@ -12,9 +12,9 @@ export const initializeSocket = (server) => {
   io = new Server(server, {
     cors: {
       origin: [
-        "http://localhost:5173", // customer frontend
-        "http://localhost:5174", // cook frontend
-        "http://localhost:5175", // admin frontend
+        CUSTOMER_APP_URL, // customer frontend
+        COOK_APP_URL,     // cook frontend
+        ADMIN_APP_URL,    // admin frontend
       ],
       credentials: true,
     },

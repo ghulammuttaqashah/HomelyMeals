@@ -2,7 +2,7 @@ import express from "express";
 import { createServer } from "http";
 import cors from "cors";
 import connectDB from "./shared/config/db.js";
-import { PORT } from "./shared/config/env.js";
+import { PORT, CUSTOMER_APP_URL, COOK_APP_URL, ADMIN_APP_URL } from "./shared/config/env.js";
 import cookieParser from "cookie-parser";
 
 import adminRoutes from "./modules/admin/index.js";
@@ -18,9 +18,9 @@ const server = createServer(app);
 
 
 const allowedOrigins = [
-  "http://localhost:5173",  // customer frontend
-  "http://localhost:5174",  // cook frontend
-  "http://localhost:5175",  // admin frontend
+  CUSTOMER_APP_URL,  // customer frontend
+  COOK_APP_URL,      // cook frontend
+  ADMIN_APP_URL,     // admin frontend
 ];
 
 app.use(

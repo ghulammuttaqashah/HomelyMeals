@@ -151,10 +151,10 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Cards Grid */}
+          {/* Cards Grid - Ordered to match header navigation */}
           <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
 
-            {/* Sales Analytics Card */}
+            {/* 1. Sales Analytics Card */}
             <button
               type="button"
               onClick={() => handleCardClick('/sales')}
@@ -188,7 +188,7 @@ const Dashboard = () => {
               </div>
             </button>
 
-            {/* Orders Card */}
+            {/* 2. Orders Card */}
             <button
               type="button"
               onClick={() => handleCardClick('/orders')}
@@ -234,7 +234,7 @@ const Dashboard = () => {
               </div>
             </button>
 
-            {/* Menu Management Card */}
+            {/* 3. Menu Management Card */}
             <button
               type="button"
               onClick={() => handleCardClick('/menu')}
@@ -268,55 +268,43 @@ const Dashboard = () => {
               </div>
             </button>
 
-            {/* Payment Settings Card */}
+            {/* 4. Chats Card */}
             <button
               type="button"
-              onClick={() => handleCardClick('/payment-settings')}
+              onClick={() => handleCardClick('/chats')}
               className="group relative overflow-hidden rounded-lg bg-white p-5 sm:p-8 text-left shadow-sm border border-gray-200 transition-all hover:shadow-md hover:border-orange-200 active:scale-[0.98]"
             >
+              {stats?.chats?.unread > 0 && (
+                <span className="absolute top-3 right-3 sm:top-4 sm:right-4 flex h-6 w-6 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white animate-pulse">
+                  {stats.chats.unread > 9 ? '9+' : stats.chats.unread}
+                </span>
+              )}
               <div className="mb-3 sm:mb-4 inline-flex rounded-lg bg-orange-100 p-2 sm:p-3 text-orange-600 shadow-sm">
                 <svg className="h-6 w-6 sm:h-8 sm:w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
               </div>
-              <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-gray-500">Payments</p>
-              <h3 className="mt-1.5 sm:mt-2 text-lg sm:text-2xl font-bold text-gray-900">Payment Settings</h3>
+              <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-gray-500">Messages</p>
+              <h3 className="mt-1.5 sm:mt-2 text-lg sm:text-2xl font-bold text-gray-900">Chats</h3>
               <p className="mt-2 sm:mt-3 text-xs sm:text-sm leading-relaxed text-gray-600">
-                Set up online payments and manage your Stripe account.
+                Chat with your customers and respond to inquiries.
               </p>
+              {!loadingStats && stats && stats.chats.unread > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                    {stats.chats.unread} unread
+                  </span>
+                </div>
+              )}
               <div className="mt-4 sm:mt-6 flex items-center text-xs sm:text-sm font-semibold text-orange-600">
-                <span>Manage payments</span>
+                <span>View chats</span>
                 <svg className="ml-1.5 sm:ml-2 h-3 w-3 sm:h-4 sm:w-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </div>
             </button>
 
-            {/* Subscription Card */}
-            <button
-              type="button"
-              onClick={() => handleCardClick('/subscription')}
-              className="group relative overflow-hidden rounded-lg bg-white p-5 sm:p-8 text-left shadow-sm border border-gray-200 transition-all hover:shadow-md hover:border-orange-200 active:scale-[0.98]"
-            >
-              <div className="mb-3 sm:mb-4 inline-flex rounded-lg bg-orange-100 p-2 sm:p-3 text-orange-600 shadow-sm">
-                <svg className="h-6 w-6 sm:h-8 sm:w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8V7m0 9v1m8-5a8 8 0 11-16 0 8 8 0 0116 0z" />
-                </svg>
-              </div>
-              <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-gray-500">Billing</p>
-              <h3 className="mt-1.5 sm:mt-2 text-lg sm:text-2xl font-bold text-gray-900">Subscription</h3>
-              <p className="mt-2 sm:mt-3 text-xs sm:text-sm leading-relaxed text-gray-600">
-                View plans, subscribe with Stripe, and track your expiry date.
-              </p>
-              <div className="mt-4 sm:mt-6 flex items-center text-xs sm:text-sm font-semibold text-orange-600">
-                <span>Manage subscription</span>
-                <svg className="ml-1.5 sm:ml-2 h-3 w-3 sm:h-4 sm:w-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </div>
-            </button>
-
-            {/* Reviews Card */}
+            {/* 5. Reviews Card */}
             <button
               type="button"
               onClick={() => handleCardClick('/reviews')}
@@ -359,7 +347,7 @@ const Dashboard = () => {
               </div>
             </button>
 
-            {/* Complaints Card */}
+            {/* 6. Complaints Card */}
             <button
               type="button"
               onClick={() => handleCardClick('/complaints')}
@@ -383,43 +371,55 @@ const Dashboard = () => {
               </div>
             </button>
 
-            {/* Chats Card */}
+            {/* 7. Payment Settings Card */}
             <button
               type="button"
-              onClick={() => handleCardClick('/chats')}
+              onClick={() => handleCardClick('/payment-settings')}
               className="group relative overflow-hidden rounded-lg bg-white p-5 sm:p-8 text-left shadow-sm border border-gray-200 transition-all hover:shadow-md hover:border-orange-200 active:scale-[0.98]"
             >
-              {stats?.chats?.unread > 0 && (
-                <span className="absolute top-3 right-3 sm:top-4 sm:right-4 flex h-6 w-6 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white animate-pulse">
-                  {stats.chats.unread > 9 ? '9+' : stats.chats.unread}
-                </span>
-              )}
               <div className="mb-3 sm:mb-4 inline-flex rounded-lg bg-orange-100 p-2 sm:p-3 text-orange-600 shadow-sm">
                 <svg className="h-6 w-6 sm:h-8 sm:w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                 </svg>
               </div>
-              <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-gray-500">Messages</p>
-              <h3 className="mt-1.5 sm:mt-2 text-lg sm:text-2xl font-bold text-gray-900">Chats</h3>
+              <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-gray-500">Payments</p>
+              <h3 className="mt-1.5 sm:mt-2 text-lg sm:text-2xl font-bold text-gray-900">Payment Settings</h3>
               <p className="mt-2 sm:mt-3 text-xs sm:text-sm leading-relaxed text-gray-600">
-                Chat with your customers and respond to inquiries.
+                Set up online payments and manage your Stripe account.
               </p>
-              {!loadingStats && stats && stats.chats.unread > 0 && (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                    {stats.chats.unread} unread
-                  </span>
-                </div>
-              )}
               <div className="mt-4 sm:mt-6 flex items-center text-xs sm:text-sm font-semibold text-orange-600">
-                <span>View chats</span>
+                <span>Manage payments</span>
                 <svg className="ml-1.5 sm:ml-2 h-3 w-3 sm:h-4 sm:w-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </div>
             </button>
 
-            {/* Profile Card */}
+            {/* 8. Subscription Card */}
+            <button
+              type="button"
+              onClick={() => handleCardClick('/subscription')}
+              className="group relative overflow-hidden rounded-lg bg-white p-5 sm:p-8 text-left shadow-sm border border-gray-200 transition-all hover:shadow-md hover:border-orange-200 active:scale-[0.98]"
+            >
+              <div className="mb-3 sm:mb-4 inline-flex rounded-lg bg-orange-100 p-2 sm:p-3 text-orange-600 shadow-sm">
+                <svg className="h-6 w-6 sm:h-8 sm:w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8V7m0 9v1m8-5a8 8 0 11-16 0 8 8 0 0116 0z" />
+                </svg>
+              </div>
+              <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-gray-500">Billing</p>
+              <h3 className="mt-1.5 sm:mt-2 text-lg sm:text-2xl font-bold text-gray-900">Subscription</h3>
+              <p className="mt-2 sm:mt-3 text-xs sm:text-sm leading-relaxed text-gray-600">
+                View plans, subscribe with Stripe, and track your expiry date.
+              </p>
+              <div className="mt-4 sm:mt-6 flex items-center text-xs sm:text-sm font-semibold text-orange-600">
+                <span>Manage subscription</span>
+                <svg className="ml-1.5 sm:ml-2 h-3 w-3 sm:h-4 sm:w-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            </button>
+
+            {/* 9. Profile Card */}
             <button
               type="button"
               onClick={() => handleCardClick('/profile')}
