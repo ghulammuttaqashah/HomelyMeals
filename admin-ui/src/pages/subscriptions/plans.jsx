@@ -189,7 +189,7 @@ const PlanManagementPage = () => {
           </button>
         </div>
 
-        <form onSubmit={handleCreatePlan} className="mt-5 grid gap-4 md:grid-cols-4">
+        <form onSubmit={handleCreatePlan} className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
           <select
             value={selectedPreset}
             onChange={(e) => setSelectedPreset(e.target.value)}
@@ -229,7 +229,7 @@ const PlanManagementPage = () => {
           <button
             type="submit"
             disabled={creatingPlan}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className="sm:col-span-2 lg:col-span-4 xl:col-span-1 inline-flex items-center justify-center gap-2 rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {creatingPlan ? <Loader size="sm" /> : null}
             Create Plan
@@ -273,11 +273,11 @@ const PlanManagementPage = () => {
             <table className={`min-w-full divide-y divide-gray-200 text-sm ${loading ? 'opacity-50' : ''}`}>
               <thead className="bg-gray-50 text-left text-xs uppercase font-black tracking-widest text-gray-500">
                 <tr>
-                  <th className="px-3 py-3">Name</th>
-                  <th className="px-3 py-3">Price</th>
-                  <th className="px-3 py-3">Duration</th>
-                  <th className="px-3 py-3">Status</th>
-                  <th className="px-3 py-3 text-right">Action</th>
+                  <th className="px-2 sm:px-3 py-3">Name</th>
+                  <th className="px-2 sm:px-3 py-3">Price</th>
+                  <th className="px-2 sm:px-3 py-3 hidden sm:table-cell">Duration</th>
+                  <th className="px-2 sm:px-3 py-3 hidden md:table-cell">Status</th>
+                  <th className="px-2 sm:px-3 py-3 text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 bg-white">
@@ -290,7 +290,7 @@ const PlanManagementPage = () => {
                     const row = editRows[plan._id] || {}
                     return (
                       <tr key={plan._id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-3 py-3">
+                        <td className="px-2 sm:px-3 py-3">
                           <input
                             type="text"
                             value={row.name || ''}
@@ -300,10 +300,10 @@ const PlanManagementPage = () => {
                                 [plan._id]: { ...prev[plan._id], name: e.target.value },
                               }))
                             }
-                            className="w-full rounded-md border border-gray-300 px-3 py-1.5 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all font-medium"
+                            className="w-full min-w-[100px] rounded-md border border-gray-300 px-2 sm:px-3 py-1.5 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all font-medium text-sm"
                           />
                         </td>
-                        <td className="px-3 py-3">
+                        <td className="px-2 sm:px-3 py-3">
                           <input
                             type="number"
                             min="1"
@@ -314,10 +314,10 @@ const PlanManagementPage = () => {
                                 [plan._id]: { ...prev[plan._id], price: e.target.value },
                               }))
                             }
-                            className="w-24 rounded-md border border-gray-300 px-3 py-1.5 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all font-medium"
+                            className="w-20 sm:w-24 rounded-md border border-gray-300 px-2 sm:px-3 py-1.5 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all font-medium text-sm"
                           />
                         </td>
-                        <td className="px-3 py-3">
+                        <td className="px-2 sm:px-3 py-3 hidden sm:table-cell">
                           <input
                             type="number"
                             min="1"
@@ -328,10 +328,10 @@ const PlanManagementPage = () => {
                                 [plan._id]: { ...prev[plan._id], duration: e.target.value },
                               }))
                             }
-                            className="w-24 rounded-md border border-gray-300 px-3 py-1.5 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all font-medium"
+                            className="w-20 sm:w-24 rounded-md border border-gray-300 px-2 sm:px-3 py-1.5 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all font-medium text-sm"
                           />
                         </td>
-                        <td className="px-3 py-3">
+                        <td className="px-2 sm:px-3 py-3 hidden md:table-cell">
                           <select
                             value={row.status || 'active'}
                             onChange={(e) =>
@@ -340,19 +340,19 @@ const PlanManagementPage = () => {
                                 [plan._id]: { ...prev[plan._id], status: e.target.value },
                               }))
                             }
-                            className="rounded-md border border-gray-300 px-3 py-1.5 focus:border-orange-500 transition-all font-medium"
+                            className="rounded-md border border-gray-300 px-2 sm:px-3 py-1.5 focus:border-orange-500 transition-all font-medium text-sm"
                           >
                             <option value="active">Active</option>
                             <option value="inactive">Inactive</option>
                           </select>
                         </td>
-                        <td className="px-3 py-3 text-right">
-                          <div className="flex items-center justify-end gap-2">
+                        <td className="px-2 sm:px-3 py-3 text-right">
+                          <div className="flex items-center justify-end gap-1 sm:gap-2">
                             <button
                               type="button"
                               onClick={() => handleSavePlan(plan._id)}
                               disabled={savingPlanId === plan._id || deletingPlanId === plan._id}
-                              className="inline-flex items-center justify-center gap-2 rounded-lg bg-orange-600 px-4 py-2 text-sm font-bold text-white hover:bg-orange-700 disabled:opacity-50 transition-all shadow-sm"
+                              className="inline-flex items-center justify-center gap-1 sm:gap-2 rounded-lg bg-orange-600 px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-bold text-white hover:bg-orange-700 disabled:opacity-50 transition-all shadow-sm"
                             >
                               {savingPlanId === plan._id ? <Loader size="sm" /> : 'Save'}
                             </button>
@@ -360,7 +360,7 @@ const PlanManagementPage = () => {
                               type="button"
                               onClick={() => handleDeletePlan(plan._id, row.name || plan.name)}
                               disabled={deletingPlanId === plan._id || savingPlanId === plan._id}
-                              className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-bold text-red-700 hover:bg-red-100 disabled:opacity-50 transition-all"
+                              className="inline-flex items-center justify-center gap-1 sm:gap-2 rounded-lg border border-red-200 bg-red-50 px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-bold text-red-700 hover:bg-red-100 disabled:opacity-50 transition-all"
                             >
                               {deletingPlanId === plan._id ? <Loader size="sm" /> : 'Delete'}
                             </button>

@@ -103,7 +103,6 @@ const Subscription = () => {
   const [selectedPlan, setSelectedPlan] = useState(null)
   const [clientSecret, setClientSecret] = useState('')
   const [intentLoading, setIntentLoading] = useState(false)
-  const [refreshing, setRefreshing] = useState(false)
 
   const hasStripeKey = useMemo(() => Boolean(stripePublicKey), [])
 
@@ -117,15 +116,6 @@ const Subscription = () => {
       toast.error(error?.response?.data?.message || 'Failed to load subscription data')
     } finally {
       if (showPageLoader) setLoading(false)
-    }
-  }
-
-  const handleRefresh = async () => {
-    try {
-      setRefreshing(true)
-      await fetchData(false)
-    } finally {
-      setRefreshing(false)
     }
   }
 
@@ -189,15 +179,6 @@ const Subscription = () => {
               <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Subscription</h1>
               <p className="mt-1 text-sm text-gray-600">Choose a plan and subscribe securely using Stripe test mode.</p>
             </div>
-            <button
-              type="button"
-              onClick={handleRefresh}
-              disabled={refreshing || loading}
-              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {refreshing ? <Loader size="sm" /> : null}
-              Refresh
-            </button>
           </div>
         </div>
 
@@ -209,17 +190,7 @@ const Subscription = () => {
             </div>
           </div>
         ) : (
-          <div className="relative">
-            {refreshing && (
-              <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-white/70 backdrop-blur-[1px]">
-                <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 shadow-sm">
-                  <Loader size="sm" />
-                  <span className="text-sm font-medium text-gray-700">Refreshing subscription data...</span>
-                </div>
-              </div>
-            )}
-
-            <div className="grid gap-6 lg:grid-cols-3">
+          <div className="grid gap-6 lg:grid-cols-3">
               <section className="rounded-xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-5 shadow-sm lg:col-span-1">
                 <div className="flex items-center justify-between gap-2">
                   <h2 className="text-xl font-bold text-gray-900">Current Status</h2>
@@ -294,7 +265,6 @@ const Subscription = () => {
                 )}
               </section>
             </div>
-          </div>
         )}
 
         {selectedPlan && clientSecret && stripePromise && (

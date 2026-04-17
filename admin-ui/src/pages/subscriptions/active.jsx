@@ -125,9 +125,9 @@ const ActiveSubscriptionsPage = () => {
         </div>
 
         {/* Filters Section */}
-        <form onSubmit={handleFilterSubmit} className="mt-6 rounded-lg border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-5">
-          <div className="grid gap-4 md:grid-cols-12">
-            <div className="md:col-span-3">
+        <form onSubmit={handleFilterSubmit} className="mt-6 rounded-lg border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-4 sm:p-5">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-12">
+            <div className="sm:col-span-1 lg:col-span-3">
               <label htmlFor="filterPlan" className="mb-2 block text-sm font-semibold text-gray-700">Plan</label>
               <select
                 id="filterPlan"
@@ -145,7 +145,7 @@ const ActiveSubscriptionsPage = () => {
               </select>
             </div>
 
-            <div className="md:col-span-3">
+            <div className="sm:col-span-1 lg:col-span-3">
               <label htmlFor="filterStatus" className="mb-2 block text-sm font-semibold text-gray-700">Status</label>
               <select
                 id="filterStatus"
@@ -161,7 +161,7 @@ const ActiveSubscriptionsPage = () => {
               </select>
             </div>
 
-            <div className="md:col-span-3">
+            <div className="sm:col-span-2 lg:col-span-3">
               <label htmlFor="filterSearch" className="mb-2 block text-sm font-semibold text-gray-700">Search</label>
               <input
                 id="filterSearch"
@@ -173,7 +173,7 @@ const ActiveSubscriptionsPage = () => {
               />
             </div>
 
-            <div className="md:col-span-3 flex items-end">
+            <div className="sm:col-span-2 lg:col-span-3 flex items-end">
               <button
                 type="submit"
                 disabled={applyingFilters}
@@ -186,7 +186,7 @@ const ActiveSubscriptionsPage = () => {
           </div>
 
           {(filters.plan || filters.status || filters.search) && (
-            <div className="mt-4 flex items-center gap-2">
+            <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center gap-2">
               <button
                 type="button"
                 onClick={handleClearFilters}
@@ -217,27 +217,27 @@ const ActiveSubscriptionsPage = () => {
               <table className="min-w-full divide-y divide-gray-200 text-sm">
                 <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500">
                   <tr>
-                    <th className="px-3 py-2">Cook ID</th>
-                    <th className="px-3 py-2">Cook Name</th>
-                    <th className="px-3 py-2">Plan</th>
-                    <th className="px-3 py-2">Status</th>
-                    <th className="px-3 py-2">Start Date</th>
-                    <th className="px-3 py-2">End Date</th>
+                    <th className="px-2 sm:px-3 py-2 hidden lg:table-cell">Cook ID</th>
+                    <th className="px-2 sm:px-3 py-2">Cook Name</th>
+                    <th className="px-2 sm:px-3 py-2">Plan</th>
+                    <th className="px-2 sm:px-3 py-2">Status</th>
+                    <th className="px-2 sm:px-3 py-2 hidden md:table-cell">Start Date</th>
+                    <th className="px-2 sm:px-3 py-2 hidden xl:table-cell">End Date</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {subscriptions.map((item) => (
                     <tr key={item._id}>
-                      <td className="px-3 py-2 text-xs text-gray-700">{item.cook?._id || '-'}</td>
-                      <td className="px-3 py-2">{item.cook?.name || '-'}</td>
-                      <td className="px-3 py-2">{item.plan?.name || '-'}</td>
-                      <td className="px-3 py-2">
+                      <td className="px-2 sm:px-3 py-2 text-xs text-gray-700 hidden lg:table-cell">{item.cook?._id || '-'}</td>
+                      <td className="px-2 sm:px-3 py-2">{item.cook?.name || '-'}</td>
+                      <td className="px-2 sm:px-3 py-2">{item.plan?.name || '-'}</td>
+                      <td className="px-2 sm:px-3 py-2">
                         <span className={`inline-flex rounded-lg border px-2.5 py-1 text-xs font-semibold capitalize ${getSubscriptionStatusClass(item.status)}`}>
                           {item.status}
                         </span>
                       </td>
-                      <td className="px-3 py-2">{item.start_date ? new Date(item.start_date).toLocaleDateString() : '-'}</td>
-                      <td className="px-3 py-2">{item.end_date ? new Date(item.end_date).toLocaleDateString() : '-'}</td>
+                      <td className="px-2 sm:px-3 py-2 hidden md:table-cell">{item.start_date ? new Date(item.start_date).toLocaleDateString() : '-'}</td>
+                      <td className="px-2 sm:px-3 py-2 hidden xl:table-cell">{item.end_date ? new Date(item.end_date).toLocaleDateString() : '-'}</td>
                     </tr>
                   ))}
                 </tbody>

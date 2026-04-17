@@ -174,11 +174,11 @@ const Complaints = () => {
 
         {/* Filters */}
         <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 mb-6">
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3">
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-4 py-2.5 border border-gray-300 rounded-lg bg-white text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 font-medium"
+              className="flex-1 sm:flex-none px-4 py-2.5 border border-gray-300 rounded-lg bg-white text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 font-medium"
             >
               <option value="">All Status</option>
               {STATUS_OPTIONS.map((s) => (
@@ -188,13 +188,13 @@ const Complaints = () => {
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
-              className="px-4 py-2.5 border border-gray-300 rounded-lg bg-white text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 font-medium"
+              className="flex-1 sm:flex-none px-4 py-2.5 border border-gray-300 rounded-lg bg-white text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 font-medium"
             >
               <option value="">All Users</option>
               <option value="customer">From Customers</option>
               <option value="cook">From Cooks</option>
             </select>
-            <div className="ml-auto px-3 py-1.5 bg-orange-50 text-orange-700 rounded-full text-sm font-semibold">
+            <div className="sm:ml-auto px-3 py-1.5 bg-orange-50 text-orange-700 rounded-full text-sm font-semibold text-center">
               {pagination.total} complaint{pagination.total !== 1 ? 's' : ''}
             </div>
           </div>
@@ -216,15 +216,15 @@ const Complaints = () => {
         ) : (
           <div className="bg-white rounded-lg shadow overflow-hidden min-h-[300px]">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm min-w-[640px]">
                 <thead className="bg-gray-50 border-b">
                   <tr>
-                    <th className="text-left px-4 py-3 font-semibold text-gray-600">From</th>
-                    <th className="text-left px-4 py-3 font-semibold text-gray-600">Against</th>
-                    <th className="text-left px-4 py-3 font-semibold text-gray-600">Order</th>
-                    <th className="text-left px-4 py-3 font-semibold text-gray-600">Type</th>
-                    <th className="text-left px-4 py-3 font-semibold text-gray-600">Status</th>
-                    <th className="text-left px-4 py-3 font-semibold text-gray-600">Date</th>
+                    <th className="text-left px-3 sm:px-4 py-3 font-semibold text-gray-600">From</th>
+                    <th className="text-left px-3 sm:px-4 py-3 font-semibold text-gray-600 hidden md:table-cell">Against</th>
+                    <th className="text-left px-3 sm:px-4 py-3 font-semibold text-gray-600 hidden lg:table-cell">Order</th>
+                    <th className="text-left px-3 sm:px-4 py-3 font-semibold text-gray-600">Type</th>
+                    <th className="text-left px-3 sm:px-4 py-3 font-semibold text-gray-600">Status</th>
+                    <th className="text-left px-3 sm:px-4 py-3 font-semibold text-gray-600 hidden xl:table-cell">Date</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -234,23 +234,23 @@ const Complaints = () => {
                       onClick={() => openDetail(c._id)}
                       className="hover:bg-gray-50 cursor-pointer transition-colors"
                     >
-                      <td className="px-4 py-3">
+                      <td className="px-3 sm:px-4 py-3">
                         <div>
                           <p className="font-medium text-gray-800">{c.complainantName}</p>
                           <p className="text-xs text-gray-400 capitalize">{c.complainantType}</p>
                         </div>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-3 sm:px-4 py-3 hidden md:table-cell">
                         <div>
                           <p className="font-medium text-gray-800">{c.againstUserName || '—'}</p>
                           <p className="text-xs text-gray-400 capitalize">{c.againstUserType || ''}</p>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-gray-700">
+                      <td className="px-3 sm:px-4 py-3 text-gray-700 hidden lg:table-cell">
                         #{c.orderId?.orderNumber || 'N/A'}
                       </td>
-                      <td className="px-4 py-3 text-gray-700">{c.type}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-3 sm:px-4 py-3 text-gray-700">{c.type}</td>
+                      <td className="px-3 sm:px-4 py-3">
                         <div className="flex flex-col gap-1 items-start">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[c.status]}`}>
                             {c.status.replace('_', ' ')}
@@ -267,7 +267,7 @@ const Complaints = () => {
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">
+                      <td className="px-3 sm:px-4 py-3 text-gray-500 text-xs whitespace-nowrap hidden xl:table-cell">
                         {formatDate(c.createdAt)}
                       </td>
                     </tr>

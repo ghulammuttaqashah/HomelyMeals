@@ -69,12 +69,18 @@ const OrderDetails = () => {
     fetchOrder();
   }, [orderId]);
 
+  const getEventOrderId = (data) => {
+    if (!data) return "";
+    return String(data.orderId || data._id || data?.order?._id || "");
+  };
+
   // Socket subscriptions
   useEffect(() => {
     initializeSocket();
 
     const unsubOrderUpdate = subscribeToOrderUpdates((data) => {
-      if (data.orderId === orderId) {
+      const eventOrderId = getEventOrderId(data);
+      if (!eventOrderId || eventOrderId === String(orderId)) {
         fetchOrder();
       }
     });
@@ -101,11 +107,14 @@ const OrderDetails = () => {
 
     setActionLoading(true);
     try {
-      await updateOrderStatus(orderId, statusConfig.nextStatus);
+      const result = await updateOrderStatus(orderId, statusConfig.nextStatus);
+      if (result?.order) {
+        setOrder((prev) => (prev ? { ...prev, ...result.order } : prev));
+      }
+      fetchOrder();
       toast.success(statusConfig.nextStatus === "delivered"
         ? "Order marked as delivered!"
         : "Order status updated");
-      fetchOrder();
     } catch (error) {
       toast.error(error.response?.data?.message || "Couldn't update order status. Please try again.");
     } finally {
@@ -381,11 +390,12 @@ const OrderDetails = () => {
               {statusConfig.canProgress && (
                 <Button
                   onClick={handleStatusUpdate}
-                  disabled={actionLoading}
+                  loading={actionLoading}
+                  loadingText="Updating..."
                   variant="primary"
                   className="w-full flex items-center justify-center gap-2 mb-3"
                 >
-                  {actionLoading ? "Updating..." : getStatusButtonText()}
+                  {getStatusButtonText()}
                 </Button>
               )}
 

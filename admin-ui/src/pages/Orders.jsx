@@ -241,9 +241,9 @@ const Orders = () => {
           </div>
 
           {/* Dropdown Filters */}
-          <div className="mb-6 rounded-lg border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-5">
-            <div className="grid gap-4 md:grid-cols-12">
-              <div className="md:col-span-4">
+          <div className="mb-6 rounded-lg border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-4 sm:p-5">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-12">
+              <div className="sm:col-span-1 lg:col-span-4">
                 <label htmlFor="dateFilter" className="mb-2 block text-sm font-semibold text-gray-700">Date Filter</label>
                 <select
                   id="dateFilter"
@@ -259,7 +259,7 @@ const Orders = () => {
                   ))}
                 </select>
               </div>
-              <div className="md:col-span-4">
+              <div className="sm:col-span-1 lg:col-span-4">
                 <label htmlFor="statusFilter" className="mb-2 block text-sm font-semibold text-gray-700">Status Filter</label>
                 <select
                   id="statusFilter"
@@ -275,7 +275,7 @@ const Orders = () => {
                   ))}
                 </select>
               </div>
-              <div className="md:col-span-4 flex items-end">
+              <div className="sm:col-span-2 lg:col-span-4 flex items-end">
                 <button
                   type="button"
                   onClick={() => {
@@ -313,28 +313,28 @@ const Orders = () => {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Order
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="hidden md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Customer
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="hidden lg:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Cook
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Status
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="hidden sm:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Payment
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Amount
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="hidden xl:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Date
                       </th>
-                      <th className="relative px-6 py-3">
+                      <th className="relative px-3 sm:px-6 py-3">
                         <span className="sr-only">Actions</span>
                       </th>
                     </tr>
@@ -346,7 +346,7 @@ const Orders = () => {
                         onClick={() => navigate(`/orders/${order._id}`)}
                         className="hover:bg-gray-50 cursor-pointer"
                       >
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center gap-2">
                             {getStatusIcon(order.status)}
                             <span className="text-sm font-medium text-gray-900">
@@ -354,27 +354,27 @@ const Orders = () => {
                             </span>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="hidden md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">{order.customer?.name || 'N/A'}</div>
                           <div className="text-xs text-gray-500">{order.customer?.contact || ''}</div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="hidden lg:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">{order.cook?.name || 'N/A'}</div>
                           <div className="text-xs text-gray-500">{order.cook?.contact || ''}</div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                           {getStatusBadge(order.status)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="hidden sm:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
                           {getPaymentBadge(order)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           Rs. {order.totalAmount}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td className="hidden xl:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {formatDate(order.createdAt)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <FiChevronRight className="h-5 w-5 text-gray-400" />
                         </td>
                       </tr>
@@ -385,7 +385,7 @@ const Orders = () => {
 
               {/* Pagination */}
               {pagination.totalPages > 1 && (
-                <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+                <div className="px-4 sm:px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-3">
                   <div className="text-sm text-gray-500">
                     Page {pagination.page} of {pagination.totalPages}
                   </div>

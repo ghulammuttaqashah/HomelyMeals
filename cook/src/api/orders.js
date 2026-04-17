@@ -22,7 +22,7 @@ export const getOrderById = async (orderId) => {
 export const updateOrderStatus = async (orderId, status, note = "") => {
   const response = await axiosInstance.patch(`/api/cook/orders/${orderId}/status`, {
     status,
-    note,
+    deliveryNote: note,
   });
   return response.data;
 };

@@ -210,14 +210,14 @@ const CookStatus = () => {
               </button>
             )}
           </div>
-          <div className="flex flex-wrap items-center gap-4 mt-6">
-            <div className="flex items-center gap-3">
-              <label htmlFor="statusFilter" className="text-sm font-semibold text-gray-700 whitespace-nowrap">Account:</label>
+          <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 sm:gap-4 mt-6">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1">
+              <label htmlFor="statusFilter" className="text-sm font-semibold text-gray-700 whitespace-nowrap sm:min-w-fit">Account:</label>
               <select
                 id="statusFilter"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:border-gray-400 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all cursor-pointer"
+                className="flex-1 sm:flex-none rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:border-gray-400 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all cursor-pointer"
               >
                 <option value="all">All</option>
                 <option value="active">Active</option>
@@ -225,13 +225,13 @@ const CookStatus = () => {
               </select>
             </div>
 
-            <div className="flex items-center gap-3">
-              <label htmlFor="paymentFilter" className="text-sm font-semibold text-gray-700 whitespace-nowrap">Payments:</label>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1">
+              <label htmlFor="paymentFilter" className="text-sm font-semibold text-gray-700 whitespace-nowrap sm:min-w-fit">Payments:</label>
               <select
                 id="paymentFilter"
                 value={paymentFilter}
                 onChange={(e) => setPaymentFilter(e.target.value)}
-                className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:border-gray-400 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all cursor-pointer"
+                className="flex-1 sm:flex-none rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:border-gray-400 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all cursor-pointer"
               >
                 <option value="all">All</option>
                 <option value="enabled">Enabled</option>
@@ -239,13 +239,13 @@ const CookStatus = () => {
               </select>
             </div>
 
-            <div className="flex items-center gap-3">
-              <label htmlFor="kycFilter" className="text-sm font-semibold text-gray-700 whitespace-nowrap">KYC Status:</label>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1">
+              <label htmlFor="kycFilter" className="text-sm font-semibold text-gray-700 whitespace-nowrap sm:min-w-fit">KYC Status:</label>
               <select
                 id="kycFilter"
                 value={kycFilter}
                 onChange={(e) => setKycFilter(e.target.value)}
-                className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:border-gray-400 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all cursor-pointer"
+                className="flex-1 sm:flex-none rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:border-gray-400 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all cursor-pointer"
               >
                 <option value="all">All</option>
                 <option value="not_started">Not Started</option>
@@ -264,7 +264,7 @@ const CookStatus = () => {
                   setPaymentFilter('all')
                   setKycFilter('all')
                 }}
-                className="text-xs font-bold text-orange-600 hover:text-orange-700 transition-colors"
+                className="text-xs font-bold text-orange-600 hover:text-orange-700 transition-colors self-start sm:self-center"
               >
                 Clear All
               </button>
