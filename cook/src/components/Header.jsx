@@ -147,14 +147,14 @@ const Header = ({ showSignOut = false }) => {
           )}
 
           {/* Actions */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
             {isInstallable && !isInstalled && (
               <button
                 onClick={handleInstallApp}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-orange-200 bg-orange-50 px-2 sm:px-2.5 py-1.5 text-sm font-semibold text-orange-600 hover:bg-orange-100"
+                className="flex items-center gap-1 rounded-lg border border-orange-200 bg-orange-50 px-2 py-1.5 text-orange-600 hover:bg-orange-100 transition-colors flex-shrink-0"
               >
-                <img src="/mobileapp.png" alt="" className="h-4 w-4 sm:h-5 sm:w-5" style={{ filter: 'invert(37%) sepia(98%) saturate(1800%) hue-rotate(11deg) brightness(94%) contrast(94%)' }} />
-                <span className="text-xs sm:text-sm">Install</span>
+                <img src="/mobileapp.png" alt="Install" className="h-4 w-4" style={{ filter: 'invert(37%) sepia(98%) saturate(1800%) hue-rotate(11deg) brightness(94%) contrast(94%)' }} />
+                <span className="text-xs font-semibold whitespace-nowrap">Install</span>
               </button>
             )}
 
