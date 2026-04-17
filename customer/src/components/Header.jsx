@@ -92,29 +92,6 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
     }
   }
 
-  const handleUninstallInfo = () => {
-    const isAndroid = /Android/i.test(navigator.userAgent)
-    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent)
-    
-    let message = 'To uninstall:\n\n'
-    if (isAndroid) {
-      message += '📱 Android:\n• Long press the app icon\n• Tap "Uninstall" or "App info" → Uninstall'
-    } else if (isIOS) {
-      message += '📱 iOS:\n• Long press the app icon\n• Tap "Remove App" → "Delete App"'
-    } else {
-      message += '💻 Desktop:\n• Right-click the app icon\n• Select "Uninstall" or remove from browser settings'
-    }
-    
-    toast(message, {
-      duration: 8000,
-      icon: 'ℹ️',
-      style: {
-        whiteSpace: 'pre-line',
-        textAlign: 'left',
-      }
-    })
-  }
-
   const defaultAddress = customer?.addresses?.find(a => a.isDefault) || customer?.addresses?.[0]
   const sortedAddresses = customer?.addresses?.slice().sort((a, b) => (a.isDefault ? -1 : b.isDefault ? 1 : 0)) || []
 
@@ -201,13 +178,13 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
         {/* ── Left: Logo + Address dropdown ── */}
         <div className="flex items-center gap-2 min-w-0 flex-shrink-0">
           {/* Logo */}
-          <div className="cursor-pointer flex-shrink-0" onClick={handleLogoClick}>
-            {showPortalText && (
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 leading-none mb-0.5 hidden sm:block">
-                Customer Portal
-              </p>
-            )}
-            <h1 className="text-base sm:text-lg font-bold text-orange-600 leading-none">HomelyMeals</h1>
+          <div className="cursor-pointer flex-shrink-0 flex items-center gap-2 sm:gap-3" onClick={handleLogoClick}>
+            <img 
+              src="/customer+admin.png" 
+              alt="HomelyMeals" 
+              className="h-12 w-12 sm:h-14 sm:w-14 object-contain"
+            />
+            <h1 className="text-xl sm:text-2xl font-bold text-orange-600 leading-none">HomelyMeals</h1>
           </div>
 
           {/* Address pill — visible on all screen sizes when authenticated */}
@@ -245,16 +222,6 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
               className="flex items-center gap-1.5 rounded-lg border border-orange-200 bg-orange-50 px-3 py-1.5 text-sm font-semibold text-orange-600 hover:bg-orange-100 transition-colors">
               <FiDownload className="h-4 w-4" />
               Install App
-            </button>
-          )}
-          
-          {isInstalled && (
-            <button type="button" onClick={handleUninstallInfo}
-              className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-100 transition-colors">
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-              Uninstall
             </button>
           )}
 
@@ -326,16 +293,6 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
               className="flex items-center gap-1 rounded-lg border border-orange-200 bg-orange-50 px-2 py-1.5 text-orange-600 hover:bg-orange-100 transition-colors">
               <FiDownload className="h-4 w-4" />
               <span className="text-xs font-semibold">Install</span>
-            </button>
-          )}
-          
-          {isInstalled && (
-            <button type="button" onClick={handleUninstallInfo}
-              className="flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-2 py-1.5 text-red-600 hover:bg-red-100 transition-colors">
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-              <span className="text-xs font-semibold">Uninstall</span>
             </button>
           )}
 
@@ -438,15 +395,6 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
                         className="flex w-full items-center gap-3 px-4 py-3 rounded-xl bg-orange-50 text-orange-600 font-bold text-sm">
                         <FiDownload className="h-5 w-5" />
                         <span>Install App</span>
-                      </button>
-                    )}
-                    {isInstalled && (
-                      <button onClick={() => { handleUninstallInfo(); setShowMobileMenu(false) }}
-                        className="flex w-full items-center gap-3 px-4 py-3 rounded-xl bg-red-50 text-red-600 font-bold text-sm">
-                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                        <span>Uninstall App</span>
                       </button>
                     )}
                     <button onClick={() => { signout(); setShowMobileMenu(false) }}

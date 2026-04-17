@@ -7,7 +7,6 @@ const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/chef.png',
   '/cook.png',
 ];
 
@@ -119,8 +118,8 @@ self.addEventListener('push', (event) => {
 
   const options = {
     body: data.body,
-    icon: '/chef.png',
-    badge: '/chef.png',
+    icon: '/cook.png',
+    badge: '/cook.png',
     vibrate: [100, 50, 100],
     data: {
       url: data.url || '/',

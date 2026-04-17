@@ -18,6 +18,27 @@ const Header = ({ showNav = true }) => {
   }, [])
 
   useEffect(() => {
+    if (mobileMenuOpen) {
+      // Save current scroll position
+      const scrollY = window.scrollY
+      document.body.style.position = 'fixed'
+      document.body.style.top = `-${scrollY}px`
+      document.body.style.width = '100%'
+      document.body.style.overflow = 'hidden'
+    } else {
+      // Restore scroll position
+      const scrollY = document.body.style.top
+      document.body.style.position = ''
+      document.body.style.top = ''
+      document.body.style.width = ''
+      document.body.style.overflow = ''
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || '0') * -1)
+      }
+    }
+  }, [mobileMenuOpen])
+
+  useEffect(() => {
     const fetchCounts = async () => {
       try {
         const ordersRes = await getOrders({ status: 'delivery_pending_confirmation' })
@@ -50,9 +71,16 @@ const Header = ({ showNav = true }) => {
         <div className="flex items-center justify-between">
           
           {/* Logo - Restored Original Style */}
-          <div className="flex-shrink-0">
-            <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Admin Panel</p>
-            <h2 className="text-xl font-bold text-orange-600">HomelyMeals Admin</h2>
+          <div className="flex-shrink-0 flex items-center gap-2 sm:gap-3">
+            <img 
+              src="/customer+admin.png" 
+              alt="HomelyMeals Admin" 
+              className="h-12 w-12 sm:h-14 sm:w-14 object-contain"
+            />
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Admin Panel</p>
+              <h2 className="text-xl font-bold text-orange-600">HomelyMeals</h2>
+            </div>
           </div>
 
           {/* Desktop Navigation - Restored Original Style */}
@@ -101,10 +129,13 @@ const Header = ({ showNav = true }) => {
       </div>
 
       {/* Admin Mobile Side Drawer - Restored colors */}
-      {showNav && mobileMenuOpen && (
-        <div className="fixed inset-0 z-[60] lg:hidden">
-          <div className="absolute inset-0 bg-gray-900/20 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
-          <nav className="absolute right-0 top-0 h-full w-full max-w-[280px] bg-white shadow-xl transition-transform">
+      {showNav && (
+        <div className={`fixed inset-0 z-[60] lg:hidden pointer-events-none ${mobileMenuOpen ? 'pointer-events-auto' : ''}`}>
+          <div 
+            className={`absolute inset-0 bg-gray-900/20 backdrop-blur-sm transition-opacity duration-200 ${mobileMenuOpen ? 'opacity-100' : 'opacity-0'}`}
+            onClick={() => setMobileMenuOpen(false)} 
+          />
+          <nav className={`absolute right-0 top-0 h-full w-full max-w-[280px] bg-white shadow-xl transition-transform duration-200 ease-out ${mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
             <div className="flex flex-col h-full bg-white p-4">
               <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
                 <div>

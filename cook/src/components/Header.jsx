@@ -115,38 +115,19 @@ const Header = ({ showSignOut = false }) => {
     }
   }
 
-  const handleUninstallInfo = () => {
-    const isAndroid = /Android/i.test(navigator.userAgent)
-    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent)
-    
-    let message = 'To uninstall:\n\n'
-    if (isAndroid) {
-      message += '📱 Android:\n• Long press the app icon\n• Tap "Uninstall" or "App info" → Uninstall'
-    } else if (isIOS) {
-      message += '📱 iOS:\n• Long press the app icon\n• Tap "Remove App" → "Delete App"'
-    } else {
-      message += '💻 Desktop:\n• Right-click the app icon\n• Select "Uninstall" or remove from browser settings'
-    }
-    
-    toast(message, {
-      duration: 8000,
-      icon: 'ℹ️',
-      style: {
-        whiteSpace: 'pre-line',
-        textAlign: 'left',
-      }
-    })
-  }
-
   return (
     <header className={`sticky top-0 z-50 w-full transition-all border-b ${scrolled ? 'bg-white/95 backdrop-blur shadow-sm border-gray-200' : 'bg-white border-gray-100'}`}>
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           
           {/* Logo - Restored Original Style */}
-          <div className="flex-shrink-0 cursor-pointer" onClick={handleLogoClick}>
-            <h1 className="text-[22px] sm:text-[26px] font-bold text-orange-600">HomelyMeals</h1>
-            <p className="text-[10px] sm:text-[11px] font-medium text-gray-500 -mt-1">Cook Portal</p>
+          <div className="flex-shrink-0 cursor-pointer flex items-center gap-2 sm:gap-3" onClick={handleLogoClick}>
+            <img 
+              src="/cook.png" 
+              alt="HomelyMeals Cook" 
+              className="h-12 w-12 sm:h-14 sm:w-14 object-contain"
+            />
+            <h1 className="text-xl sm:text-2xl font-bold text-orange-600 leading-none">HomelyMeals</h1>
           </div>
 
           {/* Desktop Navigation - Original styling with improved spacing */}
@@ -188,18 +169,6 @@ const Header = ({ showSignOut = false }) => {
               >
                 <img src="/mobileapp.png" alt="Install" className="h-4 w-4" style={{ filter: 'invert(37%) sepia(98%) saturate(1800%) hue-rotate(11deg) brightness(94%) contrast(94%)' }} />
                 <span className="text-xs font-semibold whitespace-nowrap">Install</span>
-              </button>
-            )}
-            
-            {isInstalled && (
-              <button
-                onClick={handleUninstallInfo}
-                className="flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-2 py-1.5 text-red-600 hover:bg-red-100 transition-colors flex-shrink-0"
-              >
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-                <span className="text-xs font-semibold whitespace-nowrap">Uninstall</span>
               </button>
             )}
 
@@ -296,14 +265,6 @@ const Header = ({ showSignOut = false }) => {
                   <button onClick={handleInstallApp} className="flex w-full items-center gap-3 px-4 py-3 rounded-xl bg-orange-50 text-orange-600 font-bold text-sm">
                     <img src="/mobileapp.png" alt="" className="h-5 w-5" style={{ filter: 'invert(37%) sepia(98%) saturate(1800%) hue-rotate(11deg) brightness(94%) contrast(94%)' }} />
                     <span>Install App</span>
-                  </button>
-                )}
-                {isInstalled && (
-                  <button onClick={handleUninstallInfo} className="flex w-full items-center gap-3 px-4 py-3 rounded-xl bg-red-50 text-red-600 font-bold text-sm">
-                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                    <span>Uninstall App</span>
                   </button>
                 )}
                 <button onClick={signout} className="flex w-full items-center gap-3 px-4 py-3 rounded-xl bg-red-50 text-red-600 font-bold text-sm">

@@ -2,8 +2,11 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/chef.png" id="favicon" />
-    <link rel="apple-touch-icon" href="/chef.png" />
+    <link rel="icon" type="image/png" href="/cook.png" id="favicon" />
+    <link rel="apple-touch-icon" href="/cook.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/cook.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/cook.png" />
+    <link rel="apple-touch-icon" sizes="120x120" href="/cook.png" />
     <script>
       (function() {
         var img = new Image();
@@ -18,7 +21,7 @@
           var link = document.getElementById('favicon');
           if (link) link.href = c.toDataURL('image/png');
         };
-        img.src = '/chef.png';
+        img.src = '/cook.png';
       })();
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
@@ -26,9 +29,13 @@
     <meta name="description" content="Manage your home kitchen business with Homely Meals" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="HM Cook" />
-    <link rel="manifest" href="/manifest.json" />
+    
+    <!-- PWA Splash Screens -->
+    <link rel="apple-touch-startup-image" href="/cook.png" />
+    
+    <link rel="manifest" href="/manifest.json" crossorigin="use-credentials" />
     <title>Homely Meals - Cook</title>
   </head>
   <body>

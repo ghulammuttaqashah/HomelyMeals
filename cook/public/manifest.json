@@ -10,16 +10,28 @@
   "scope": "/",
   "icons": [
     {
-      "src": "/chef.png",
-      "sizes": "512x512",
+      "src": "/cook.png",
+      "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/cook.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "/cook.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/cook.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "categories": ["food", "business", "lifestyle"],
@@ -30,14 +42,14 @@
       "short_name": "Orders",
       "description": "View your orders",
       "url": "/orders",
-      "icons": [{ "src": "/chef.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/cook.png", "sizes": "96x96", "type": "image/png" }]
     },
     {
       "name": "Menu",
       "short_name": "Menu",
       "description": "Manage your menu",
       "url": "/menu",
-      "icons": [{ "src": "/chef.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/cook.png", "sizes": "96x96", "type": "image/png" }]
     }
   ]
 }

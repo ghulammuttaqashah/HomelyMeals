@@ -86,9 +86,7 @@ const PWAInstallBanner = () => {
           </button>
 
           <div className="flex justify-center mb-4">
-            <div className="bg-orange-100 p-3 rounded-2xl">
-              <img src="/chef.png" alt="HM Cook" className="h-16 w-16" style={{ filter: 'invert(37%) sepia(98%) saturate(1800%) hue-rotate(11deg) brightness(94%) contrast(94%)' }} />
-            </div>
+            <img src="/cook.png" alt="HM Cook" className="h-28 w-28 object-contain" />
           </div>
 
           <h3 className="text-xl font-bold text-gray-900 text-center mb-1">HM Cook</h3>
@@ -127,9 +125,7 @@ const PWAInstallBanner = () => {
 
         {/* App Icon */}
         <div className="flex justify-center mb-4">
-          <div className="bg-orange-100 p-3 rounded-2xl">
-            <img src="/chef.png" alt="HM Cook" className="h-16 w-16" style={{ filter: 'invert(37%) sepia(98%) saturate(1800%) hue-rotate(11deg) brightness(94%) contrast(94%)' }} />
-          </div>
+          <img src="/cook.png" alt="HM Cook" className="h-28 w-28 object-contain" />
         </div>
 
         <h3 className="text-xl font-bold text-gray-900 text-center mb-1">HM Cook</h3>
