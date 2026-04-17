@@ -6,7 +6,7 @@ import { useCart } from '../context/CartContext'
 import { setDefaultAddress } from '../api/auth'
 import { getUnreadCount } from '../api/chat'
 import { getSocket } from '../utils/socket'
-import { FiShoppingCart, FiPackage, FiMessageCircle, FiAlertTriangle } from 'react-icons/fi'
+import { FiShoppingCart, FiPackage, FiMessageCircle, FiAlertTriangle, FiMenu, FiX, FiUser, FiLogOut, FiMapPin, FiDownload } from 'react-icons/fi'
 import { usePWA } from '../utils/usePWA'
 
 const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) => {
@@ -16,6 +16,7 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
   const { getCartTotals } = useCart()
   const { isInstallable, isInstalled, installApp } = usePWA()
   const [showAddressDropdown, setShowAddressDropdown] = useState(false)
+  const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [settingDefault, setSettingDefault] = useState(false)
   const [unreadChats, setUnreadChats] = useState(0)
 
@@ -52,11 +53,26 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
     }
   }, [location.pathname])
 
+  // Close mobile menu on route change
+  useEffect(() => {
+    setShowMobileMenu(false)
+  }, [location.pathname])
+
   const handleLogoClick = () => {
     if (isAuthenticated) {
       navigate('/dashboard')
     } else {
       navigate('/')
+    }
+  }
+
+  const handleInstallApp = async () => {
+    const success = await installApp()
+    if (success) {
+      toast.success('App installed successfully! 🎉', {
+        duration: 4000,
+        icon: '📱',
+      })
     }
   }
 
