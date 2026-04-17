@@ -15,7 +15,8 @@ import { startOrderJobs } from "./shared/jobs/orderJobs.js";
 
 const app = express();
 const server = createServer(app);
-
+import dotenv from "dotenv";
+dotenv.config();
 
 const allowedOrigins = [
   CUSTOMER_APP_URL,  // customer frontend
