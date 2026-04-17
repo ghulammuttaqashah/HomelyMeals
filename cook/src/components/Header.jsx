@@ -25,12 +25,22 @@ const Header = ({ showSignOut = false }) => {
 
   useEffect(() => {
     if (mobileMenuOpen) {
+      // Save current scroll position
+      const scrollY = window.scrollY
+      document.body.style.position = 'fixed'
+      document.body.style.top = `-${scrollY}px`
+      document.body.style.width = '100%'
       document.body.style.overflow = 'hidden'
     } else {
-      document.body.style.overflow = 'unset'
-    }
-    return () => {
-      document.body.style.overflow = 'unset'
+      // Restore scroll position
+      const scrollY = document.body.style.top
+      document.body.style.position = ''
+      document.body.style.top = ''
+      document.body.style.width = ''
+      document.body.style.overflow = ''
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || '0') * -1)
+      }
     }
   }, [mobileMenuOpen])
 
@@ -234,10 +244,13 @@ const Header = ({ showSignOut = false }) => {
       </div>
 
       {/* Side Menu Overlay - Improved Responsiveness without over-designing */}
-      {showSignOut && isApproved && mobileMenuOpen && (
-        <div className="fixed inset-0 z-[60] lg:hidden">
-          <div className="absolute inset-0 bg-gray-900/20 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
-          <nav className="absolute right-0 top-0 h-full w-full max-w-[280px] bg-white shadow-xl transition-transform">
+      {showSignOut && isApproved && (
+        <div className={`fixed inset-0 z-[60] lg:hidden pointer-events-none ${mobileMenuOpen ? 'pointer-events-auto' : ''}`}>
+          <div 
+            className={`absolute inset-0 bg-gray-900/20 backdrop-blur-sm transition-opacity duration-200 ${mobileMenuOpen ? 'opacity-100' : 'opacity-0'}`}
+            onClick={() => setMobileMenuOpen(false)} 
+          />
+          <nav className={`absolute right-0 top-0 h-full w-full max-w-[280px] bg-white shadow-xl transition-transform duration-200 ease-out ${mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
             <div className="flex flex-col h-full bg-white p-4">
               <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
                 <div>

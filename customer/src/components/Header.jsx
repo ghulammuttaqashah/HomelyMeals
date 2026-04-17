@@ -34,12 +34,22 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
 
   useEffect(() => {
     if (showMobileMenu) {
+      // Save current scroll position
+      const scrollY = window.scrollY
+      document.body.style.position = 'fixed'
+      document.body.style.top = `-${scrollY}px`
+      document.body.style.width = '100%'
       document.body.style.overflow = 'hidden'
     } else {
-      document.body.style.overflow = 'unset'
-    }
-    return () => {
-      document.body.style.overflow = 'unset'
+      // Restore scroll position
+      const scrollY = document.body.style.top
+      document.body.style.position = ''
+      document.body.style.top = ''
+      document.body.style.width = ''
+      document.body.style.overflow = ''
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || '0') * -1)
+      }
     }
   }, [showMobileMenu])
 
@@ -364,11 +374,13 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
       </div>
 
       {/* ── Mobile Drawer ── */}
-      {showMobileMenu && (
-        <div className="fixed inset-0 z-[60] md:hidden">
-          <div className="absolute inset-0 bg-gray-900/20 backdrop-blur-sm" onClick={() => setShowMobileMenu(false)} />
-          <nav className="absolute right-0 top-0 h-full w-full max-w-[280px] bg-white shadow-xl">
-            <div className="flex flex-col h-full p-4">
+      <div className={`fixed inset-0 z-[60] md:hidden pointer-events-none ${showMobileMenu ? 'pointer-events-auto' : ''}`}>
+        <div 
+          className={`absolute inset-0 bg-gray-900/20 backdrop-blur-sm transition-opacity duration-200 ${showMobileMenu ? 'opacity-100' : 'opacity-0'}`}
+          onClick={() => setShowMobileMenu(false)} 
+        />
+        <nav className={`absolute right-0 top-0 h-full w-full max-w-[280px] bg-white shadow-xl transition-transform duration-200 ease-out ${showMobileMenu ? 'translate-x-0' : 'translate-x-full'}`}>
+          <div className="flex flex-col h-full p-4">
               <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
                 <div>
                   <h2 className="text-xl font-bold text-orange-600">Menu</h2>
@@ -459,7 +471,6 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
             </div>
           </nav>
         </div>
-      )}
     </header>
   )
 }
