@@ -22,8 +22,15 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [settingDefault, setSettingDefault] = useState(false)
   const [unreadChats, setUnreadChats] = useState(0)
+  const [scrolled, setScrolled] = useState(false)
 
   const { itemCount } = getCartTotals()
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 20)
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   useEffect(() => {
     if (!isAuthenticated) return
@@ -95,7 +102,7 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
 
   // Shared address dropdown content
   const AddressDropdown = () => (
-    <div className="absolute left-0 top-full z-50 mt-2 w-72 sm:w-80 rounded-lg border border-gray-200 bg-white shadow-xl overflow-hidden">
+    <div className="absolute left-0 top-full z-50 mt-2 w-96 rounded-lg border border-gray-200 bg-white shadow-xl overflow-hidden">
       <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
         <p className="text-xs font-semibold uppercase text-gray-500">Select Delivery Address</p>
       </div>
@@ -109,21 +116,23 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
               ${address.isDefault ? 'bg-orange-50' : 'hover:bg-gray-50'}
               ${settingDefault ? 'opacity-50 cursor-wait' : 'cursor-pointer'}`}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="font-medium text-gray-900 text-sm">{address.label}</span>
-                {address.isDefault && (
-                  <span className="rounded-full bg-orange-500 px-2 py-0.5 text-xs font-medium text-white">Active</span>
-                )}
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="font-semibold text-gray-900 text-base">{address.label || address.type || 'Address'}</span>
+                  {address.isDefault && (
+                    <span className="rounded-full bg-orange-500 px-2 py-0.5 text-xs font-medium text-white flex-shrink-0">Active</span>
+                  )}
+                </div>
+                <p className="text-sm text-gray-600">{[address.houseNo, address.street].filter(Boolean).join(', ')}</p>
+                <p className="text-sm text-gray-500">{[address.city, address.postalCode].filter(Boolean).join(' - ')}</p>
               </div>
               {address.isDefault && (
-                <svg className="h-4 w-4 text-orange-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <svg className="h-5 w-5 text-orange-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
               )}
             </div>
-            <p className="mt-0.5 text-xs text-gray-500">{[address.houseNo, address.street].filter(Boolean).join(', ')}</p>
-            <p className="text-xs text-gray-400">{[address.city, address.postalCode].filter(Boolean).join(' - ')}</p>
           </button>
         ))}
       </div>
@@ -142,7 +151,7 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
   )
 
   return (
-    <header className="border-b border-gray-200 bg-white shadow-sm sticky top-0 z-40">
+    <header className={`sticky top-0 z-40 w-full transition-all border-b ${scrolled ? 'bg-white/95 backdrop-blur shadow-sm border-gray-200' : 'bg-white border-gray-100'}`}>
       <div className="mx-auto flex max-w-7xl items-center justify-between px-3 sm:px-4 lg:px-6 py-2.5 gap-2">
 
         {/* ── Left: Logo + Address dropdown ── */}
@@ -165,9 +174,9 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
                 className="flex items-center gap-1 sm:gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-2 sm:px-3 py-1.5 text-gray-700 hover:bg-gray-100 transition-colors"
               >
                 <FiMapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-orange-500 flex-shrink-0" />
-                {/* Show text on sm+ screens, icon-only on xs */}
-                <span className="hidden sm:inline text-sm max-w-[120px] md:max-w-[180px] truncate">
-                  {getShortAddress(defaultAddress)}
+                {/* Show label on all screens */}
+                <span className="text-sm font-medium">
+                  {defaultAddress?.label || 'Address'}
                 </span>
                 <svg className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
