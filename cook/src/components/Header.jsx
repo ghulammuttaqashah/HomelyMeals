@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
 import { usePWA } from '../utils/usePWA'
 import { getUnreadCount } from '../api/chat'
@@ -21,6 +22,17 @@ const Header = ({ showSignOut = false }) => {
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
+
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [mobileMenuOpen])
 
   useEffect(() => {
     if (!isAuthenticated) return
@@ -83,6 +95,16 @@ const Header = ({ showSignOut = false }) => {
     setMobileMenuOpen(false)
   }
 
+  const handleInstallApp = async () => {
+    const success = await installApp()
+    if (success) {
+      toast.success('HomelyMeals installed! Open it from your home screen 📱', {
+        duration: 5000,
+        icon: '🎉',
+      })
+    }
+  }
+
   return (
     <header className={`sticky top-0 z-50 w-full transition-all border-b ${scrolled ? 'bg-white/95 backdrop-blur shadow-sm border-gray-200' : 'bg-white border-gray-100'}`}>
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -128,11 +150,11 @@ const Header = ({ showSignOut = false }) => {
           <div className="flex items-center gap-2">
             {isInstallable && !isInstalled && (
               <button
-                onClick={installApp}
-                className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-orange-200 bg-orange-50 px-2.5 py-1.5 text-sm font-semibold text-orange-600 hover:bg-orange-100"
+                onClick={handleInstallApp}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-orange-200 bg-orange-50 px-2 sm:px-2.5 py-1.5 text-sm font-semibold text-orange-600 hover:bg-orange-100"
               >
-                <img src="/mobileapp.png" alt="" className="h-5 w-5" style={{ filter: 'invert(37%) sepia(98%) saturate(1800%) hue-rotate(11deg) brightness(94%) contrast(94%)' }} />
-                <span>Install</span>
+                <img src="/mobileapp.png" alt="" className="h-4 w-4 sm:h-5 sm:w-5" style={{ filter: 'invert(37%) sepia(98%) saturate(1800%) hue-rotate(11deg) brightness(94%) contrast(94%)' }} />
+                <span className="text-xs sm:text-sm">Install</span>
               </button>
             )}
 
@@ -223,7 +245,7 @@ const Header = ({ showSignOut = false }) => {
 
               <div className="mt-auto pt-6 border-t border-gray-100 space-y-3">
                 {isInstallable && !isInstalled && (
-                  <button onClick={installApp} className="flex w-full items-center gap-3 px-4 py-3 rounded-xl bg-orange-50 text-orange-600 font-bold text-sm">
+                  <button onClick={handleInstallApp} className="flex w-full items-center gap-3 px-4 py-3 rounded-xl bg-orange-50 text-orange-600 font-bold text-sm">
                     <img src="/mobileapp.png" alt="" className="h-5 w-5" style={{ filter: 'invert(37%) sepia(98%) saturate(1800%) hue-rotate(11deg) brightness(94%) contrast(94%)' }} />
                     <span>Install App</span>
                   </button>

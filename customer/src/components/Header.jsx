@@ -33,6 +33,17 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
   }, [])
 
   useEffect(() => {
+    if (showMobileMenu) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [showMobileMenu])
+
+  useEffect(() => {
     if (!isAuthenticated) return
     const fetchUnread = async () => {
       if (location.pathname.startsWith('/chats')) return
@@ -311,54 +322,91 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
 
       {/* ── Mobile Drawer ── */}
       {showMobileMenu && (
-        <>
-          <div className="fixed inset-0 bg-black/40 z-40 md:hidden" onClick={() => setShowMobileMenu(false)} />
-          <div className="fixed top-[49px] right-0 bottom-0 w-64 bg-white shadow-2xl z-50 md:hidden overflow-y-auto">
-            <div className="p-3 space-y-1">
+        <div className="fixed inset-0 z-[60] md:hidden">
+          <div className="absolute inset-0 bg-gray-900/20 backdrop-blur-sm" onClick={() => setShowMobileMenu(false)} />
+          <nav className="absolute right-0 top-0 h-full w-full max-w-[280px] bg-white shadow-xl">
+            <div className="flex flex-col h-full p-4">
+              <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
+                <div>
+                  <h2 className="text-xl font-bold text-orange-600">Menu</h2>
+                </div>
+                <button onClick={() => setShowMobileMenu(false)} className="p-2 rounded-full bg-gray-50 text-gray-400">
+                  <FiX className="h-5 w-5" />
+                </button>
+              </div>
+
               {isAuthenticated ? (
                 <>
                   {/* User info */}
-                  <div className="px-3 py-2.5 mb-2 bg-orange-50 rounded-lg border border-orange-100">
+                  <div className="px-3 py-2.5 mb-4 bg-orange-50 rounded-lg border border-orange-100">
                     <p className="text-sm font-semibold text-gray-900">{customer?.name || 'Customer'}</p>
                     <p className="text-xs text-gray-500 truncate">{customer?.email}</p>
                   </div>
 
                   {/* Nav links */}
-                  {[
-                    { icon: FiPackage, label: 'Orders', path: '/orders' },
-                    { icon: FiAlertTriangle, label: 'Complaints', path: '/complaints' },
-                    { icon: FiUser, label: 'Profile', path: '/profile' },
-                  ].map(({ icon: Icon, label, path }) => (
-                    <button key={path} onClick={() => { navigate(path); setShowMobileMenu(false) }}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
-                      <Icon className="h-5 w-5 text-gray-500" />
-                      <span className="text-sm font-medium">{label}</span>
-                    </button>
-                  ))}
+                  <div className="flex-1 space-y-1 overflow-y-auto pr-1">
+                    {[
+                      { icon: FiShoppingCart, label: 'Cart', path: '/cart', badge: itemCount },
+                      { icon: FiMessageCircle, label: 'Chats', path: '/chats', badge: unreadChats },
+                      { icon: FiPackage, label: 'Orders', path: '/orders' },
+                      { icon: FiAlertTriangle, label: 'Complaints', path: '/complaints' },
+                      { icon: FiUser, label: 'Profile', path: '/profile' },
+                    ].map(({ icon: Icon, label, path, badge }) => {
+                      const isActive = location.pathname === path
+                      return (
+                        <button key={path} onClick={() => { navigate(path); setShowMobileMenu(false) }}
+                          className={`flex w-full items-center justify-between px-4 py-3 rounded-xl text-[15px] font-medium transition-all ${
+                            isActive ? 'bg-orange-100 text-orange-700' : 'text-gray-600 hover:bg-gray-50'
+                          }`}>
+                          <div className="flex items-center gap-3">
+                            <Icon className="h-5 w-5" />
+                            <span>{label}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {badge > 0 && (
+                              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-orange-600 text-[10px] font-bold text-white">
+                                {badge > 9 ? '9+' : badge}
+                              </span>
+                            )}
+                            <svg className={`h-4 w-4 ${isActive ? 'text-orange-400' : 'text-gray-300'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
 
-                  <div className="pt-2 mt-1 border-t border-gray-100">
+                  <div className="mt-auto pt-6 border-t border-gray-100 space-y-3">
+                    {isInstallable && !isInstalled && (
+                      <button onClick={() => { handleInstallApp(); setShowMobileMenu(false) }}
+                        className="flex w-full items-center gap-3 px-4 py-3 rounded-xl bg-orange-50 text-orange-600 font-bold text-sm">
+                        <FiDownload className="h-5 w-5" />
+                        <span>Install App</span>
+                      </button>
+                    )}
                     <button onClick={() => { signout(); setShowMobileMenu(false) }}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-red-600 hover:bg-red-50 transition-colors">
+                      className="flex w-full items-center gap-3 px-4 py-3 rounded-xl bg-red-50 text-red-600 font-bold text-sm">
                       <FiLogOut className="h-5 w-5" />
-                      <span className="text-sm font-medium">Sign Out</span>
+                      <span>Logout Account</span>
                     </button>
                   </div>
                 </>
               ) : showButtons ? (
-                <div className="space-y-2 pt-2">
+                <div className="space-y-3 pt-2">
                   <button onClick={() => { navigate('/login'); setShowMobileMenu(false) }}
-                    className="w-full px-4 py-2.5 rounded-lg border border-orange-600 text-orange-600 font-medium text-sm hover:bg-orange-50 transition-colors">
+                    className="w-full px-4 py-3 rounded-xl border-2 border-orange-600 text-orange-600 font-bold text-sm hover:bg-orange-50 transition-colors">
                     Join as Customer
                   </button>
                   <button onClick={() => { window.location.href = import.meta.env.VITE_COOK_URL || 'http://localhost:5174' }}
-                    className="w-full px-4 py-2.5 rounded-lg bg-orange-600 text-white font-medium text-sm hover:bg-orange-700 transition-colors">
+                    className="w-full px-4 py-3 rounded-xl bg-orange-600 text-white font-bold text-sm hover:bg-orange-700 transition-colors">
                     Join as Cook
                   </button>
                 </div>
               ) : null}
             </div>
-          </div>
-        </>
+          </nav>
+        </div>
       )}
     </header>
   )
