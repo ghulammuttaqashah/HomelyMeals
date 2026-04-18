@@ -68,6 +68,7 @@ const Profile = () => {
     street: '',
     city: '',
     postalCode: '',
+    landmark: '',
     latitude: null,
     longitude: null,
   })
@@ -75,6 +76,12 @@ const Profile = () => {
   const [savingAddress, setSavingAddress] = useState(false)
   const [gettingLocation, setGettingLocation] = useState(false)
   const [deletingAddressId, setDeletingAddressId] = useState(null)
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState([])
+  const [isSearching, setIsSearching] = useState(false)
+  const [showSearchResults, setShowSearchResults] = useState(false)
 
   // Confirmation modal state
   const [confirmModal, setConfirmModal] = useState({
@@ -84,6 +91,9 @@ const Profile = () => {
     onConfirm: () => { },
     type: 'warning'
   })
+
+  // Close confirmation state
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false)
 
   // Default map center (Lahore, Pakistan)
   const defaultCenter = [31.5204, 74.3587]
@@ -133,6 +143,88 @@ const Profile = () => {
     }
   }
 
+  // Search for places using Nominatim
+  const searchPlaces = async (query) => {
+    if (!query || query.trim().length < 3) {
+      setSearchResults([])
+      setShowSearchResults(false)
+      return
+    }
+
+    setIsSearching(true)
+    try {
+      // Request with addressdetails=1 to get structured address data
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1&extratags=1`
+      )
+      const data = await response.json()
+      console.log('Search results:', data) // Debug log
+      setSearchResults(data || [])
+      setShowSearchResults(true)
+    } catch (error) {
+      console.error('Search error:', error)
+      setSearchResults([])
+      toast.error('Search failed. Please try again.')
+    } finally {
+      setIsSearching(false)
+    }
+  }
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchQuery) {
+        searchPlaces(searchQuery)
+      }
+    }, 500)
+
+    return () => clearTimeout(timer)
+  }, [searchQuery])
+
+  // Handle selecting a search result
+  const handleSelectPlace = (place) => {
+    const lat = parseFloat(place.lat)
+    const lon = parseFloat(place.lon)
+    
+    console.log('Selected place:', place) // Debug log
+    
+    // Extract address components with better fallbacks
+    const addr = place.address || {}
+    const displayParts = place.display_name ? place.display_name.split(',').map(p => p.trim()) : []
+    
+    // Try to get street/road name
+    let street = addr.road || addr.street || addr.pedestrian || addr.footway || addr.path || ''
+    
+    // If no street found, use the first part of display name (usually the place name)
+    if (!street && displayParts.length > 0) {
+      street = displayParts[0]
+    }
+    
+    // Get city with multiple fallbacks
+    const city = addr.city || addr.town || addr.village || addr.municipality || 
+                 addr.county || addr.state_district || displayParts[displayParts.length - 3] || ''
+    
+    // Get postal code
+    const postalCode = addr.postcode || ''
+    
+    console.log('Extracted address:', { street, city, postalCode, lat, lon }) // Debug log
+    
+    setAddressForm((prev) => ({
+      ...prev,
+      street: street,
+      city: city,
+      postalCode: postalCode,
+      latitude: lat,
+      longitude: lon,
+    }))
+    
+    setMapPosition([lat, lon])
+    setSearchQuery('')
+    setSearchResults([])
+    setShowSearchResults(false)
+    toast.success('✅ Location selected! Address fields auto-filled.')
+  }
+
   // Forward geocode - search address and show on map
   const forwardGeocode = async () => {
     const searchQuery = [addressForm.houseNo, addressForm.street, addressForm.city, addressForm.postalCode]
@@ -140,9 +232,16 @@ const Profile = () => {
       .join(', ')
 
     if (!searchQuery.trim()) {
-      toast.error('Please enter an address first')
+      toast.error('Please enter at least street and city before searching')
       return
     }
+
+    if (!addressForm.street.trim() || !addressForm.city.trim()) {
+      toast.error('Street and City are required to find location on map')
+      return
+    }
+
+    toast.loading('Searching for address on map...', { id: 'geocode' })
 
     try {
       const response = await fetch(
@@ -158,15 +257,18 @@ const Profile = () => {
           latitude: lat,
           longitude: lon,
         }))
-        toast.success('Location verified on map!')
+        toast.success('✅ Address found! Location marked on map.', { id: 'geocode' })
       } else {
         setMapPosition(null)
         setAddressForm(prev => ({ ...prev, latitude: null, longitude: null }))
-        toast.error('Address not found. You MUST find it on map or use "Detect Location" to proceed.')
+        toast.error('❌ Address not found. Please:\n1. Check spelling\n2. Click on map manually\n3. Or use "Use My Location"', { 
+          id: 'geocode',
+          duration: 5000 
+        })
       }
     } catch (error) {
       console.error('Forward geocode error:', error)
-      toast.error('Unable to search address. Please try again.')
+      toast.error('Unable to search address. Please try again or click on map.', { id: 'geocode' })
     }
   }
 
@@ -237,10 +339,14 @@ const Profile = () => {
       street: '',
       city: '',
       postalCode: '',
+      landmark: '',
       latitude: null,
       longitude: null,
     })
     setMapPosition(null)
+    setSearchQuery('')
+    setSearchResults([])
+    setShowSearchResults(false)
     setShowAddressModal(true)
   }
 
@@ -252,6 +358,7 @@ const Profile = () => {
       street: address.street || '',
       city: address.city || '',
       postalCode: address.postalCode || '',
+      landmark: address.landmark || '',
       latitude: address.latitude || null,
       longitude: address.longitude || null,
     })
@@ -260,6 +367,9 @@ const Profile = () => {
     } else {
       setMapPosition(null)
     }
+    setSearchQuery('')
+    setSearchResults([])
+    setShowSearchResults(false)
     setShowAddressModal(true)
   }
 
@@ -272,15 +382,23 @@ const Profile = () => {
       street: '',
       city: '',
       postalCode: '',
+      landmark: '',
       latitude: null,
       longitude: null,
     })
     setMapPosition(null)
+    setSearchQuery('')
+    setSearchResults([])
+    setShowSearchResults(false)
   }
 
   const handleAddressSave = async () => {
     if (!addressForm.label.trim()) {
       toast.error('Label is required (e.g., Home, Office)')
+      return
+    }
+    if (!addressForm.houseNo.trim()) {
+      toast.error('House/Flat No. is required')
       return
     }
     if (!addressForm.street.trim()) {
@@ -645,39 +763,128 @@ const Profile = () => {
 
       {/* Address Modal */}
       {showAddressModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white shadow-xl">
-            <div className="border-b border-gray-200 px-6 py-4">
-              <h3 className="text-lg font-semibold text-gray-900">
-                {editingAddress ? 'Edit Address' : 'Add New Address'}
-              </h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="max-h-[92vh] w-full max-w-2xl flex flex-col rounded-2xl bg-white shadow-2xl">
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100">
+              <div>
+                <h3 className="text-base sm:text-lg font-bold text-gray-900">
+                  {editingAddress ? 'Edit Address' : 'Add New Address'}
+                </h3>
+                <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
+                  {editingAddress ? 'Update your saved address details' : 'Fill in your delivery address details'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCloseConfirm(true)}
+                className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              >
+                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
 
-            <div className="space-y-4 p-6">
+            {/* Scrollable Body */}
+            <div className="overflow-y-auto flex-1 space-y-4 sm:space-y-5 p-4 sm:p-6">
+
+              {/* Search Bar */}
+              <div className="relative">
+                <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
+                  Search for a Place or Landmark
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onFocus={() => searchResults.length > 0 && setShowSearchResults(true)}
+                    placeholder="e.g., Sukkur IBA University, Jinnah Hospital..."
+                    className="w-full rounded-xl border border-gray-300 bg-gray-50 px-3 sm:px-4 py-2 sm:py-2.5 pr-10 text-xs sm:text-sm focus:border-orange-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-200"
+                  />
+                  {isSearching ? (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <svg className="h-5 w-5 animate-spin text-orange-500" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                    </div>
+                  ) : (
+                    <svg className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  )}
+                </div>
+
+                {/* Search Results Dropdown */}
+                {showSearchResults && searchResults.length > 0 && (
+                  <div className="absolute z-20 mt-1 w-full rounded-xl border border-gray-200 bg-white shadow-xl max-h-48 sm:max-h-56 overflow-y-auto">
+                    {searchResults.map((result, index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        onClick={() => handleSelectPlace(result)}
+                        className="w-full text-left px-3 sm:px-4 py-2.5 sm:py-3 hover:bg-orange-50 border-b border-gray-50 last:border-b-0 transition-colors"
+                      >
+                        <div className="flex items-start gap-2 sm:gap-3">
+                          <svg className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                          </svg>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs sm:text-sm font-medium text-gray-900 truncate">
+                              {result.display_name.split(',')[0]}
+                            </p>
+                            <p className="text-xs text-gray-400 truncate">
+                              {result.display_name}
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {showSearchResults && searchQuery && searchResults.length === 0 && !isSearching && (
+                  <div className="absolute z-20 mt-1 w-full rounded-xl border border-gray-200 bg-white shadow-lg p-4 text-center">
+                    <p className="text-sm text-gray-500">No results found. Try a different term.</p>
+                  </div>
+                )}
+                <p className="mt-1.5 text-xs text-gray-400">Type 3+ characters to search universities, hospitals, landmarks</p>
+              </div>
+
+              {/* Divider */}
+              <div className="flex items-center gap-3">
+                <div className="flex-1 border-t border-gray-200" />
+                <span className="text-xs text-gray-400 font-medium">OR SET ON MAP</span>
+                <div className="flex-1 border-t border-gray-200" />
+              </div>
+
               {/* Map */}
               <div>
-                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                  <label className="text-sm font-medium text-gray-700">Select Location on Map</label>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+                  <label className="text-xs sm:text-sm font-semibold text-gray-700">Pin Your Location</label>
                   <div className="flex gap-2">
                     <button
                       type="button"
                       onClick={forwardGeocode}
-                      className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                      className="flex items-center gap-1 sm:gap-1.5 rounded-lg border border-gray-300 bg-white px-2.5 sm:px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
                     >
-                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                       </svg>
-                      Find on Map
+                      <span className="hidden sm:inline">Find by Address</span>
+                      <span className="sm:hidden">Find</span>
                     </button>
                     <button
                       type="button"
                       onClick={handleUseMyLocation}
                       disabled={gettingLocation}
-                      className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                      className="flex items-center gap-1 sm:gap-1.5 rounded-lg bg-orange-600 px-2.5 sm:px-3 py-1.5 text-xs font-semibold text-white hover:bg-orange-700 disabled:opacity-50 transition-colors"
                     >
                       {gettingLocation ? (
                         <>
-                          <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24">
+                          <svg className="h-3 w-3 sm:h-3.5 sm:w-3.5 animate-spin" viewBox="0 0 24 24">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                           </svg>
@@ -685,9 +892,8 @@ const Profile = () => {
                         </>
                       ) : (
                         <>
-                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                           </svg>
                           Use My Location
                         </>
@@ -695,11 +901,12 @@ const Profile = () => {
                     </button>
                   </div>
                 </div>
-                <div className="h-64 overflow-hidden rounded-lg border border-gray-300">
+                <div className={`overflow-hidden rounded-xl border-2 transition-colors ${mapPosition ? 'border-green-400' : 'border-gray-200'}`}>
                   <MapContainer
                     center={mapPosition || defaultCenter}
                     zoom={mapPosition ? 15 : 12}
-                    style={{ height: '100%', width: '100%' }}
+                    style={{ height: '180px', width: '100%' }}
+                    className="sm:!h-[220px]"
                   >
                     <TileLayer
                       attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -709,96 +916,171 @@ const Profile = () => {
                     <RecenterMap position={mapPosition} />
                   </MapContainer>
                 </div>
-                <p className="mt-1 text-xs text-gray-500">
-                  Click on the map or use buttons above to set your delivery location
-                </p>
+                {mapPosition ? (
+                  <p className="mt-1.5 text-xs text-green-600 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full inline-block"></span>
+                    Location pinned · {mapPosition[0].toFixed(5)}, {mapPosition[1].toFixed(5)}
+                  </p>
+                ) : (
+                  <p className="mt-1.5 text-xs text-gray-400">Click on the map to pin your location</p>
+                )}
               </div>
 
-              {/* Address Form Fields */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Address Label <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={['Home', 'Work', 'Other'].includes(addressForm.label) ? addressForm.label : 'Other'}
-                    onChange={(e) => {
-                      const val = e.target.value
-                      if (val === 'Other') {
-                        setAddressForm((prev) => ({ ...prev, label: '' }))
-                      } else {
-                        setAddressForm((prev) => ({ ...prev, label: val }))
-                      }
-                    }}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  >
-                    <option value="Home">🏠 Home</option>
-                    <option value="Work">🏢 Work</option>
-                    <option value="Other">📍 Other</option>
-                  </select>
-                  {!['Home', 'Work'].includes(addressForm.label) && (
-                    <input
-                      type="text"
-                      value={addressForm.label}
-                      onChange={(e) => setAddressForm((prev) => ({ ...prev, label: e.target.value }))}
-                      placeholder="Enter custom label (e.g., Office, Mom's House)"
-                      className="mt-2 w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    />
-                  )}
+              {/* Divider */}
+              <div className="flex items-center gap-3">
+                <div className="flex-1 border-t border-gray-200" />
+                <span className="text-xs text-gray-400 font-medium">ADDRESS DETAILS</span>
+                <div className="flex-1 border-t border-gray-200" />
+              </div>
+
+              {/* Address Label */}
+              <div>
+                <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
+                  Address Label <span className="text-red-500">*</span>
+                </label>
+                <div className="grid grid-cols-3 gap-2 mb-2">
+                  {['Home', 'Work', 'Other'].map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => setAddressForm(prev => ({ ...prev, label: opt === 'Other' ? '' : opt }))}
+                      className={`flex items-center justify-center gap-1.5 sm:gap-2 py-2 sm:py-2.5 rounded-xl border-2 text-xs sm:text-sm font-medium transition-all ${
+                        (opt === 'Other' ? !['Home','Work'].includes(addressForm.label) : addressForm.label === opt)
+                          ? 'border-orange-500 bg-orange-50 text-orange-700'
+                          : 'border-gray-200 text-gray-600 hover:border-orange-300'
+                      }`}
+                    >
+                      {opt === 'Home' && (
+                        <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+                        </svg>
+                      )}
+                      {opt === 'Work' && (
+                        <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                      {opt === 'Other' && (
+                        <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                      {opt}
+                    </button>
+                  ))}
                 </div>
+                {!['Home', 'Work'].includes(addressForm.label) && (
+                  <input
+                    type="text"
+                    value={addressForm.label}
+                    onChange={(e) => setAddressForm(prev => ({ ...prev, label: e.target.value }))}
+                    placeholder="Custom label (e.g., Mom's House, Office)"
+                    className="w-full rounded-xl border border-gray-300 bg-gray-50 px-4 py-2.5 text-sm focus:border-orange-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-200"
+                  />
+                )}
+              </div>
+
+              {/* Form Fields */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <FormInput
-                  label="House/Flat No."
+                  label="House/Flat No. *"
                   value={addressForm.houseNo}
-                  onChange={(e) => setAddressForm((prev) => ({ ...prev, houseNo: e.target.value }))}
+                  onChange={(e) => setAddressForm(prev => ({ ...prev, houseNo: e.target.value }))}
                   placeholder="e.g., 123, Flat 4B"
+                  required
+                />
+                <FormInput
+                  label="Street *"
+                  value={addressForm.street}
+                  onChange={(e) => setAddressForm(prev => ({ ...prev, street: e.target.value }))}
+                  placeholder="Street name"
+                  required
                 />
               </div>
               <FormInput
-                label="Street"
-                value={addressForm.street}
-                onChange={(e) => setAddressForm((prev) => ({ ...prev, street: e.target.value }))}
-                placeholder="Street name"
-                required
+                label="Landmark / Nearby Place (Optional)"
+                value={addressForm.landmark}
+                onChange={(e) => setAddressForm(prev => ({ ...prev, landmark: e.target.value }))}
+                placeholder="e.g., Near City Mall, Behind Jinnah Hospital"
               />
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <FormInput
-                  label="City"
+                  label="City *"
                   value={addressForm.city}
-                  onChange={(e) => setAddressForm((prev) => ({ ...prev, city: e.target.value }))}
+                  onChange={(e) => setAddressForm(prev => ({ ...prev, city: e.target.value }))}
                   placeholder="City"
                   required
                 />
                 <FormInput
                   label="Postal Code"
                   value={addressForm.postalCode}
-                  onChange={(e) => setAddressForm((prev) => ({ ...prev, postalCode: e.target.value }))}
+                  onChange={(e) => setAddressForm(prev => ({ ...prev, postalCode: e.target.value }))}
                   placeholder="Postal code"
                 />
               </div>
-
-              {/* Coordinates Display */}
-              {addressForm.latitude && addressForm.longitude && (
-                <div className="rounded-lg bg-gray-50 p-3">
-                  <p className="text-xs text-gray-500">
-                    Selected Coordinates: {addressForm.latitude.toFixed(6)}, {addressForm.longitude.toFixed(6)}
-                  </p>
-                </div>
-              )}
             </div>
 
-            <div className="flex justify-end gap-3 border-t border-gray-200 px-6 py-4">
+            {/* Footer */}
+            <div className="flex gap-2 sm:gap-3 px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
               <button
-                onClick={closeAddressModal}
-                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                type="button"
+                onClick={() => setShowCloseConfirm(true)}
+                className="flex-1 rounded-xl border border-gray-300 bg-white px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleAddressSave}
                 disabled={savingAddress}
-                className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700 disabled:opacity-50"
+                className="flex-1 rounded-xl bg-orange-600 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-white hover:bg-orange-700 disabled:opacity-50 transition-colors"
               >
-                {savingAddress ? 'Saving...' : editingAddress ? 'Update Address' : 'Add Address'}
+                {savingAddress ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Saving...
+                  </span>
+                ) : editingAddress ? 'Update Address' : 'Add Address'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Close Confirmation Modal */}
+      {showCloseConfirm && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl p-4 sm:p-6">
+            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-amber-100 mx-auto mb-3 sm:mb-4">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 className="text-sm sm:text-base font-bold text-gray-900 text-center mb-1">
+              {editingAddress ? 'Discard Changes?' : "Don't Want to Add New Address?"}
+            </h3>
+            <p className="text-xs sm:text-sm text-gray-500 text-center mb-4 sm:mb-5">
+              {editingAddress
+                ? 'Your edits will be lost. Your existing address will remain unchanged.'
+                : 'You can add this address later from your profile page.'}
+            </p>
+            <div className="flex gap-2 sm:gap-3">
+              <button
+                type="button"
+                onClick={() => setShowCloseConfirm(false)}
+                className="flex-1 rounded-xl border border-gray-300 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Keep Editing
+              </button>
+              <button
+                type="button"
+                onClick={() => { setShowCloseConfirm(false); closeAddressModal(); }}
+                className="flex-1 rounded-xl bg-red-500 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-white hover:bg-red-600 transition-colors"
+              >
+                Discard
               </button>
             </div>
           </div>

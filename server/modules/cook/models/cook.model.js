@@ -15,6 +15,7 @@ const cookSchema = new mongoose.Schema(
       street: { type: String, required: true },
       city: { type: String, default: "Sukkur" },
       postalCode: { type: String, default: "65200" },
+      landmark: { type: String, default: "" },
       /** Location coordinates */
       location: {
         latitude: { type: Number },

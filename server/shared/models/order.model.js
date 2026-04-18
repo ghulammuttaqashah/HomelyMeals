@@ -10,10 +10,11 @@ const orderItemSchema = new mongoose.Schema({
 
 const deliveryAddressSchema = new mongoose.Schema({
   label: { type: String },
-  houseNo: { type: String },
+  houseNo: { type: String, default: "" }, // Optional in DB, validated in frontend
   street: { type: String, required: true },
   city: { type: String, required: true },
   postalCode: { type: String },
+  landmark: { type: String, default: "" },
   latitude: { type: Number, required: true },
   longitude: { type: Number, required: true },
 }, { _id: false });
@@ -119,15 +120,46 @@ orderSchema.pre("save", async function (next) {
     const today = new Date();
     const dateStr = today.toISOString().slice(0, 10).replace(/-/g, "");
 
-    // Count orders created today
-    const startOfDay = new Date(today.setHours(0, 0, 0, 0));
-    const endOfDay = new Date(today.setHours(23, 59, 59, 999));
+    // Retry logic to handle race conditions
+    let attempts = 0;
+    const maxAttempts = 5;
 
-    const count = await mongoose.model("Order").countDocuments({
-      createdAt: { $gte: startOfDay, $lte: endOfDay },
-    });
+    while (attempts < maxAttempts) {
+      try {
+        // Count orders created today
+        const startOfDay = new Date(today.setHours(0, 0, 0, 0));
+        const endOfDay = new Date(today.setHours(23, 59, 59, 999));
 
-    this.orderNumber = `ORD-${dateStr}-${String(count + 1).padStart(4, "0")}`;
+        const count = await mongoose.model("Order").countDocuments({
+          createdAt: { $gte: startOfDay, $lte: endOfDay },
+        });
+
+        // Add random suffix to avoid collisions in high-concurrency scenarios
+        const randomSuffix = Math.floor(Math.random() * 100);
+        const orderNum = `ORD-${dateStr}-${String(count + 1).padStart(4, "0")}-${String(randomSuffix).padStart(2, "0")}`;
+        
+        // Check if this order number already exists
+        const existing = await mongoose.model("Order").findOne({ orderNumber: orderNum });
+        
+        if (!existing) {
+          this.orderNumber = orderNum;
+          break;
+        }
+        
+        attempts++;
+        
+        // Small delay before retry
+        if (attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 50));
+        }
+      } catch (error) {
+        if (attempts === maxAttempts - 1) {
+          // Last attempt failed, use timestamp-based fallback
+          this.orderNumber = `ORD-${dateStr}-${Date.now().toString().slice(-6)}`;
+        }
+        attempts++;
+      }
+    }
   }
   next();
 });

@@ -197,6 +197,31 @@ const FileComplaint = () => {
           </div>
         ) : (
           <form onSubmit={handleSubmit}>
+            {/* Progress Summary - Always on Top */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-5 mb-5">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Progress</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                {[
+                  { label: "Order selected", done: !!selectedOrder },
+                  { label: "Issue type chosen", done: !!type },
+                  { label: "Description written", done: description.trim().length >= 10 },
+                ].map((step, i) => (
+                  <div key={i} className="flex items-center gap-2.5">
+                    <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${step.done ? "bg-orange-500" : "bg-gray-200"}`}>
+                      {step.done ? (
+                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : (
+                        <span className="text-xs text-gray-400 font-bold">{i + 1}</span>
+                      )}
+                    </div>
+                    <span className={`text-sm ${step.done ? "text-gray-800 font-medium" : "text-gray-400"}`}>{step.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             {/* Two-Column Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
 
@@ -488,31 +513,6 @@ const FileComplaint = () => {
                       </li>
                     ))}
                   </ul>
-                </div>
-
-                {/* Progress Summary */}
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Progress</p>
-                  <div className="space-y-2.5">
-                    {[
-                      { label: "Order selected", done: !!selectedOrder },
-                      { label: "Issue type chosen", done: !!type },
-                      { label: "Description written", done: description.trim().length >= 10 },
-                    ].map((step, i) => (
-                      <div key={i} className="flex items-center gap-2.5">
-                        <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${step.done ? "bg-orange-500" : "bg-gray-200"}`}>
-                          {step.done ? (
-                            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                            </svg>
-                          ) : (
-                            <span className="text-xs text-gray-400 font-bold">{i + 1}</span>
-                          )}
-                        </div>
-                        <span className={`text-sm ${step.done ? "text-gray-800 font-medium" : "text-gray-400"}`}>{step.label}</span>
-                      </div>
-                    ))}
-                  </div>
                 </div>
 
                 {/* Submit */}

@@ -2,10 +2,11 @@ import mongoose from "mongoose";
 
 const addressSchema = new mongoose.Schema({
   label: { type: String, default: "Home" }, // Home, Work, Other
-  houseNo: { type: String, required: false },
+  houseNo: { type: String, default: "" }, // Optional in DB, validated in frontend
   street: { type: String, required: [true, "Street information is required."] },
   city: { type: String, default: "Sukkur" },
   postalCode: { type: String, default: "65200" },
+  landmark: { type: String, default: "" }, // Optional landmark/nearby place
   latitude: { type: Number, default: null },
   longitude: { type: Number, default: null },
   isDefault: { type: Boolean, default: false },

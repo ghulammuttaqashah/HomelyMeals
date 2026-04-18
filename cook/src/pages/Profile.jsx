@@ -54,6 +54,7 @@ const Profile = () => {
     street: '',
     city: '',
     postalCode: '',
+    landmark: '',
     maxDeliveryDistance: 5,
   })
   const [profileLoading, setProfileLoading] = useState(false)
@@ -150,6 +151,7 @@ const Profile = () => {
           street: cook.address?.street || '',
           city: cook.address?.city || 'Sukkur',
           postalCode: cook.address?.postalCode || '65200',
+          landmark: cook.address?.landmark || '',
           maxDeliveryDistance: cook.maxDeliveryDistance || 5,
         }
       })
@@ -227,8 +229,21 @@ const Profile = () => {
       toast.error('Contact is required')
       return
     }
+    if (!profileData.houseNo.trim()) {
+      toast.error('House/Flat No. is required')
+      return
+    }
     if (!profileData.street.trim()) {
       toast.error('Street is required')
+      return
+    }
+    if (!profileData.city.trim()) {
+      toast.error('City is required')
+      return
+    }
+
+    if (!coordinates) {
+      toast.error('📍 GPS location is required! Please use "Use My Location" or click on the map to pin your kitchen location.', { duration: 5000 })
       return
     }
 
@@ -249,6 +264,7 @@ const Profile = () => {
           street: profileData.street,
           city: profileData.city,
           postalCode: profileData.postalCode,
+          landmark: profileData.landmark || '',
         },
         profilePicture: profileData.profilePicture,
         maxDeliveryDistance: distance,
@@ -484,19 +500,20 @@ const Profile = () => {
               <div className="space-y-6">
                 <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
                   <h2 className="text-lg font-semibold text-gray-900 sm:text-xl">Address Details</h2>
-                  <p className="mt-1 text-sm text-gray-500 sm:text-base">Kitchen location details.</p>
+                  <p className="mt-1 text-sm text-gray-500 sm:text-base">Kitchen location details used for delivery distance calculation.</p>
 
                   <div className="mt-5 space-y-4">
                     <FormInput
-                      label="House/Flat No."
+                      label="House/Flat No. *"
                       name="houseNo"
                       type="text"
                       value={profileData.houseNo}
                       onChange={handleProfileChange}
-                      placeholder="e.g., House 123"
+                      placeholder="e.g., House 123, Flat 4B"
+                      required
                     />
                     <FormInput
-                      label="Street"
+                      label="Street *"
                       name="street"
                       type="text"
                       value={profileData.street}
@@ -504,14 +521,23 @@ const Profile = () => {
                       placeholder="Enter street name"
                       required
                     />
+                    <FormInput
+                      label="Landmark / Nearby Place (Optional)"
+                      name="landmark"
+                      type="text"
+                      value={profileData.landmark}
+                      onChange={handleProfileChange}
+                      placeholder="e.g., Near City Mall, Behind Jinnah Hospital"
+                    />
                     <div className="grid grid-cols-2 gap-4">
                       <FormInput
-                        label="City"
+                        label="City *"
                         name="city"
                         type="text"
                         value={profileData.city}
                         onChange={handleProfileChange}
                         placeholder="City"
+                        required
                       />
                       <FormInput
                         label="Postal Code"
@@ -525,38 +551,61 @@ const Profile = () => {
                   </div>
 
                   <div className="mt-6 space-y-4 border-t border-gray-100 pt-6">
-                    <h3 className="text-base font-semibold text-gray-900">Map Location</h3>
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-base font-semibold text-gray-900">Map Location *</h3>
+                      {!coordinates && (
+                        <span className="text-xs text-red-500 font-medium">Required to save</span>
+                      )}
+                    </div>
+
+                    {/* Best option highlight */}
+                    <div className="rounded-lg border border-orange-200 bg-orange-50 p-3">
+                      <p className="text-xs font-semibold text-orange-800 mb-1">⭐ Best Option</p>
+                      <p className="text-xs text-orange-700">
+                        Use <strong>"Use My Location"</strong> for the most accurate GPS coordinates. This ensures customers can find your kitchen and delivery distances are calculated correctly.
+                      </p>
+                    </div>
+
                     <div className="grid gap-2">
-                      <button
-                        type="button"
-                        onClick={() => forwardGeocode()}
-                        disabled={locationLoading}
-                        className="flex items-center justify-center gap-2 rounded-lg bg-green-50 px-4 py-2 text-sm font-medium text-green-600 transition-colors hover:bg-green-100 border border-green-100"
-                      >
-                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                        <span>Find on Map</span>
-                      </button>
                       <button
                         type="button"
                         onClick={handleGetLocation}
                         disabled={locationLoading}
-                        className="flex items-center justify-center gap-2 rounded-lg bg-blue-50 px-4 py-2 text-sm font-medium text-blue-600 transition-colors hover:bg-blue-100 border border-blue-100"
+                        className="flex items-center justify-center gap-2 rounded-lg bg-orange-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-orange-700 disabled:opacity-50 shadow-sm"
                       >
                         {locationLoading ? (
-                          <Loader size="sm" />
+                          <>
+                            <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                            </svg>
+                            <span>Detecting Location...</span>
+                          </>
                         ) : (
-                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                          </svg>
+                          <>
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            <span>⭐ Use My Location (Recommended)</span>
+                          </>
                         )}
-                        <span>Use My Location</span>
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => forwardGeocode()}
+                        disabled={locationLoading}
+                        className="flex items-center justify-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 border border-gray-200"
+                      >
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <span>Find on Map by Address</span>
+                      </button>
+                      <p className="text-xs text-gray-500 text-center">Or click directly on the map to pin your location</p>
                     </div>
 
-                    <div className="overflow-hidden rounded-lg border border-gray-200">
+                    <div className={`overflow-hidden rounded-lg border-2 ${coordinates ? 'border-green-400' : 'border-red-300'}`}>
                       <MapContainer
                         center={coordinates ? [coordinates.lat, coordinates.lng] : [27.7052, 68.8574]}
                         zoom={coordinates ? 16 : 13}
@@ -571,9 +620,15 @@ const Profile = () => {
                         <MapUpdater coordinates={coordinates} />
                       </MapContainer>
                     </div>
-                    {coordinates && (
-                      <div className="rounded-lg bg-green-50 px-3 py-2 text-xs text-green-700">
-                        Pinned: {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)}
+                    {coordinates ? (
+                      <div className="rounded-lg bg-green-50 border border-green-200 px-3 py-2 text-xs text-green-700 flex items-center gap-2">
+                        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                        GPS Pinned: {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)}
+                      </div>
+                    ) : (
+                      <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700 flex items-center gap-2">
+                        <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                        No location pinned — required before saving
                       </div>
                     )}
                   </div>

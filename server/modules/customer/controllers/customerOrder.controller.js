@@ -432,7 +432,14 @@ export const calculateDeliveryInfo = async (req, res) => {
   try {
     const { cookId, deliveryAddress } = req.body;
 
+    console.log("📍 Calculate delivery request:", { cookId, deliveryAddress });
+
     if (!cookId || !deliveryAddress?.latitude || !deliveryAddress?.longitude) {
+      console.log("❌ Validation failed:", { 
+        hasCookId: !!cookId, 
+        hasLat: !!deliveryAddress?.latitude, 
+        hasLng: !!deliveryAddress?.longitude 
+      });
       return res.status(400).json({ message: "Cook ID and delivery coordinates required" });
     }
 
