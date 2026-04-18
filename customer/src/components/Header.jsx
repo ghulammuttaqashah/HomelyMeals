@@ -304,15 +304,17 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
       </div>
 
       {/* ── Mobile Drawer ── */}
-      <div className={`fixed inset-0 z-[60] md:hidden pointer-events-none ${showMobileMenu ? 'pointer-events-auto' : ''}`}>
+      <div 
+        className={`fixed inset-0 z-[60] md:hidden ${showMobileMenu ? 'pointer-events-auto' : 'pointer-events-none'}`}
+        style={{ display: showMobileMenu ? 'block' : 'none' }}
+      >
         <div 
-          className={`absolute inset-0 bg-gray-900/20 backdrop-blur-sm transition-opacity duration-200 ${showMobileMenu ? 'opacity-100' : 'opacity-0'}`}
+          className="absolute inset-0 bg-gray-900/20 backdrop-blur-sm transition-opacity duration-200 opacity-100"
           onClick={() => setShowMobileMenu(false)}
-          style={{ touchAction: 'none' }}
         />
         <nav 
-          className={`absolute right-0 top-0 h-full w-full max-w-[280px] bg-white shadow-xl transition-transform duration-200 ease-out ${showMobileMenu ? 'translate-x-0' : 'translate-x-full'}`}
-          style={{ touchAction: showMobileMenu ? 'auto' : 'none' }}
+          className="absolute right-0 top-0 h-full w-full max-w-[280px] bg-white shadow-xl transition-transform duration-200 ease-out translate-x-0"
+          onTouchStart={(e) => e.stopPropagation()}
         >
           <div className="flex flex-col h-full p-4">
               <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">

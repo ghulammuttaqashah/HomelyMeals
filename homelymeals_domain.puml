@@ -1,0 +1,135 @@
+@startuml
+title HomelyMeals Domain Model - Core
+
+skinparam backgroundColor white
+skinparam monochrome true
+skinparam shadowing false
+skinparam linetype polyline
+skinparam dpi 180
+left to right direction
+skinparam nodesep 40
+skinparam ranksep 50
+skinparam ArrowColor black
+skinparam ArrowThickness 1
+
+skinparam class {
+  BackgroundColor white
+  BorderColor black
+  RoundCorner 10
+}
+skinparam classAttributeIconSize 0
+hide empty members
+hide circle
+
+class Admin
+class DeliveryCharges
+class Cook
+class CookDocument
+class CookMeal
+class Customer
+class Chat
+class Complaint
+class Order
+class OTPVerification
+class Plan
+class Review
+class Subscription
+class Warning
+
+Admin -[hidden]-> Customer
+Customer -[hidden]-> Cook
+Customer -[hidden]-> Order
+Order -[hidden]-> Complaint
+Complaint -[hidden]-> Warning
+Cook -[hidden]-> CookMeal
+CookMeal -[hidden]-> Review
+Plan -[hidden]-> Subscription
+
+CookDocument --> Cook : cookId
+CookDocument --> Admin : verifiedByAdmin
+CookMeal --> Cook : cookId
+
+Order --> Customer : customerId
+Order --> Cook : cookId
+Order --> CookMeal : item.mealId
+
+Review --> Customer : customerId
+Review --> Cook : cookId
+Review --> Order : orderId
+Review --> CookMeal : mealId
+
+Subscription --> Cook : cook_id
+Subscription --> Plan : plan_id
+
+Complaint --> Order : orderId
+Complaint --> Customer : complainantId customer
+Complaint --> Cook : complainantId cook
+
+Chat --> Customer : customerId / sender Customer
+Chat --> Cook : cookId / sender Cook
+
+Warning --> Complaint : complaintId
+Warning --> Customer : userId customer
+Warning --> Cook : userId cook
+
+DeliveryCharges --> Order : appliesTo
+OTPVerification --> Customer : verification
+OTPVerification --> Cook : verification
+OTPVerification --> Admin : verification
+
+newpage
+title HomelyMeals Domain Model - Embedded Objects
+
+left to right direction
+skinparam nodesep 35
+skinparam ranksep 45
+
+class Customer
+class Cook
+class Chat
+class Complaint
+class ComplaintResponse
+class Order
+class OTPVerification
+class TempData
+class Review
+
+class Address <<Embedded>>
+class Location <<Embedded>>
+class Message <<Embedded>>
+class LastMessage <<Embedded>>
+class Proof <<Embedded>>
+class OrderItem <<Embedded>>
+class DeliveryAddress <<Embedded>>
+class CancellationRequest <<Embedded>>
+class TempAddress <<Embedded>>
+class ReviewAspect <<Embedded>>
+
+Customer -[hidden]-> Chat
+Chat -[hidden]-> Complaint
+Complaint -[hidden]-> Order
+Order -[hidden]-> OTPVerification
+OTPVerification -[hidden]-> Review
+
+' Embedded structures
+Customer *-- Address : addresses
+Cook *-- Address : address
+Address *-- Location : location
+
+Chat *-- Message : messages
+Chat *-- LastMessage : lastMessage
+
+Complaint *-- Proof : proofUrls
+Complaint *-- ComplaintResponse : responses
+ComplaintResponse *-- Proof : proofUrls
+
+Order *-- OrderItem : items
+Order *-- DeliveryAddress : deliveryAddress
+Order *-- CancellationRequest : cancellationRequest
+
+OTPVerification *-- TempData : tempData
+TempData *-- TempAddress : address
+
+Review *-- ReviewAspect : aspects
+
+@enduml

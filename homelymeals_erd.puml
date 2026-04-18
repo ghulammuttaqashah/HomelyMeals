@@ -1,0 +1,424 @@
+@startuml
+' --- HomelyMeals ERD (MongoDB-style) ---
+title HomelyMeals ERD
+hide circle
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName "Arial"
+skinparam defaultFontSize 12
+left to right direction
+skinparam nodesep 45
+skinparam ranksep 55
+skinparam class {
+  BackgroundColor white
+  BorderColor black
+  ArrowColor black
+}
+
+' === Core Collections ===
+class Admin {
+  +_id : ObjectId
+  name
+  email
+  password
+  twoFactorEnabled
+  lastLogin
+}
+
+class Customer {
+  +_id : ObjectId
+  name
+  email
+  contact
+  password
+  addresses[]
+  registrationDate
+  status
+  statusReason
+  warningsCount
+  createdAt
+  updatedAt
+}
+
+class Cook {
+  +_id : ObjectId
+  name
+  email
+  contact
+  password
+  address
+  verificationStatus
+  serviceStatus
+  registrationDate
+  profilePicture
+  status
+  statusReason
+  maxDeliveryDistance
+  warningsCount
+  stripeAccountId
+  isOnlinePaymentEnabled
+  stripeAccountStatus
+  stripeOnboardingCompletedAt
+  createdAt
+  updatedAt
+}
+
+class CookDocument {
+  +_id : ObjectId
+  cookId : ObjectId ref Cook
+  profilePicture
+  cnicFront
+  cnicBack
+  kitchenPhotos[]
+  sfaLicense
+  other
+  verifiedByAdmin : ObjectId ref Admin
+  verifiedAt
+  createdAt
+  updatedAt
+}
+
+class CookMeal {
+  +_id : ObjectId
+  cookId : ObjectId ref Cook
+  name
+  description
+  price
+  category
+  availability
+  itemImage
+  createdAt
+  updatedAt
+}
+
+class Meal {
+  +_id : ObjectId
+  note : Legacy ref name used by OrderItem.mealId
+}
+
+class Order {
+  +_id : ObjectId
+  orderNumber
+  customerId : ObjectId ref Customer
+  cookId : ObjectId ref Cook
+  items[]
+  subtotal
+  deliveryCharges
+  totalAmount
+  deliveryAddress
+  distance
+  estimatedTime
+  deliveryNote
+  paymentMethod
+  paymentStatus
+  paymentProof
+  paymentRejectionReason
+  paymentRejectionCount
+  paymentIntentId
+  stripeTransferId
+  paymentCompletedAt
+  status
+  rejectionReason
+  cancellationReason
+  cancelledBy
+  cancellationRequest
+  paymentDeadline
+  confirmedAt
+  preparingAt
+  outForDeliveryAt
+  estimatedDeliveryAt
+  deliveredAt
+  cancelledAt
+  createdAt
+  updatedAt
+}
+
+class Review {
+  +_id : ObjectId
+  customerId : ObjectId ref Customer
+  cookId : ObjectId ref Cook
+  orderId : ObjectId ref Order
+  mealId : ObjectId ref CookMeal
+  rating
+  reviewText
+  reviewType
+  aspects[]
+  createdAt
+  updatedAt
+}
+
+class Chat {
+  +_id : ObjectId
+  customerId : ObjectId ref Customer
+  cookId : ObjectId ref Cook
+  messages[]
+  lastMessage
+  customerUnread
+  cookUnread
+  createdAt
+  updatedAt
+}
+
+class Complaint {
+  +_id : ObjectId
+  orderId : ObjectId ref Order
+  complainantType
+  complainantId : ObjectId refPath complainantTypeRef
+  complainantTypeRef
+  againstUserId : ObjectId
+  type
+  description
+  proofUrls[]
+  responses[]
+  status
+  adminResponse
+  createdAt
+  updatedAt
+}
+
+class Warning {
+  +_id : ObjectId
+  userId : ObjectId polymorphic by userType
+  userType
+  complaintId : ObjectId ref Complaint
+  message
+  createdAt
+}
+
+class Plan {
+  +_id : ObjectId
+  name
+  price
+  duration
+  status
+  createdAt
+  updatedAt
+}
+
+class Subscription {
+  +_id : ObjectId
+  cook_id : ObjectId ref Cook
+  plan_id : ObjectId ref Plan
+  start_date
+  end_date
+  status
+  stripe_payment_intent_id
+  createdAt
+  updatedAt
+}
+
+class DeliveryCharges {
+  +_id : ObjectId
+  pricePerKm
+  minimumCharge
+  maxDeliveryDistance
+  isActive
+  createdAt
+  updatedAt
+}
+
+class OTPVerification {
+  +_id : ObjectId
+  email
+  otpCode
+  purpose
+  expiryTime
+  isVerified
+  tempData
+  createdAt
+  updatedAt
+}
+
+' === Embedded Documents ===
+class Address {
+  label
+  houseNo
+  street
+  city
+  postalCode
+  latitude
+  longitude
+  isDefault
+  location
+}
+
+class Location {
+  latitude
+  longitude
+}
+
+class Message {
+  senderId : ObjectId refPath senderType
+  senderType
+  content
+  read
+  readAt
+  createdAt
+  updatedAt
+}
+
+class LastMessage {
+  content
+  senderId : ObjectId
+  senderType
+  createdAt
+}
+
+class Proof {
+  url
+  uploadedAt
+}
+
+class ComplaintResponse {
+  senderId : ObjectId
+  senderRole
+  senderName
+  text
+  proofUrls[]
+  createdAt
+}
+
+class DocumentFile {
+  url
+  status
+  uploadedAt
+  rejectedReason
+}
+
+class OrderItem {
+  mealId : ObjectId ref Meal
+  name
+  price
+  quantity
+  itemImage
+}
+
+class DeliveryAddress {
+  label
+  houseNo
+  street
+  city
+  postalCode
+  latitude
+  longitude
+}
+
+class CancellationRequest {
+  status
+  reason
+  requestedAt
+  respondedAt
+  cookResponse
+}
+
+class TempData {
+  name
+  contact
+  password
+  address
+}
+
+class TempAddress {
+  houseNo
+  street
+  city
+  postalCode
+}
+
+class ReviewAspect {
+  aspect
+  sentiment
+  keywords[]
+  reason
+}
+
+' === Layout Helpers (hidden) ===
+Admin -[hidden]-> Customer
+Customer -[hidden]-> Cook
+Cook -[hidden]-> Order
+Order -[hidden]-> Review
+Review -[hidden]-> Complaint
+Complaint -[hidden]-> Warning
+Plan -[hidden]-> Subscription
+DeliveryCharges -[hidden]-> OTPVerification
+
+Address -[hidden]-> Message
+Message -[hidden]-> ComplaintResponse
+ComplaintResponse -[hidden]-> OrderItem
+OrderItem -[hidden]-> TempData
+TempData -[hidden]-> ReviewAspect
+
+' === Reference Relationships (schema refs) ===
+Customer "1" --> "0..*" Order
+Cook "1" --> "0..*" Order
+
+Cook "1" --> "0..*" CookMeal
+Cook "1" --> "0..*" CookDocument
+Admin "1" --> "0..*" CookDocument
+
+Customer "1" --> "0..*" Review
+Cook "1" --> "0..*" Review
+Order "1" --> "0..*" Review
+CookMeal "1" --> "0..*" Review
+
+Customer "1" --> "0..*" Chat
+Cook "1" --> "0..*" Chat
+
+Order "1" --> "0..*" Complaint
+Customer "1" --> "0..*" Complaint : via refPath
+Cook "1" --> "0..*" Complaint : via refPath
+
+Complaint "1" --> "0..*" Warning
+
+Cook "1" --> "0..*" Subscription
+Plan "1" --> "0..*" Subscription
+
+Order "1" --> "1..*" OrderItem
+OrderItem "0..*" --> "0..1" Meal : mealId ref target
+Meal "0..*" ..> "0..*" CookMeal : mapped to CookMeal model in codebase
+
+' === Embedded Relationships ===
+Customer "1" *-- "0..*" Address
+Cook "1" *-- "1" Address
+Address "1" *-- "0..1" Location
+
+Chat "1" *-- "0..*" Message
+Chat "1" *-- "0..1" LastMessage
+
+Message "0..*" ..> "0..1" Customer : senderId when senderType=Customer
+Message "0..*" ..> "0..1" Cook : senderId when senderType=Cook
+LastMessage "0..*" ..> "0..1" Customer : senderId can be Customer
+LastMessage "0..*" ..> "0..1" Cook : senderId can be Cook
+
+Complaint "1" *-- "0..*" Proof
+Complaint "1" *-- "0..*" ComplaintResponse
+ComplaintResponse "1" *-- "0..*" Proof
+ComplaintResponse "0..*" ..> "0..1" Customer : senderId when senderRole=customer
+ComplaintResponse "0..*" ..> "0..1" Cook : senderId when senderRole=cook
+
+CookDocument "1" *-- "0..1" DocumentFile : profilePicture
+CookDocument "1" *-- "0..1" DocumentFile : cnicFront
+CookDocument "1" *-- "0..1" DocumentFile : cnicBack
+CookDocument "1" *-- "0..*" DocumentFile : kitchenPhotos
+CookDocument "1" *-- "0..1" DocumentFile : sfaLicense
+CookDocument "1" *-- "0..1" DocumentFile : other
+
+Order "1" *-- "1" DeliveryAddress
+Order "1" *-- "0..1" CancellationRequest
+
+OTPVerification "1" *-- "0..1" TempData
+TempData "1" *-- "0..1" TempAddress
+
+Review "1" *-- "0..*" ReviewAspect
+
+' === Process-Level (not direct schema refs) ===
+DeliveryCharges "1" ..> "0..*" Order : pricing policy
+Customer "1" ..> "0..*" OTPVerification : verification flow
+Cook "1" ..> "0..*" OTPVerification : verification flow
+Admin "1" ..> "0..*" OTPVerification : verification flow
+Customer "1" ..> "0..*" Warning : userType customer
+Cook "1" ..> "0..*" Warning : userType cook
+Complaint "0..*" ..> "0..1" Customer : againstUserId can target Customer
+Complaint "0..*" ..> "0..1" Cook : againstUserId can target Cook
+
+@enduml

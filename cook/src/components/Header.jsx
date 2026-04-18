@@ -214,15 +214,17 @@ const Header = ({ showSignOut = false }) => {
 
       {/* Side Menu Overlay - Improved Responsiveness without over-designing */}
       {showSignOut && isApproved && (
-        <div className={`fixed inset-0 z-[60] lg:hidden pointer-events-none ${mobileMenuOpen ? 'pointer-events-auto' : ''}`}>
+        <div 
+          className={`fixed inset-0 z-[60] lg:hidden ${mobileMenuOpen ? 'pointer-events-auto' : 'pointer-events-none'}`}
+          style={{ display: mobileMenuOpen ? 'block' : 'none' }}
+        >
           <div 
-            className={`absolute inset-0 bg-gray-900/20 backdrop-blur-sm transition-opacity duration-200 ${mobileMenuOpen ? 'opacity-100' : 'opacity-0'}`}
+            className="absolute inset-0 bg-gray-900/20 backdrop-blur-sm transition-opacity duration-200 opacity-100"
             onClick={() => setMobileMenuOpen(false)}
-            style={{ touchAction: 'none' }}
           />
           <nav 
-            className={`absolute right-0 top-0 h-full w-full max-w-[280px] bg-white shadow-xl transition-transform duration-200 ease-out ${mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}
-            style={{ touchAction: mobileMenuOpen ? 'auto' : 'none' }}
+            className="absolute right-0 top-0 h-full w-full max-w-[280px] bg-white shadow-xl transition-transform duration-200 ease-out translate-x-0"
+            onTouchStart={(e) => e.stopPropagation()}
           >
             <div className="flex flex-col h-full bg-white p-4">
               <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
