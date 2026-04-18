@@ -81,15 +81,13 @@ const PWAInstallBanner = () => {
         <h3 className="text-xl font-bold text-gray-900 text-center mb-1">Homely Meals</h3>
         <p className="text-gray-500 text-center text-xs mb-4">Order homemade meals from local cooks</p>
 
-        <div className="space-y-2.5 mb-6">
-          {['Quick access from home screen', 'Works offline', 'Get order notifications'].map((text) => (
-            <div key={text} className="flex items-center gap-2.5 text-sm text-gray-700">
-              <svg className="h-4 w-4 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              <span>{text}</span>
-            </div>
-          ))}
+        <div className="mb-6 px-2">
+          <div className="flex items-start gap-3 text-sm text-gray-700 bg-green-50 rounded-lg p-3 border border-green-100">
+            <svg className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            <span className="leading-relaxed">Get a native mobile app experience with quick access from your home screen, instant order notifications, and full offline functionality</span>
+          </div>
         </div>
 
         <button onClick={handleInstall} className="w-full bg-orange-600 text-white py-3 rounded-xl font-semibold hover:bg-orange-700 transition-colors flex items-center justify-center gap-2">
