@@ -187,19 +187,18 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
             <h1 className="text-xl sm:text-2xl font-bold text-orange-600 leading-none">HomelyMeals</h1>
           </div>
 
-          {/* Address pill — visible on all screen sizes when authenticated */}
+          {/* Address pill — visible on desktop only */}
           {isAuthenticated && customer?.addresses?.length > 0 && (
-            <div className="relative">
+            <div className="relative hidden md:block">
               <button
                 onClick={() => setShowAddressDropdown(!showAddressDropdown)}
-                className="flex items-center gap-1 sm:gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-2 sm:px-3 py-1.5 text-gray-700 hover:bg-gray-100 transition-colors"
+                className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-gray-700 hover:bg-gray-100 transition-colors"
               >
-                <FiMapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-orange-500 flex-shrink-0" />
-                {/* Show label on all screens */}
+                <FiMapPin className="h-4 w-4 text-orange-500 flex-shrink-0" />
                 <span className="text-sm font-medium">
                   {defaultAddress?.label || 'Address'}
                 </span>
-                <svg className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
@@ -294,32 +293,6 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
               <FiDownload className="h-4 w-4" />
               <span className="text-xs font-semibold">Install</span>
             </button>
-          )}
-
-          {isAuthenticated && (
-            <>
-              {/* Cart */}
-              <button type="button" onClick={() => navigate('/cart')}
-                className="relative flex items-center rounded-lg border border-gray-200 p-2 text-gray-600 hover:bg-gray-50 transition-colors">
-                <FiShoppingCart className="h-5 w-5" />
-                {itemCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-orange-600 text-[10px] font-bold text-white">
-                    {itemCount > 9 ? '9+' : itemCount}
-                  </span>
-                )}
-              </button>
-
-              {/* Chats */}
-              <button type="button" onClick={() => navigate('/chats')}
-                className="relative flex items-center rounded-lg border border-gray-200 p-2 text-gray-600 hover:bg-gray-50 transition-colors">
-                <FiMessageCircle className="h-5 w-5" />
-                {unreadChats > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-orange-600 text-[10px] font-bold text-white">
-                    {unreadChats > 9 ? '9+' : unreadChats}
-                  </span>
-                )}
-              </button>
-            </>
           )}
 
           {/* Hamburger */}
