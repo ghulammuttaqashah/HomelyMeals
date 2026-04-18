@@ -3,6 +3,9 @@ import axios from "axios";
 const OPENROUTE_API_KEY = process.env.OPENROUTE_API_KEY;
 const OPENROUTE_BASE_URL = "https://api.openrouteservice.org/v2/directions/driving-car";
 
+// Log API key status on module load
+console.log("🔑 OpenRouteService API Key loaded:", OPENROUTE_API_KEY ? `${OPENROUTE_API_KEY.substring(0, 10)}...` : "❌ MISSING");
+
 /**
  * Calculate driving distance and duration between two coordinates
  * @param {Object} from - { latitude, longitude }
@@ -26,13 +29,32 @@ export const calculateDistance = async (from, to) => {
     const distanceKm = parseFloat((properties.distance / 1000).toFixed(2));
     const durationMinutes = Math.ceil(properties.duration / 60);
 
+    console.log("✅ OpenRouteService API success!");
+    console.log("📍 From:", from);
+    console.log("📍 To:", to);
+    console.log("🚗 Distance:", distanceKm, "km");
+    console.log("⏱️ Duration:", durationMinutes, "minutes");
+
     return {
       distance: distanceKm,
       duration: durationMinutes,
     };
   } catch (error) {
-    console.error("OpenRouteService error:", error.response?.data || error.message);
-    
+    console.error("⚠️ OpenRouteService API failed — falling back to Haversine formula");
+    console.error("📍 From:", from);
+    console.error("📍 To:", to);
+    console.error("🔑 API Key present:", !!OPENROUTE_API_KEY);
+
+    if (error.response) {
+      console.error("❌ Status:", error.response.status);
+      console.error("❌ Response data:", JSON.stringify(error.response.data, null, 2));
+    } else if (error.request) {
+      console.error("❌ No response received — possible network issue or timeout");
+      console.error("❌ Request details:", error.request?._currentUrl || error.config?.url);
+    } else {
+      console.error("❌ Error message:", error.message);
+    }
+
     // Fallback to Haversine formula if API fails
     return calculateHaversineDistance(from, to);
   }

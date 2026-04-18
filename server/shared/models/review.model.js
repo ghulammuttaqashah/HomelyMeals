@@ -50,6 +50,10 @@ const reviewSchema = new mongoose.Schema(
             }],
             default: []
         },
+        isRead: {
+            type: Boolean,
+            default: false
+        },
     },
     {
         timestamps: true,

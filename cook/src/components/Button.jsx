@@ -50,7 +50,13 @@ const Button = ({
     >
       {loading ? (
         <>
-          <Loader size={loaderSizes[size]} className={variant === 'primary' || variant === 'danger' || variant === 'success' ? '[&>div]:border-white [&>div]:border-t-transparent' : ''} />
+          <div 
+            className={`animate-spin w-4 h-4 border-2 rounded-full ${
+              variant === 'primary' || variant === 'danger' || variant === 'success' 
+                ? 'border-white border-t-transparent' 
+                : 'border-orange-600 border-t-transparent'
+            }`} 
+          />
           <span>{loadingText || children}</span>
         </>
       ) : (

@@ -455,7 +455,7 @@ const Profile = () => {
                     </div>
                   </div>
 
-                  <div className="mt-8 border-t border-gray-100 pt-6 text-right">
+                  <div className="hidden xl:block mt-8 border-t border-gray-100 pt-6 text-right">
                     <p className="text-sm text-gray-500 sm:text-base mb-4">Save now to apply your profile and delivery updates.</p>
                     <button
                       type="submit"
@@ -579,6 +579,30 @@ const Profile = () => {
                   </div>
                 </section>
               </div>
+            </div>
+
+            {/* Mobile/Tablet Save Button - Placed at last */}
+            <div className="xl:hidden rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6 text-center sm:text-right mt-6">
+              <p className="text-sm text-gray-500 sm:text-base mb-4">Save now to apply your profile and delivery updates.</p>
+              <button
+                type="submit"
+                disabled={profileLoading}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-lg bg-orange-600 px-8 py-3 text-sm font-semibold text-white transition-colors hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 shadow-sm"
+              >
+                {profileLoading ? (
+                  <>
+                    <Loader size="sm" />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>Save All Changes</span>
+                  </>
+                )}
+              </button>
             </div>
 
           </form>

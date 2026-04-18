@@ -5,15 +5,13 @@ import { loadStripe } from "@stripe/stripe-js";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
-import { placeOrder } from "../api/orders";
-import { getCookDeliveryInfo, getDeliverySettings } from "../api/meals";
+import { placeOrder, calculateDeliveryInfo } from "../api/orders";
+import { getCookDeliveryInfo } from "../api/meals";
 import { createPaymentIntent, confirmPayment } from "../api/payments";
-import { calculateDistance, calculateDeliveryCharges, isWithinDeliveryRange } from "../utils/distance";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import Button from "../components/Button";
 import Loader from "../components/Loader";
-import FormInput from "../components/FormInput";
 import { FiMapPin, FiTruck, FiClock, FiCreditCard, FiArrowLeft, FiAlertCircle } from "react-icons/fi";
 
 const stripePublicKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "";
@@ -38,6 +36,7 @@ const CheckoutForm = ({ cookInfo, deliveryInfo, deliveryAddress, cart, subtotal,
 
   const [paymentMethod, setPaymentMethod] = useState("cod");
   const [submitting, setSubmitting] = useState(false);
+  const [cardReady, setCardReady] = useState(false);
 
   const cookAcceptsCard = cookInfo?.isOnlinePaymentEnabled && cookInfo?.stripeAccountId;
   const totalAmount = subtotal + (deliveryInfo?.deliveryCharges || 0);
@@ -216,8 +215,16 @@ const CheckoutForm = ({ cookInfo, deliveryInfo, deliveryAddress, cart, subtotal,
 
         {/* Stripe Card Element */}
         {paymentMethod === "card" && cookAcceptsCard && hasStripe && (
-          <div className="mt-4 rounded-lg border border-gray-300 p-3 bg-white">
-            <CardElement options={cardElementOptions} />
+          <div className="mt-4 rounded-lg border border-gray-300 p-3 bg-white relative min-h-[44px]">
+            {!cardReady && (
+              <div className="absolute inset-0 flex items-center justify-center bg-white rounded-lg z-10">
+                <div className="animate-spin w-5 h-5 border-2 border-orange-600 border-t-transparent rounded-full" />
+              </div>
+            )}
+            <CardElement 
+              options={cardElementOptions} 
+              onReady={() => setCardReady(true)} 
+            />
           </div>
         )}
 
@@ -233,7 +240,7 @@ const CheckoutForm = ({ cookInfo, deliveryInfo, deliveryAddress, cart, subtotal,
         type="submit"
         variant="primary"
         className="w-full"
-        disabled={submitting || !deliveryInfo?.isWithinRange}
+        disabled={submitting || !deliveryInfo?.isWithinRange || (paymentMethod === "card" && !cardReady)}
       >
         {submitting ? (
           <span className="flex items-center justify-center gap-2">
@@ -266,10 +273,19 @@ const Checkout = () => {
   const [calculating, setCalculating] = useState(false);
   const [deliveryInfo, setDeliveryInfo] = useState(null);
   const [deliveryError, setDeliveryError] = useState(null);
-  const [selectedAddressId, setSelectedAddressId] = useState(defaultAddress?._id || null);
   const [cookInfo, setCookInfo] = useState(null);
-  const [deliverySettings, setDeliverySettings] = useState({ pricePerKm: 20, minimumCharge: 0 });
+  const [cookInfoLoaded, setCookInfoLoaded] = useState(false);
   const [specialInstructions, setSpecialInstructions] = useState("");
+  const [usingCustomLocation, setUsingCustomLocation] = useState(false);
+  const [deliveryCache, setDeliveryCache] = useState(() => {
+    // Load cache from localStorage on mount
+    try {
+      const cached = localStorage.getItem('deliveryCache');
+      return cached ? JSON.parse(cached) : {};
+    } catch {
+      return {};
+    }
+  });
 
   const [deliveryAddress, setDeliveryAddress] = useState({
     houseNo: defaultAddress?.houseNo || "",
@@ -291,15 +307,13 @@ const Checkout = () => {
     const fetchDeliveryData = async () => {
       if (!cart.cookId) return;
       try {
-        const [cookData, settingsData] = await Promise.all([
-          getCookDeliveryInfo(cart.cookId),
-          getDeliverySettings(),
-        ]);
+        const cookData = await getCookDeliveryInfo(cart.cookId);
         setCookInfo(cookData.cook);
-        setDeliverySettings(settingsData.settings);
+        setCookInfoLoaded(true);
       } catch (error) {
         console.error("Failed to fetch delivery data:", error);
         toast.error("Could not load delivery information");
+        setCookInfoLoaded(true);
       }
     };
     fetchDeliveryData();
@@ -317,23 +331,64 @@ const Checkout = () => {
         return;
       }
 
+      // Create cache key based on cook and customer coordinates
+      const cacheKey = `${cart.cookId}_${cookInfo.latitude.toFixed(4)}_${cookInfo.longitude.toFixed(4)}_${deliveryAddress.latitude.toFixed(4)}_${deliveryAddress.longitude.toFixed(4)}`;
+      
+      // Check if we have cached data for these exact coordinates
+      if (deliveryCache[cacheKey]) {
+        console.log("📦 Using cached delivery info");
+        setDeliveryInfo(deliveryCache[cacheKey]);
+        if (!deliveryCache[cacheKey].isWithinRange) {
+          setDeliveryError(
+            `Delivery not available. Distance (${deliveryCache[cacheKey].distance.toFixed(1)} km) exceeds cook's delivery range (${deliveryCache[cacheKey].maxDeliveryDistance} km)`
+          );
+        } else {
+          setDeliveryError(null);
+        }
+        return;
+      }
+
       setCalculating(true);
       setDeliveryError(null);
 
       try {
-        const { distance, duration } = await calculateDistance(
-          { latitude: cookInfo.latitude, longitude: cookInfo.longitude },
-          { latitude: deliveryAddress.latitude, longitude: deliveryAddress.longitude }
-        );
-        const deliveryCharges = calculateDeliveryCharges(distance, deliverySettings);
-        const withinRange = isWithinDeliveryRange(distance, cookInfo.maxDeliveryDistance);
+        // Call backend API to calculate distance using OpenRouteService
+        const result = await calculateDeliveryInfo(cart.cookId, {
+          latitude: deliveryAddress.latitude,
+          longitude: deliveryAddress.longitude,
+        });
 
-        setDeliveryInfo({ distance, deliveryCharges, estimatedTime: duration, isWithinRange: withinRange, maxDeliveryDistance: cookInfo.maxDeliveryDistance });
-        if (!withinRange) {
-          setDeliveryError(`Delivery not available. Distance (${distance.toFixed(1)} km) exceeds cook's delivery range (${cookInfo.maxDeliveryDistance} km)`);
+        const deliveryData = {
+          distance: result.distance,
+          deliveryCharges: result.deliveryCharges,
+          estimatedTime: result.estimatedTime,
+          isWithinRange: result.isWithinRange,
+          maxDeliveryDistance: result.maxDeliveryDistance,
+        };
+
+        setDeliveryInfo(deliveryData);
+
+        // Cache the result
+        const newCache = { ...deliveryCache, [cacheKey]: deliveryData };
+        setDeliveryCache(newCache);
+        
+        // Save to localStorage (limit to last 10 entries to avoid bloat)
+        try {
+          const cacheEntries = Object.entries(newCache);
+          const limitedCache = Object.fromEntries(cacheEntries.slice(-10));
+          localStorage.setItem('deliveryCache', JSON.stringify(limitedCache));
+        } catch (error) {
+          console.error("Failed to save cache:", error);
+        }
+
+        if (!result.isWithinRange) {
+          setDeliveryError(
+            `Delivery not available. Distance (${result.distance.toFixed(1)} km) exceeds cook's delivery range (${result.maxDeliveryDistance} km)`
+          );
         }
       } catch (error) {
-        setDeliveryError("Could not calculate delivery. Please try again.");
+        console.error("Delivery calculation error:", error);
+        setDeliveryError(error.response?.data?.message || "Could not calculate delivery. Please try again.");
         setDeliveryInfo(null);
       } finally {
         setCalculating(false);
@@ -342,20 +397,48 @@ const Checkout = () => {
 
     const timer = setTimeout(calculateDeliveryInfoFn, 300);
     return () => clearTimeout(timer);
-  }, [cookInfo, deliveryAddress.latitude, deliveryAddress.longitude, deliverySettings]);
+  }, [cookInfo, deliveryAddress.latitude, deliveryAddress.longitude, cart.cookId, deliveryCache]);
 
   const getCurrentLocation = () => {
-    if (!navigator.geolocation) { toast.error("Geolocation is not supported"); return; }
+    if (!navigator.geolocation) {
+      toast.error("Geolocation is not supported by your browser");
+      return;
+    }
+    
     setLoading(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setDeliveryAddress((prev) => ({ ...prev, latitude: pos.coords.latitude, longitude: pos.coords.longitude }));
+        setDeliveryAddress((prev) => ({
+          ...prev,
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+        }));
+        setUsingCustomLocation(true);
         setLoading(false);
-        toast.success("Location updated");
+        toast.success("Location updated successfully");
       },
-      () => { toast.error("Could not get your location."); setLoading(false); },
-      { enableHighAccuracy: true }
+      (error) => {
+        console.error("Geolocation error:", error);
+        toast.error("Could not get your location. Please enable location access.");
+        setLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
+  };
+
+  const resetToSavedAddress = () => {
+    if (defaultAddress) {
+      setDeliveryAddress({
+        houseNo: defaultAddress.houseNo || "",
+        street: defaultAddress.street || "",
+        city: defaultAddress.city || "",
+        postalCode: defaultAddress.postalCode || "",
+        latitude: defaultAddress.latitude || null,
+        longitude: defaultAddress.longitude || null,
+      });
+      setUsingCustomLocation(false);
+      toast.success("Reset to saved address");
+    }
   };
 
   const handleAddressChange = (e) => {
@@ -399,8 +482,55 @@ const Checkout = () => {
         )}
 
         <div className="grid md:grid-cols-3 gap-4 sm:gap-6">
-          {/* Left Column */}
-          <div className="md:col-span-2 space-y-4 sm:space-y-6">
+          {/* Right Column - Order Summary (shows first on mobile) */}
+          <div className="md:col-span-1 order-first md:order-last">
+            <div className="bg-white rounded-lg shadow-sm p-5 md:sticky md:top-4">
+              <h2 className="text-lg font-semibold mb-4">Order Summary</h2>
+              <div className="text-sm text-gray-600 mb-4 pb-4 border-b">
+                Ordering from <span className="font-medium text-gray-800">{cart.cookName}</span>
+              </div>
+              <div className="space-y-3 mb-4 pb-4 border-b max-h-48 overflow-y-auto">
+                {cart.items.map((item) => (
+                  <div key={item.mealId} className="flex justify-between text-sm">
+                    <span className="text-gray-600">{item.name} x {item.quantity}</span>
+                    <span className="font-medium">Rs. {item.price * item.quantity}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="space-y-2 mb-4 pb-4 border-b">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Subtotal</span>
+                  <span>Rs. {subtotal}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Delivery Fee</span>
+                  <span>{calculating ? "..." : deliveryInfo ? `Rs. ${deliveryInfo.deliveryCharges}` : "-"}</span>
+                </div>
+              </div>
+              <div className="flex justify-between text-lg font-bold">
+                <span>Total</span>
+                <span className="text-orange-600">Rs. {deliveryInfo ? totalAmount : subtotal}</span>
+              </div>
+
+              {cookInfo?.isOnlinePaymentEnabled && (
+                <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-xs text-green-700 font-medium">💳 Card payment available</p>
+                  <p className="text-xs text-green-600 mt-0.5">This cook accepts online payments</p>
+                </div>
+              )}
+
+              {!deliveryInfo && !calculating && cookInfoLoaded && (deliveryAddress.latitude && deliveryAddress.longitude) && (
+                <div className="mt-3 p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-700">
+                  <p className="font-medium mb-1">⚠️ Delivery calculation pending</p>
+                  {!cookInfo && <p>• Cook delivery info not loaded</p>}
+                  {cookInfo && (!cookInfo.latitude || !cookInfo.longitude) && <p>• Cook has no GPS coordinates set</p>}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Left Column - Delivery + Instructions + Payment */}
+          <div className="md:col-span-2 space-y-4 sm:space-y-6 order-last md:order-first">
             {/* Delivery Address */}
             <div className="bg-white rounded-lg shadow-sm p-4 sm:p-5">
               <div className="flex items-center gap-2 mb-3 sm:mb-4">
@@ -408,67 +538,93 @@ const Checkout = () => {
                 <h2 className="text-base sm:text-lg font-semibold">Delivery Address</h2>
               </div>
 
-              {customer?.addresses?.length > 0 && (
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Select Saved Address</label>
-                  <div className="space-y-2">
-                    {customer.addresses.map((addr) => (
-                      <label key={addr._id} className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${selectedAddressId === addr._id ? "border-orange-500 bg-orange-50" : "border-gray-200 hover:border-orange-300"}`}>
-                        <input type="radio" name="savedAddress" value={addr._id} checked={selectedAddressId === addr._id}
-                          onChange={() => { setSelectedAddressId(addr._id); setDeliveryAddress({ houseNo: addr.houseNo || "", street: addr.street || "", city: addr.city || "", postalCode: addr.postalCode || "", latitude: addr.latitude || null, longitude: addr.longitude || null }); }}
-                          className="mt-1"
-                        />
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-gray-900">{addr.label || "Address"}</span>
-                            {addr.isDefault && <span className="px-2 py-0.5 bg-orange-100 text-orange-700 text-xs rounded-full">Default</span>}
-                            {addr.latitude && addr.longitude && <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">📍 GPS</span>}
-                          </div>
-                          <p className="text-sm text-gray-600">{[addr.houseNo, addr.street, addr.city].filter(Boolean).join(", ")}</p>
-                        </div>
-                      </label>
-                    ))}
-                    <label className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${selectedAddressId === "new" ? "border-orange-500 bg-orange-50" : "border-gray-200 hover:border-orange-300"}`}>
-                      <input type="radio" name="savedAddress" value="new" checked={selectedAddressId === "new"}
-                        onChange={() => { setSelectedAddressId("new"); setDeliveryAddress({ houseNo: "", street: "", city: "", postalCode: "", latitude: null, longitude: null }); }}
-                      />
-                      <span className="font-medium text-gray-700">+ Use a different address</span>
-                    </label>
+              {/* Show selected address */}
+              <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="font-medium text-gray-900">
+                      {usingCustomLocation ? "Current Location" : (defaultAddress?.label || "Delivery Address")}
+                    </span>
+                    {!usingCustomLocation && defaultAddress?.isDefault && (
+                      <span className="px-2 py-0.5 bg-orange-100 text-orange-700 text-xs rounded-full">
+                        Default
+                      </span>
+                    )}
+                    {usingCustomLocation && (
+                      <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
+                        Custom Location
+                      </span>
+                    )}
                   </div>
-
-                  {selectedAddressId && selectedAddressId !== "new" && (!deliveryAddress.latitude || !deliveryAddress.longitude) && (
-                    <div className="mt-3 p-3 bg-gray-50 rounded-lg flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Set your delivery location</span>
-                      <Button type="button" variant="primary" onClick={getCurrentLocation} disabled={loading} className="text-sm">
-                        {loading ? "Getting..." : "📍 Use Current Location"}
-                      </Button>
+                  <p className="text-sm text-gray-600 mb-3">
+                    {usingCustomLocation 
+                      ? "Using your current GPS location"
+                      : ([
+                          deliveryAddress.houseNo,
+                          deliveryAddress.street,
+                          deliveryAddress.city,
+                          deliveryAddress.postalCode,
+                        ]
+                          .filter(Boolean)
+                          .join(", ") || "No address details")}
+                  </p>
+                  
+                  {deliveryAddress.latitude && deliveryAddress.longitude ? (
+                    <div className="flex items-center gap-2 text-xs text-green-600">
+                      <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                      <span>Location set: {deliveryAddress.latitude.toFixed(4)}, {deliveryAddress.longitude.toFixed(4)}</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-xs text-amber-600">
+                      <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
+                      <span>GPS location required for delivery calculation</span>
                     </div>
                   )}
                 </div>
-              )}
+              </div>
 
-              {(!customer?.addresses?.length || selectedAddressId === "new") && (
-                <>
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    <FormInput label="House/Flat No." name="houseNo" value={deliveryAddress.houseNo} onChange={handleAddressChange} placeholder="e.g., 12-A" />
-                    <FormInput label="Street *" name="street" value={deliveryAddress.street} onChange={handleAddressChange} placeholder="Street name" required />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    <FormInput label="City" name="city" value={deliveryAddress.city} onChange={handleAddressChange} placeholder="City" />
-                    <FormInput label="Postal Code" name="postalCode" value={deliveryAddress.postalCode} onChange={handleAddressChange} placeholder="Postal code" />
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <p className="text-sm text-gray-600">
-                      {deliveryAddress.latitude && deliveryAddress.longitude
-                        ? `Location set: ${deliveryAddress.latitude.toFixed(4)}, ${deliveryAddress.longitude.toFixed(4)}`
-                        : "Location not set"}
-                    </p>
-                    <Button type="button" variant="outline" onClick={getCurrentLocation} disabled={loading} className="text-sm">
-                      {loading ? "Getting..." : "Use Current Location"}
-                    </Button>
-                  </div>
-                </>
-              )}
+              {/* Use My Location Button - Always visible */}
+              <div className="mt-4 space-y-2">
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={getCurrentLocation}
+                  disabled={loading}
+                  className="w-full flex items-center justify-center gap-2"
+                >
+                  {loading ? (
+                    <>
+                      <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                      <span>Getting your location...</span>
+                    </>
+                  ) : (
+                    <>
+                      <FiMapPin className="w-4 h-4" />
+                      <span>Use My Current Location</span>
+                    </>
+                  )}
+                </Button>
+
+                {/* Reset to Saved Address Button */}
+                {usingCustomLocation && defaultAddress?.latitude && defaultAddress?.longitude && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={resetToSavedAddress}
+                    className="w-full flex items-center justify-center gap-2"
+                  >
+                    <span>↺ Reset to Saved Address</span>
+                  </Button>
+                )}
+
+                <p className="text-xs text-gray-500 text-center">
+                  {deliveryAddress.latitude && deliveryAddress.longitude 
+                    ? usingCustomLocation 
+                      ? "Using custom location for delivery calculation"
+                      : "Click above to use your current location instead"
+                    : "We need your GPS location to calculate delivery distance"}
+                </p>
+              </div>
 
               {calculating && (
                 <div className="mt-4 text-center text-gray-500">
@@ -531,54 +687,6 @@ const Checkout = () => {
                 hasStripe={false}
               />
             )}
-          </div>
-
-          {/* Right Column - Order Summary */}
-          <div className="md:col-span-1">
-            <div className="bg-white rounded-lg shadow-sm p-5 sticky top-4">
-              <h2 className="text-lg font-semibold mb-4">Order Summary</h2>
-              <div className="text-sm text-gray-600 mb-4 pb-4 border-b">
-                Ordering from <span className="font-medium text-gray-800">{cart.cookName}</span>
-              </div>
-              <div className="space-y-3 mb-4 pb-4 border-b max-h-48 overflow-y-auto">
-                {cart.items.map((item) => (
-                  <div key={item.mealId} className="flex justify-between text-sm">
-                    <span className="text-gray-600">{item.name} x {item.quantity}</span>
-                    <span className="font-medium">Rs. {item.price * item.quantity}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="space-y-2 mb-4 pb-4 border-b">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Subtotal</span>
-                  <span>Rs. {subtotal}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Delivery Fee</span>
-                  <span>{calculating ? "..." : deliveryInfo ? `Rs. ${deliveryInfo.deliveryCharges}` : "-"}</span>
-                </div>
-              </div>
-              <div className="flex justify-between text-lg font-bold">
-                <span>Total</span>
-                <span className="text-orange-600">Rs. {deliveryInfo ? totalAmount : subtotal}</span>
-              </div>
-
-              {cookInfo?.isOnlinePaymentEnabled && (
-                <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-                  <p className="text-xs text-green-700 font-medium">💳 Card payment available</p>
-                  <p className="text-xs text-green-600 mt-0.5">This cook accepts online payments</p>
-                </div>
-              )}
-
-              {!deliveryInfo && !calculating && (
-                <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-600">
-                  <p className="font-medium mb-1">⚠️ Cannot place order:</p>
-                  {!cookInfo && <p>• Cook delivery info not loaded</p>}
-                  {cookInfo && (!cookInfo.latitude || !cookInfo.longitude) && <p>• Cook has no GPS coordinates set</p>}
-                  {(!deliveryAddress.latitude || !deliveryAddress.longitude) && <p>• Your delivery location is not set</p>}
-                </div>
-              )}
-            </div>
           </div>
         </div>
       </main>

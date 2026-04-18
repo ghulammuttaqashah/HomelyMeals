@@ -92,10 +92,10 @@ export const getDashboardStats = async (req, res) => {
                 },
             ]),
 
-            // Recent reviews (last 7 days)
+            // Unread reviews calculation
             Review.countDocuments({
                 cookId,
-                createdAt: { $gte: sevenDaysAgo },
+                isRead: false,
             }),
 
             // Unread chat messages

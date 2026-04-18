@@ -71,11 +71,11 @@ const Header = ({ showNav = true }) => {
         <div className="flex items-center justify-between">
           
           {/* Logo - Restored Original Style */}
-          <div className="flex-shrink-0 flex items-center gap-2 sm:gap-3">
+          <div className="flex-shrink-0 flex items-center gap-1.5">
             <img 
               src="/customer+admin.png" 
               alt="HomelyMeals Admin" 
-              className="h-12 w-12 sm:h-14 sm:w-14 object-contain"
+              className="h-10 w-10 sm:h-11 sm:w-11 object-contain"
             />
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Admin Panel</p>

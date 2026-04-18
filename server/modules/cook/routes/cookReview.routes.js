@@ -21,6 +21,12 @@ router.get('/', protect, async (req, res) => {
             query.mealId = mealId;
         }
 
+        // Mark all unread reviews as read since the cook is currently viewing them
+        await Review.updateMany(
+            { cookId, isRead: false },
+            { $set: { isRead: true } }
+        );
+
         // Fetch reviews
         const reviews = await Review.find(query)
             .populate('customerId', 'name')

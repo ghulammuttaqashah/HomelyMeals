@@ -1,16 +1,24 @@
 import { useNavigate } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import Card from './Card'
+import { useAuth } from '../context/AuthContext'
 
 const CookCard = ({ cook }) => {
   const navigate = useNavigate()
+  const { isAuthenticated } = useAuth()
 
-  const handleClick = () => {
+  const handleClick = (e) => {
+    e.stopPropagation()
+    if (!isAuthenticated) {
+      toast.error('Please log in to view a cook\'s menu.')
+      navigate('/login')
+      return
+    }
     navigate(`/cook/${cook.cookId}`)
   }
 
   return (
     <div 
-      onClick={handleClick} 
       className="cursor-pointer h-full"
     >
       <Card className="h-full overflow-hidden hover:shadow-md transition-shadow hover:border-orange-200 flex flex-col">
@@ -71,6 +79,7 @@ const CookCard = ({ cook }) => {
           <div className="mt-auto pt-4">
             {/* View Menu Button */}
             <button 
+              onClick={handleClick}
               className="w-full rounded-lg bg-white border border-orange-600 px-4 py-2 text-sm font-semibold text-orange-600 hover:bg-orange-600 hover:text-white transition-all duration-200"
             >
               View Menu

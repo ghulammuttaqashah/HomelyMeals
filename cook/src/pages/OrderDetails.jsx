@@ -220,7 +220,9 @@ const OrderDetails = () => {
         </button>
 
         <div className="grid gap-4 lg:grid-cols-12">
-          <section className="space-y-4 lg:col-span-7 lg:order-2">
+
+          {/* ── 1: Order Items ── first on mobile, left col row-1 on desktop */}
+          <div className="order-1 lg:col-span-7 lg:col-start-1">
             <div className="bg-white rounded-lg shadow-sm p-5">
               <h2 className="text-lg font-semibold mb-4">Order Items</h2>
               <div className="space-y-3">
@@ -249,7 +251,6 @@ const OrderDetails = () => {
                   </div>
                 ))}
               </div>
-
               <div className="border-t mt-4 pt-4 space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Subtotal</span>
@@ -265,117 +266,12 @@ const OrderDetails = () => {
                 </div>
               </div>
             </div>
+          </div>
 
-            {order.cancellationRequest?.status === "pending" && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-5">
-                <div className="flex items-start gap-3 mb-4">
-                  <FiAlertCircle className="w-6 h-6 text-red-500 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <h2 className="text-lg font-semibold text-red-800">Cancellation Request</h2>
-                    <p className="text-sm text-red-600 mt-1">Customer wants to cancel this order</p>
-                    <p className="text-sm text-gray-700 mt-2">
-                      <span className="font-medium">Reason:</span> {order.cancellationRequest.reason}
-                    </p>
-                  </div>
-                </div>
-                <div className="mb-3">
-                  <input
-                    type="text"
-                    value={cancellationResponse}
-                    onChange={(e) => setCancellationResponse(e.target.value)}
-                    placeholder="Optional response message..."
-                    className="w-full p-3 border rounded-lg text-sm"
-                  />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <Button
-                    onClick={() => handleCancellationResponse("accept")}
-                    disabled={actionLoading}
-                    variant="primary"
-                    className="bg-red-500 hover:bg-red-600"
-                  >
-                    {actionLoading ? "..." : "Accept Cancellation"}
-                  </Button>
-                  <Button
-                    onClick={() => handleCancellationResponse("reject")}
-                    disabled={actionLoading}
-                    variant="outline"
-                  >
-                    {actionLoading ? "..." : "Decline"}
-                  </Button>
-                </div>
-              </div>
-            )}
+          {/* ── 2: Status Update + File Complaint ── second on mobile, left col row-2 on desktop */}
+          <div className="order-2 lg:col-span-7 lg:col-start-1 space-y-4">
 
-            {!['delivered', 'cancelled'].includes(order.status) && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-5">
-                <div className="flex items-start gap-3 mb-3">
-                  <FiAlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <h2 className="text-base sm:text-lg font-semibold text-red-800">Cancel Order</h2>
-                    <p className="text-sm text-red-600 mt-1">
-                      If needed, you can cancel this order by providing a clear reason for the customer.
-                    </p>
-                  </div>
-                </div>
-
-                <textarea
-                  value={cookCancelReason}
-                  onChange={(e) => setCookCancelReason(e.target.value)}
-                  placeholder="e.g., Item unavailable due to stock issue"
-                  className="w-full p-3 border border-red-200 rounded-lg text-sm bg-white"
-                  rows={3}
-                />
-
-                <div className="mt-3 flex justify-end">
-                  <Button
-                    onClick={handleCookCancelOrder}
-                    disabled={actionLoading || !cookCancelReason.trim()}
-                    variant="primary"
-                    className="bg-red-600 hover:bg-red-700"
-                  >
-                    {actionLoading ? "Cancelling..." : "Cancel This Order"}
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {["out_for_delivery", "delivery_pending_confirmation"].includes(order.status) && (
-              <div className="bg-white rounded-lg shadow-sm p-5">
-                <h2 className="text-lg font-semibold mb-4">Add Delivery Note</h2>
-                <div className="grid grid-cols-12 gap-3">
-                  <input
-                    type="text"
-                    value={deliveryNote}
-                    onChange={(e) => setDeliveryNote(e.target.value)}
-                    placeholder="e.g., Left at door, handed to security..."
-                    className="col-span-10 p-3 border rounded-lg"
-                  />
-                  <Button
-                    onClick={handleAddDeliveryNote}
-                    disabled={!deliveryNote.trim() || actionLoading}
-                    variant="primary"
-                    className="col-span-2"
-                  >
-                    <FiSend />
-                  </Button>
-                </div>
-                {order.deliveryNote && (
-                  <p className="mt-3 text-sm text-gray-600">Current note: {order.deliveryNote}</p>
-                )}
-              </div>
-            )}
-
-            {order.cookNote && (
-              <div className="bg-white rounded-lg shadow-sm p-5">
-                <h2 className="text-lg font-semibold mb-2">Customer Instructions</h2>
-                <p className="text-gray-600">{order.cookNote}</p>
-              </div>
-            )}
-          </section>
-
-          <aside className="space-y-4 lg:col-span-5 lg:order-1">
-            {/* Order Header */}
+            {/* Status Update + File Complaint */}
             <div className="bg-white rounded-lg shadow-sm p-4 sm:p-5">
               <div className="flex flex-col gap-3 mb-4">
                 <div>
@@ -408,6 +304,38 @@ const OrderDetails = () => {
                 File Complaint
               </Button>
             </div>
+
+            {/* Delivery Note */}
+            {["out_for_delivery", "delivery_pending_confirmation"].includes(order.status) && (
+              <div className="bg-white rounded-lg shadow-sm p-5">
+                <h2 className="text-lg font-semibold mb-4">Add Delivery Note</h2>
+                <div className="grid grid-cols-12 gap-3">
+                  <input
+                    type="text"
+                    value={deliveryNote}
+                    onChange={(e) => setDeliveryNote(e.target.value)}
+                    placeholder="e.g., Left at door, handed to security..."
+                    className="col-span-10 p-3 border rounded-lg"
+                  />
+                  <Button
+                    onClick={handleAddDeliveryNote}
+                    disabled={!deliveryNote.trim() || actionLoading}
+                    variant="primary"
+                    className="col-span-2"
+                  >
+                    <FiSend />
+                  </Button>
+                </div>
+                {order.deliveryNote && (
+                  <p className="mt-3 text-sm text-gray-600">Current note: {order.deliveryNote}</p>
+                )}
+              </div>
+            )}
+
+          </div>
+
+          {/* ── 3: Customer Details & Info ── third on mobile, right col spanning rows 1-3 on desktop */}
+          <aside className="order-3 lg:col-span-5 lg:col-start-8 lg:row-start-1 lg:row-span-3 space-y-4">
 
             {/* Customer Info */}
             <div className="bg-white rounded-lg shadow-sm p-5">
@@ -495,7 +423,88 @@ const OrderDetails = () => {
                 </div>
               </div>
             )}
+            {/* Cancellation Request — always above Cancel Order */}
+            {order.cancellationRequest?.status === "pending" && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-5">
+                <div className="flex items-start gap-3 mb-4">
+                  <FiAlertCircle className="w-6 h-6 text-red-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h2 className="text-lg font-semibold text-red-800">Cancellation Request</h2>
+                    <p className="text-sm text-red-600 mt-1">Customer wants to cancel this order</p>
+                    <p className="text-sm text-gray-700 mt-2">
+                      <span className="font-medium">Reason:</span> {order.cancellationRequest.reason}
+                    </p>
+                  </div>
+                </div>
+                <div className="mb-3">
+                  <input
+                    type="text"
+                    value={cancellationResponse}
+                    onChange={(e) => setCancellationResponse(e.target.value)}
+                    placeholder="Optional response message..."
+                    className="w-full p-3 border rounded-lg text-sm"
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Button
+                    onClick={() => handleCancellationResponse("accept")}
+                    disabled={actionLoading}
+                    variant="primary"
+                    className="bg-red-500 hover:bg-red-600"
+                  >
+                    {actionLoading ? "..." : "Accept Cancellation"}
+                  </Button>
+                  <Button
+                    onClick={() => handleCancellationResponse("reject")}
+                    disabled={actionLoading}
+                    variant="outline"
+                  >
+                    {actionLoading ? "..." : "Decline"}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Cook Cancel Order */}
+            {!['delivered', 'cancelled'].includes(order.status) && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-5">
+                <div className="flex items-start gap-3 mb-3">
+                  <FiAlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h2 className="text-base sm:text-lg font-semibold text-red-800">Cancel Order</h2>
+                    <p className="text-sm text-red-600 mt-1">
+                      If needed, you can cancel this order by providing a clear reason for the customer.
+                    </p>
+                  </div>
+                </div>
+                <textarea
+                  value={cookCancelReason}
+                  onChange={(e) => setCookCancelReason(e.target.value)}
+                  placeholder="e.g., Item unavailable due to stock issue"
+                  className="w-full p-3 border border-red-200 rounded-lg text-sm bg-white"
+                  rows={3}
+                />
+                <div className="mt-3 flex justify-end">
+                  <Button
+                    onClick={handleCookCancelOrder}
+                    disabled={actionLoading || !cookCancelReason.trim()}
+                    variant="primary"
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    {actionLoading ? "Cancelling..." : "Cancel This Order"}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {order.cookNote && (
+              <div className="bg-white rounded-lg shadow-sm p-5">
+                <h2 className="text-lg font-semibold mb-2">Customer Instructions</h2>
+                <p className="text-gray-600">{order.cookNote}</p>
+              </div>
+            )}
           </aside>
+
         </div>
 
       </main>
@@ -503,5 +512,7 @@ const OrderDetails = () => {
     </div>
   );
 };
+
+
 
 export default OrderDetails;

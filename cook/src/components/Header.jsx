@@ -48,7 +48,6 @@ const Header = ({ showSignOut = false }) => {
     if (!isAuthenticated) return
 
     const fetchUnread = async () => {
-      if (location.pathname.startsWith('/chats')) return
       try {
         const res = await getUnreadCount()
         setUnreadChats(res.unreadCount || 0)
@@ -58,19 +57,21 @@ const Header = ({ showSignOut = false }) => {
 
     const socket = getSocket()
     const onNewMessage = () => {
-      if (!location.pathname.startsWith('/chats')) {
-        setUnreadChats(prev => prev + 1)
-      }
+      fetchUnread()
     }
+    
+    const onChatRead = () => {
+      fetchUnread()
+    }
+    
     socket.on('new_message', onNewMessage)
-    return () => socket.off('new_message', onNewMessage)
-  }, [isAuthenticated, location.pathname])
-
-  useEffect(() => {
-    if (location.pathname.startsWith('/chats')) {
-      setUnreadChats(0)
+    window.addEventListener('unread_cleared', onChatRead)
+    
+    return () => {
+      socket.off('new_message', onNewMessage)
+      window.removeEventListener('unread_cleared', onChatRead)
     }
-  }, [location.pathname])
+  }, [isAuthenticated, location.pathname])
 
   const handleLogoClick = () => {
     if (isAuthenticated) {
@@ -121,11 +122,11 @@ const Header = ({ showSignOut = false }) => {
         <div className="flex h-16 items-center justify-between">
           
           {/* Logo - Restored Original Style */}
-          <div className="flex-shrink-0 cursor-pointer flex items-center gap-2 sm:gap-3" onClick={handleLogoClick}>
+          <div className="flex-shrink-0 cursor-pointer flex items-center gap-1.5" onClick={handleLogoClick}>
             <img 
               src="/cook.png" 
               alt="HomelyMeals Cook" 
-              className="h-12 w-12 sm:h-14 sm:w-14 object-contain"
+              className="h-10 w-10 sm:h-11 sm:w-11 object-contain"
             />
             <h1 className="text-xl sm:text-2xl font-bold text-orange-600 leading-none">HomelyMeals</h1>
           </div>

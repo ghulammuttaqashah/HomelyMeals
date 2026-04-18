@@ -135,6 +135,8 @@ const Chats = () => {
           ? { ...c, customerUnread: 0 }
           : c
       ))
+      // Notify header that a chat's unread status successfully cleared
+      window.dispatchEvent(new Event('unread_cleared'))
     } catch (error) {
       toast.error('Failed to load messages')
     } finally {

@@ -56,24 +56,32 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
   useEffect(() => {
     if (!isAuthenticated) return
     const fetchUnread = async () => {
-      if (location.pathname.startsWith('/chats')) return
       try {
         const res = await getUnreadCount()
         setUnreadChats(res.unreadCount || 0)
       } catch { }
     }
     fetchUnread()
+
     const socket = getSocket()
     const onNewMessage = () => {
-      if (!location.pathname.startsWith('/chats')) setUnreadChats(prev => prev + 1)
+      // Regardless of where you are, if a message arrives, we should just fetch the precise count
+      fetchUnread()
     }
-    socket.on('new_message', onNewMessage)
-    return () => socket.off('new_message', onNewMessage)
-  }, [isAuthenticated, location.pathname])
+    
+    // Add custom event listener for when a chat is actually read inside the Chats component
+    const onChatRead = () => {
+      fetchUnread()
+    }
 
-  useEffect(() => {
-    if (location.pathname.startsWith('/chats')) setUnreadChats(0)
-  }, [location.pathname])
+    socket.on('new_message', onNewMessage)
+    window.addEventListener('unread_cleared', onChatRead)
+    
+    return () => {
+      socket.off('new_message', onNewMessage)
+      window.removeEventListener('unread_cleared', onChatRead)
+    }
+  }, [isAuthenticated, location.pathname])
 
   useEffect(() => {
     setShowMobileMenu(false)
@@ -178,11 +186,11 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
         {/* ── Left: Logo + Address dropdown ── */}
         <div className="flex items-center gap-2 min-w-0 flex-shrink-0">
           {/* Logo */}
-          <div className="cursor-pointer flex-shrink-0 flex items-center gap-2 sm:gap-3" onClick={handleLogoClick}>
+          <div className="cursor-pointer flex-shrink-0 flex items-center gap-1.5" onClick={handleLogoClick}>
             <img 
               src="/customer+admin.png" 
               alt="HomelyMeals" 
-              className="h-12 w-12 sm:h-14 sm:w-14 object-contain"
+              className="h-10 w-10 sm:h-11 sm:w-11 object-contain"
             />
             <h1 className="text-xl sm:text-2xl font-bold text-orange-600 leading-none">HomelyMeals</h1>
           </div>
