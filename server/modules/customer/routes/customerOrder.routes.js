@@ -6,6 +6,7 @@ import {
   requestCancellation,
   uploadPaymentProof,
   calculateDeliveryInfo,
+  cancelUnpaidOrder,
 } from "../controllers/customerOrder.controller.js";
 import { protect } from "../../../shared/middleware/auth.js";
 
@@ -25,6 +26,9 @@ router.get("/", getOrders);
 
 // Get single order
 router.get("/:id", getOrderById);
+
+// Cancel an unpaid card order (payment failed)
+router.delete("/:id/cancel-unpaid", cancelUnpaidOrder);
 
 // Request cancellation (cook must approve)
 router.post("/:id/request-cancellation", requestCancellation);

@@ -348,72 +348,72 @@ const Orders = () => {
             </div>
           ) : (
             <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
+              {/* Mobile cards */}
+              <div className="lg:hidden divide-y divide-gray-100">
+                {filteredOrders.map((order) => (
+                  <div
+                    key={order._id}
+                    onClick={() => navigate(`/orders/${order._id}`)}
+                    className="p-4 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors"
+                  >
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      <div className="flex items-center gap-2">
+                        {getStatusIcon(order.status)}
+                        <span className="text-sm font-semibold text-gray-900">#{order._id.slice(-8)}</span>
+                      </div>
+                      <FiChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                    </div>
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600 mb-2">
+                      <span><span className="text-gray-400">Customer:</span> {order.customer?.name || 'N/A'}</span>
+                      <span><span className="text-gray-400">Cook:</span> {order.cook?.name || 'N/A'}</span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {getStatusBadge(order.status, order.cancelledBy)}
+                      {getPaymentBadge(order)}
+                      <span className="text-xs font-semibold text-gray-900 ml-auto">Rs. {order.totalAmount}</span>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1">{formatDate(order.createdAt)}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop table */}
+              <div className="hidden lg:block overflow-x-auto">
+                <table className="w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Order
-                      </th>
-                      <th className="hidden md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Customer
-                      </th>
-                      <th className="hidden lg:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Cook
-                      </th>
-                      <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="hidden sm:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Payment
-                      </th>
-                      <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Amount
-                      </th>
-                      <th className="hidden xl:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Date
-                      </th>
-                      <th className="relative px-3 sm:px-6 py-3">
-                        <span className="sr-only">Actions</span>
-                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cook</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                      <th className="relative px-6 py-3"><span className="sr-only">Actions</span></th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {filteredOrders.map((order) => (
-                      <tr
-                        key={order._id}
-                        onClick={() => navigate(`/orders/${order._id}`)}
-                        className="hover:bg-gray-50 cursor-pointer"
-                      >
-                        <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+                      <tr key={order._id} onClick={() => navigate(`/orders/${order._id}`)} className="hover:bg-gray-50 cursor-pointer">
+                        <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center gap-2">
                             {getStatusIcon(order.status)}
-                            <span className="text-sm font-medium text-gray-900">
-                              #{order._id.slice(-8)}
-                            </span>
+                            <span className="text-sm font-medium text-gray-900">#{order._id.slice(-8)}</span>
                           </div>
                         </td>
-                        <td className="hidden md:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
+                        <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">{order.customer?.name || 'N/A'}</div>
                           <div className="text-xs text-gray-500">{order.customer?.contact || ''}</div>
                         </td>
-                        <td className="hidden lg:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
+                        <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">{order.cook?.name || 'N/A'}</div>
                           <div className="text-xs text-gray-500">{order.cook?.contact || ''}</div>
                         </td>
-                        <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                          {getStatusBadge(order.status, order.cancelledBy)}
-                        </td>
-                        <td className="hidden sm:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
-                          {getPaymentBadge(order)}
-                        </td>
-                        <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          Rs. {order.totalAmount}
-                        </td>
-                        <td className="hidden xl:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {formatDate(order.createdAt)}
-                        </td>
-                        <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(order.status, order.cancelledBy)}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">{getPaymentBadge(order)}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Rs. {order.totalAmount}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatDate(order.createdAt)}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <FiChevronRight className="h-5 w-5 text-gray-400" />
                         </td>
                       </tr>

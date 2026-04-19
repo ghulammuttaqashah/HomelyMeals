@@ -119,12 +119,21 @@ const Orders = () => {
             <p className="font-semibold text-gray-800 text-sm sm:text-base">#{order.orderNumber}</p>
             <p className="text-xs sm:text-sm text-gray-500">{formatDate(order.createdAt)}</p>
           </div>
-          <span
-            className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${statusConfig.color} self-start`}
-          >
-            <StatusIcon className="w-3 h-3" />
-            <span className="whitespace-nowrap">{statusConfig.label}</span>
-          </span>
+          <div className="flex flex-wrap gap-2 self-start">
+            <span
+              className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${statusConfig.color}`}
+            >
+              <StatusIcon className="w-3 h-3" />
+              <span className="whitespace-nowrap">{statusConfig.label}</span>
+            </span>
+            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+              order.paymentMethod === "cod" 
+                ? "bg-green-100 text-green-800" 
+                : "bg-blue-100 text-blue-800"
+            }`}>
+              {order.paymentMethod === "cod" ? "COD" : "Online"}
+            </span>
+          </div>
         </div>
 
         {/* Show rejection/cancellation reason preview */}

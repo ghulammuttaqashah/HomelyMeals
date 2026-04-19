@@ -11,10 +11,13 @@ export const checkSession = async () => {
 }
 
 export const updateCustomerStatus = async (id, payload) => {
-  if (!id) {
-    throw new Error('Customer ID is required')
-  }
+  if (!id) throw new Error('Customer ID is required')
   const { data } = await api.patch(`/api/admin/customers/${id}/status`, payload)
   return data
 }
 
+export const resetCustomerWarnings = async (id, count = 0) => {
+  if (!id) throw new Error('Customer ID is required')
+  const { data } = await api.patch(`/api/admin/customers/${id}/reset-warnings`, { count })
+  return data
+}

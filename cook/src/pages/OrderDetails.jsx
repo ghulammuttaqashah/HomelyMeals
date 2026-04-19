@@ -45,7 +45,10 @@ const OrderDetails = () => {
   const [order, setOrder] = useState(null);
   const [dispute, setDispute] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(false);
+  const [statusLoading, setStatusLoading] = useState(false);
+  const [deliveryNoteLoading, setDeliveryNoteLoading] = useState(false);
+  const [cancellationLoading, setCancellationLoading] = useState(false);
+  const [cancelOrderLoading, setCancelOrderLoading] = useState(false);
   const [deliveryNote, setDeliveryNote] = useState("");
 
   const [cancellationResponse, setCancellationResponse] = useState("");
@@ -105,7 +108,7 @@ const OrderDetails = () => {
       return;
     }
 
-    setActionLoading(true);
+    setStatusLoading(true);
     try {
       const result = await updateOrderStatus(orderId, statusConfig.nextStatus);
       if (result?.order) {
@@ -118,14 +121,14 @@ const OrderDetails = () => {
     } catch (error) {
       toast.error(error.response?.data?.message || "Couldn't update order status. Please try again.");
     } finally {
-      setActionLoading(false);
+      setStatusLoading(false);
     }
   };
 
   const handleAddDeliveryNote = async () => {
     if (!deliveryNote.trim()) return;
 
-    setActionLoading(true);
+    setDeliveryNoteLoading(true);
     try {
       await addDeliveryNote(orderId, deliveryNote);
       toast.success("Delivery note added");
@@ -134,12 +137,12 @@ const OrderDetails = () => {
     } catch (error) {
       toast.error(error.response?.data?.message || "Couldn't add delivery note. Please try again.");
     } finally {
-      setActionLoading(false);
+      setDeliveryNoteLoading(false);
     }
   };
 
   const handleCancellationResponse = async (action) => {
-    setActionLoading(true);
+    setCancellationLoading(true);
     try {
       await respondToCancellation(orderId, action, cancellationResponse);
       toast.success(action === "accept" ? "Cancellation accepted" : "Cancellation declined");
@@ -148,7 +151,7 @@ const OrderDetails = () => {
     } catch (error) {
       toast.error(error.response?.data?.message || "Couldn't respond to cancellation request.");
     } finally {
-      setActionLoading(false);
+      setCancellationLoading(false);
     }
   };
 
@@ -158,7 +161,7 @@ const OrderDetails = () => {
       return;
     }
 
-    setActionLoading(true);
+    setCancelOrderLoading(true);
     try {
       await cancelOrder(orderId, cookCancelReason.trim());
       toast.success("Order cancelled successfully");
@@ -167,7 +170,7 @@ const OrderDetails = () => {
     } catch (error) {
       toast.error(error.response?.data?.message || "Couldn't cancel order.");
     } finally {
-      setActionLoading(false);
+      setCancelOrderLoading(false);
     }
   };
 
@@ -278,15 +281,24 @@ const OrderDetails = () => {
                   <h1 className="text-lg sm:text-xl font-bold text-gray-800">Order #{order.orderNumber}</h1>
                   <p className="text-xs sm:text-sm text-gray-500">{formatDate(order.createdAt)}</p>
                 </div>
-                <span className={`self-start px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${statusConfig.color} text-white`}>
-                  {statusConfig.label}
-                </span>
+                <div className="flex flex-wrap gap-2">
+                  <span className={`px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${statusConfig.color} text-white`}>
+                    {statusConfig.label}
+                  </span>
+                  <span className={`px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${
+                    order.paymentMethod === "cod" 
+                      ? "bg-green-100 text-green-800" 
+                      : "bg-blue-100 text-blue-800"
+                  }`}>
+                    {order.paymentMethod === "cod" ? "COD" : "Online"}
+                  </span>
+                </div>
               </div>
 
               {statusConfig.canProgress && (
                 <Button
                   onClick={handleStatusUpdate}
-                  loading={actionLoading}
+                  loading={statusLoading}
                   loadingText="Updating..."
                   variant="primary"
                   className="w-full flex items-center justify-center gap-2 mb-3"
@@ -319,11 +331,11 @@ const OrderDetails = () => {
                   />
                   <Button
                     onClick={handleAddDeliveryNote}
-                    disabled={!deliveryNote.trim() || actionLoading}
+                    disabled={!deliveryNote.trim() || deliveryNoteLoading}
                     variant="primary"
                     className="col-span-2"
                   >
-                    <FiSend />
+                    {deliveryNoteLoading ? "..." : <FiSend />}
                   </Button>
                 </div>
                 {order.deliveryNote && (
@@ -448,18 +460,18 @@ const OrderDetails = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <Button
                     onClick={() => handleCancellationResponse("accept")}
-                    disabled={actionLoading}
+                    disabled={cancellationLoading}
                     variant="primary"
                     className="bg-red-500 hover:bg-red-600"
                   >
-                    {actionLoading ? "..." : "Accept Cancellation"}
+                    {cancellationLoading ? "..." : "Accept Cancellation"}
                   </Button>
                   <Button
                     onClick={() => handleCancellationResponse("reject")}
-                    disabled={actionLoading}
+                    disabled={cancellationLoading}
                     variant="outline"
                   >
-                    {actionLoading ? "..." : "Decline"}
+                    {cancellationLoading ? "..." : "Decline"}
                   </Button>
                 </div>
               </div>
@@ -487,11 +499,11 @@ const OrderDetails = () => {
                 <div className="mt-3 flex justify-end">
                   <Button
                     onClick={handleCookCancelOrder}
-                    disabled={actionLoading || !cookCancelReason.trim()}
+                    disabled={cancelOrderLoading || !cookCancelReason.trim()}
                     variant="primary"
                     className="bg-red-600 hover:bg-red-700"
                   >
-                    {actionLoading ? "Cancelling..." : "Cancel This Order"}
+                    {cancelOrderLoading ? "Cancelling..." : "Cancel This Order"}
                   </Button>
                 </div>
               </div>

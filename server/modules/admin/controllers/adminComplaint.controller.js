@@ -186,13 +186,26 @@ export const updateComplaint = async (req, res) => {
         (m) => m.Order.findById(complaint.orderId).select("orderNumber")
       );
 
-      const emailBody = `Your complaint regarding order #${order?.orderNumber || "N/A"} has been updated.\n\nStatus: ${complaint.status.replace("_", " ").toUpperCase()}\n${complaint.adminResponse ? `Admin Response: ${complaint.adminResponse}\n` : ""}\nThank you,\nHomelyMeals Team`;
+      const statusLabel = complaint.status.replace("_", " ").toUpperCase();
+      const adminNote = complaint.adminResponse ? `Admin Note: ${complaint.adminResponse}\n` : "";
+      const orderRef = order?.orderNumber || "N/A";
 
+      // Email to the complainant (the one who filed)
       if (complainantEmail) {
-        await sendEmail(complainantEmail, `Complaint Update — HomelyMeals`, `Hi ${complainantName},\n\n${emailBody}`);
+        await sendEmail(
+          complainantEmail,
+          `Complaint Update — HomelyMeals`,
+          `Hi ${complainantName},\n\nYour complaint regarding order #${orderRef} has been updated by our admin team.\n\nStatus: ${statusLabel}\n${adminNote}\nYou can log in to your HomelyMeals account to view the full details under Complaints & Warnings.\n\nThank you for bringing this to our attention.\n\nRegards,\nHomelyMeals Team\n${process.env.EMAIL_USER}`
+        );
       }
+
+      // Email to the accused (the one the complaint was filed against)
       if (accusedEmail) {
-        await sendEmail(accusedEmail, `Complaint Update — HomelyMeals`, `Hi ${accusedName},\n\n${emailBody}`);
+        await sendEmail(
+          accusedEmail,
+          `Update on Complaint Filed Against You — HomelyMeals`,
+          `Hi ${accusedName},\n\nThis is an update regarding a complaint that was filed against you for order #${orderRef}.\n\nOur admin team has reviewed the complaint and updated its status.\n\nStatus: ${statusLabel}\n${adminNote}\nPlease log in to your HomelyMeals account and check the Complaints & Warnings section for full details.\n\nIf you have any concerns, you can reach us at ${process.env.EMAIL_USER}.\n\nRegards,\nHomelyMeals Team\n${process.env.EMAIL_USER}`
+        );
       }
     } catch (emailErr) {
       console.error("Failed to send complaint update email:", emailErr.message);
@@ -307,6 +320,75 @@ export const getWarningHistory = async (req, res) => {
     return res.status(200).json({ warnings });
   } catch (error) {
     console.error("Get warning history error:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+/**
+ * Delete a complaint (admin only)
+ * DELETE /api/admin/complaints/:id
+ * - Removes the complaint
+ * - Removes all warnings linked to it
+ * - Decrements warningsCount on affected users
+ * - Reactivates auto-suspended accounts if count drops below 3
+ */
+export const deleteComplaint = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const complaint = await Complaint.findById(id);
+    if (!complaint) {
+      return res.status(404).json({ message: "Complaint not found" });
+    }
+
+    // Find all warnings tied to this complaint
+    const linkedWarnings = await Warning.find({ complaintId: id });
+
+    // Group warnings by userId so we can decrement each user's count once
+    const userDecrements = {}; // { userId: { userType, count } }
+    for (const w of linkedWarnings) {
+      const uid = String(w.userId);
+      if (!userDecrements[uid]) {
+        userDecrements[uid] = { userType: w.userType, count: 0 };
+      }
+      userDecrements[uid].count += 1;
+    }
+
+    // Delete all linked warnings
+    if (linkedWarnings.length > 0) {
+      await Warning.deleteMany({ complaintId: id });
+    }
+
+    // Decrement warningsCount and potentially reactivate auto-suspended accounts
+    for (const [userId, { userType, count }] of Object.entries(userDecrements)) {
+      const Model = userType === "customer" ? Customer : Cook;
+      const user = await Model.findById(userId);
+      if (!user) continue;
+
+      user.warningsCount = Math.max(0, (user.warningsCount || 0) - count);
+
+      // Reactivate if was auto-suspended due to warnings and now below threshold
+      if (
+        user.warningsCount < 3 &&
+        user.status === "suspended" &&
+        user.statusReason === "Account suspended due to multiple warnings"
+      ) {
+        user.status = "active";
+        user.statusReason = "";
+      }
+
+      await user.save();
+    }
+
+    // Delete the complaint itself
+    await Complaint.findByIdAndDelete(id);
+
+    return res.status(200).json({
+      message: "Complaint deleted successfully",
+      warningsRemoved: linkedWarnings.length,
+    });
+  } catch (error) {
+    console.error("Delete complaint error:", error);
     return res.status(500).json({ message: "Server error" });
   }
 };

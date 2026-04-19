@@ -6,6 +6,7 @@ import { uploadToCloudinary } from "../utils/cloudinary";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import Loader from "../components/Loader";
+import WarningsTab from "../components/WarningsTab";
 import {
   FiArrowLeft,
   FiPlus,
@@ -39,6 +40,14 @@ const Complaints = () => {
   const [selectedComplaint, setSelectedComplaint] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
+  // Pagination — separate per tab
+  const [myPage, setMyPage] = useState(1);
+  const [myPages, setMyPages] = useState(1);
+  const [myTotal, setMyTotal] = useState(0);
+  const [againstPage, setAgainstPage] = useState(1);
+  const [againstPages, setAgainstPages] = useState(1);
+  const [againstTotal, setAgainstTotal] = useState(0);
+
   // Reply form state
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [replyText, setReplyText] = useState("");
@@ -46,28 +55,80 @@ const Complaints = () => {
   const [submittingReply, setSubmittingReply] = useState(false);
   const [uploadingReply, setUploadingReply] = useState(false);
 
-  const fetchData = useCallback(async () => {
+  const fetchMyComplaints = useCallback(async (page = 1) => {
     setLoading(true);
     try {
-      const [complaintsRes, againstMeRes, warningsRes] = await Promise.all([
-        getMyComplaints(),
-        getComplaintsAgainstMe(),
-        getMyWarnings(),
-      ]);
-      setComplaints(complaintsRes.complaints);
-      setAgainstMeComplaints(againstMeRes.complaints);
-      setWarnings(warningsRes.warnings);
+      const res = await getMyComplaints(page);
+      setComplaints(res.complaints);
+      setMyPage(res.pagination.page);
+      setMyPages(res.pagination.pages);
+      setMyTotal(res.pagination.total);
     } catch (error) {
-      console.error("Fetch data error:", error);
-      toast.error("Failed to load data");
+      console.error("Fetch my complaints error:", error);
+      toast.error("Failed to load complaints");
     } finally {
       setLoading(false);
     }
   }, []);
 
+  const fetchAgainstMe = useCallback(async (page = 1) => {
+    setLoading(true);
+    try {
+      const res = await getComplaintsAgainstMe(page);
+      setAgainstMeComplaints(res.complaints);
+      setAgainstPage(res.pagination.page);
+      setAgainstPages(res.pagination.pages);
+      setAgainstTotal(res.pagination.total);
+    } catch (error) {
+      console.error("Fetch against me error:", error);
+      toast.error("Failed to load complaints");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const fetchWarnings = useCallback(async () => {
+    try {
+      const res = await getMyWarnings();
+      setWarnings(res.warnings);
+    } catch (error) {
+      console.error("Fetch warnings error:", error);
+    }
+  }, []);
+
+  // Initial load
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    const init = async () => {
+      setLoading(true);
+      try {
+        const [myRes, againstRes, warnRes] = await Promise.all([
+          getMyComplaints(1),
+          getComplaintsAgainstMe(1),
+          getMyWarnings(),
+        ]);
+        setComplaints(myRes.complaints);
+        setMyPage(myRes.pagination.page);
+        setMyPages(myRes.pagination.pages);
+        setMyTotal(myRes.pagination.total);
+        setAgainstMeComplaints(againstRes.complaints);
+        setAgainstPage(againstRes.pagination.page);
+        setAgainstPages(againstRes.pagination.pages);
+        setAgainstTotal(againstRes.pagination.total);
+        setWarnings(warnRes.warnings);
+      } catch (error) {
+        console.error("Init error:", error);
+        toast.error("Failed to load data");
+      } finally {
+        setLoading(false);
+      }
+    };
+    init();
+  }, []);
+
+  // Refetch warnings when tab switches to warnings
+  useEffect(() => {
+    if (activeTab === "warnings") fetchWarnings();
+  }, [activeTab, fetchWarnings]);
 
   const viewDetail = async (id) => {
     setDetailLoading(true);
@@ -140,7 +201,8 @@ const Complaints = () => {
       setReplyImages([]);
       // Refresh detail
       await viewDetail(selectedComplaint._id);
-      fetchData();
+      if (activeTab === "complaints") fetchMyComplaints(myPage);
+      else if (activeTab === "against_me") fetchAgainstMe(againstPage);
     } catch (err) {
       const msg = err.response?.data?.message || "Failed to submit reply";
       toast.error(msg);
@@ -264,49 +326,7 @@ const Complaints = () => {
             <Loader />
           </div>
         ) : activeTab === "warnings" ? (
-          /* ── Warnings Tab ── */
-          warnings.length === 0 ? (
-            <div className="text-center py-12">
-              <FiShield className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-              <p className="text-gray-500">No warnings on your account</p>
-              <p className="text-sm text-gray-400 mt-1">Keep up the good work!</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {warnings.length >= 3 && (
-                <div className="bg-red-50 border border-red-300 rounded-lg p-4 flex items-start gap-3">
-                  <FiAlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-semibold text-red-800">Account at risk</p>
-                    <p className="text-sm text-red-600">
-                      You have {warnings.length} warning(s). Accounts with 3+ warnings may be suspended.
-                    </p>
-                  </div>
-                </div>
-              )}
-              {warnings.map((warning) => (
-                <div
-                  key={warning._id}
-                  className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-red-400"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <FiAlertTriangle className="w-4 h-4 text-red-600" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-gray-800 font-medium">{warning.message}</p>
-                      {warning.complaintId && (
-                        <p className="text-sm text-gray-500 mt-1">
-                          Related to: {warning.complaintId.type}
-                        </p>
-                      )}
-                      <p className="text-xs text-gray-400 mt-2">{formatDate(warning.createdAt)}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )
+          <WarningsTab warnings={warnings} userType="customer" />
         ) : (
           /* ── Complaints Tabs (My Complaints / Against Me) ── */
           displayedComplaints.length === 0 ? (
@@ -372,6 +392,28 @@ const Complaints = () => {
                   </div>
                 );
               })}
+
+              {/* Pagination */}
+              {(() => {
+                const isMyTab = activeTab === "complaints";
+                const page = isMyTab ? myPage : againstPage;
+                const pages = isMyTab ? myPages : againstPages;
+                const total = isMyTab ? myTotal : againstTotal;
+                const goTo = isMyTab ? fetchMyComplaints : fetchAgainstMe;
+                if (pages <= 1) return null;
+                return (
+                  <div className="mt-2 flex flex-col sm:flex-row items-center justify-between gap-3 bg-white rounded-xl shadow-sm px-4 py-3 border border-gray-100">
+                    <p className="text-sm text-gray-500">
+                      Page <span className="font-semibold text-gray-700">{page}</span> of <span className="font-semibold text-gray-700">{pages}</span>
+                      <span className="ml-2 text-gray-400">({total} total)</span>
+                    </p>
+                    <div className="flex gap-2">
+                      <button onClick={() => goTo(page - 1)} disabled={page === 1} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">Previous</button>
+                      <button onClick={() => goTo(page + 1)} disabled={page === pages} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">Next</button>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )
         )}

@@ -43,6 +43,11 @@ export const requestCancellation = async (orderId, reason) => {
   return response.data;
 };
 
+export const cancelUnpaidOrder = async (orderId) => {
+  const response = await axiosInstance.delete(`/api/customer/orders/${orderId}/cancel-unpaid`);
+  return response.data;
+};
+
 export default {
   calculateDeliveryInfo,
   placeOrder,

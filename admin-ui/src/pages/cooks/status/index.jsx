@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import ProtectedLayout from '../../../components/ProtectedLayout'
-import { getCooks, updateCookStatus } from '../../../api/cooks'
+import { getCooks, updateCookStatus, resetCookWarnings } from '../../../api/cooks'
 import Loader from '../../../components/Loader'
 import BackButton from '../../../components/BackButton'
 import SuspensionModal from '../../../components/SuspensionModal'
@@ -155,6 +155,17 @@ const CookStatus = () => {
 
 
 
+  const handleResetWarnings = async (cook, newCount) => {
+    const cookId = cook._id || cook.id
+    try {
+      const res = await resetCookWarnings(cookId, newCount)
+      toast.success(res.message || 'Warnings updated')
+      fetchCooks(true)
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to reset warnings')
+    }
+  }
+
   return (
     <ProtectedLayout title="Manage Cook Status">
       <div className="rounded-lg bg-white shadow-sm border border-gray-200">
@@ -284,6 +295,7 @@ const CookStatus = () => {
           error={error}
           updatingId={updatingId}
           onStatusChange={handleStatusChange}
+          onResetWarnings={handleResetWarnings}
           onRetry={handleRetry}
           retryCount={retryCount}
           entityType="cook"

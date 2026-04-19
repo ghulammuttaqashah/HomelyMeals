@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import ProtectedLayout from '../components/ProtectedLayout'
-import { getCustomers, updateCustomerStatus } from '../api/customers'
+import { getCustomers, updateCustomerStatus, resetCustomerWarnings } from '../api/customers'
 import Loader from '../components/Loader'
 import BackButton from '../components/BackButton'
 import SuspensionModal from '../components/SuspensionModal'
@@ -147,6 +147,17 @@ const Customers = () => {
 
 
 
+  const handleResetWarnings = async (customer, newCount) => {
+    const customerId = customer._id || customer.id
+    try {
+      const res = await resetCustomerWarnings(customerId, newCount)
+      toast.success(res.message || 'Warnings updated')
+      fetchCustomers(true)
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to reset warnings')
+    }
+  }
+
   return (
     <ProtectedLayout title="Customers">
       <div className="mb-6">
@@ -230,6 +241,7 @@ const Customers = () => {
           error={error}
           updatingId={updatingId}
           onStatusChange={handleStatusChange}
+          onResetWarnings={handleResetWarnings}
           onRetry={handleRetry}
           retryCount={retryCount}
           entityType="customer"

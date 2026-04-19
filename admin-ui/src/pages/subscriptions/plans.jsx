@@ -270,13 +270,13 @@ const PlanManagementPage = () => {
           )}
 
           <div className="overflow-x-auto">
-            <table className={`min-w-full divide-y divide-gray-200 text-sm ${loading ? 'opacity-50' : ''}`}>
+            <table className={`w-full divide-y divide-gray-200 text-sm ${loading ? 'opacity-50' : ''}`} style={{minWidth: '600px'}}>
               <thead className="bg-gray-50 text-left text-xs uppercase font-black tracking-widest text-gray-500">
                 <tr>
                   <th className="px-2 sm:px-3 py-3">Name</th>
                   <th className="px-2 sm:px-3 py-3">Price</th>
-                  <th className="px-2 sm:px-3 py-3 hidden sm:table-cell">Duration</th>
-                  <th className="px-2 sm:px-3 py-3 hidden md:table-cell">Status</th>
+                  <th className="px-2 sm:px-3 py-3">Duration</th>
+                  <th className="px-2 sm:px-3 py-3">Status</th>
                   <th className="px-2 sm:px-3 py-3 text-right">Action</th>
                 </tr>
               </thead>
@@ -317,7 +317,7 @@ const PlanManagementPage = () => {
                             className="w-20 sm:w-24 rounded-md border border-gray-300 px-2 sm:px-3 py-1.5 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all font-medium text-sm"
                           />
                         </td>
-                        <td className="px-2 sm:px-3 py-3 hidden sm:table-cell">
+                        <td className="px-2 sm:px-3 py-3">
                           <input
                             type="number"
                             min="1"
@@ -331,7 +331,7 @@ const PlanManagementPage = () => {
                             className="w-20 sm:w-24 rounded-md border border-gray-300 px-2 sm:px-3 py-1.5 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all font-medium text-sm"
                           />
                         </td>
-                        <td className="px-2 sm:px-3 py-3 hidden md:table-cell">
+                        <td className="px-2 sm:px-3 py-3">
                           <select
                             value={row.status || 'active'}
                             onChange={(e) =>

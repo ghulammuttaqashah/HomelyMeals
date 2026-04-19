@@ -261,9 +261,18 @@ const OrderDetails = () => {
               <h1 className="text-lg sm:text-xl font-bold text-gray-800">Order #{order.orderNumber}</h1>
               <p className="text-xs sm:text-sm text-gray-500">{formatDate(order.createdAt)}</p>
             </div>
-            <span className={`px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${statusConfig.color} text-white self-start`}>
-              {statusConfig.label}
-            </span>
+            <div className="flex flex-wrap gap-2 self-start">
+              <span className={`px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${statusConfig.color} text-white`}>
+                {statusConfig.label}
+              </span>
+              <span className={`px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${
+                order.paymentMethod === "cod" 
+                  ? "bg-green-100 text-green-800" 
+                  : "bg-blue-100 text-blue-800"
+              }`}>
+                {order.paymentMethod === "cod" ? "COD" : "Online"}
+              </span>
+            </div>
           </div>
 
           {/* Progress Steps */}

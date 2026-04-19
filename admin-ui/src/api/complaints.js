@@ -35,3 +35,10 @@ export const getWarningHistory = (userId) => {
   return api.get(`/api/admin/complaints/warnings/${userId}`);
 };
 
+/**
+ * Delete a complaint (admin only)
+ */
+export const deleteComplaint = (id) => {
+  return api.delete(`/api/admin/complaints/${id}`);
+};
+

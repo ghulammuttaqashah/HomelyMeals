@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { FiSend, FiArrowLeft, FiMessageCircle, FiUser } from 'react-icons/fi'
+import { FiSend, FiArrowLeft, FiMessageCircle, FiUser, FiSearch, FiX } from 'react-icons/fi'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import Container from '../components/Container'
@@ -28,9 +28,11 @@ const Chats = () => {
   const [loading, setLoading] = useState(true)
   const [sendingMessage, setSendingMessage] = useState(false)
   const [loadingMessages, setLoadingMessages] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
 
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
+  const searchRef = useRef(null)
 
   // Scroll to bottom of messages
   const scrollToBottom = useCallback(() => {
@@ -239,16 +241,22 @@ const Chats = () => {
       }
     })
 
-    return cooks.map(cook => ({
+    const all = cooks.map(cook => ({
       ...cook,
       chat: chatsMap.get(cook._id)
     })).sort((a, b) => {
-      // Sort by last message time, then by name
       const aTime = a.chat?.lastMessage?.createdAt ? new Date(a.chat.lastMessage.createdAt) : new Date(0)
       const bTime = b.chat?.lastMessage?.createdAt ? new Date(b.chat.lastMessage.createdAt) : new Date(0)
       if (aTime.getTime() !== bTime.getTime()) return bTime - aTime
       return a.name.localeCompare(b.name)
     })
+
+    if (!searchQuery.trim()) return all
+    const q = searchQuery.toLowerCase()
+    return all.filter(cook =>
+      cook.name?.toLowerCase().includes(q) ||
+      cook.chat?.lastMessage?.content?.toLowerCase().includes(q)
+    )
   }
 
   const formatTime = (dateStr) => {
@@ -302,13 +310,38 @@ const Chats = () => {
                   Chats
                 </h2>
                 <p className="text-sm text-gray-500 mt-1">Message any cook</p>
+                {/* Search */}
+                <div className="relative mt-3">
+                  <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                  <input
+                    ref={searchRef}
+                    type="text"
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    placeholder="Search cooks..."
+                    className="w-full pl-9 pr-8 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-colors"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      <FiX className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="flex-1 overflow-y-auto">
                 {getCooksList().length === 0 ? (
                   <div className="p-8 text-center text-gray-500">
                     <FiMessageCircle className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                    <p>No cooks available</p>
+                    <p>{searchQuery ? 'No cooks match your search' : 'No cooks available'}</p>
+                    {searchQuery && (
+                      <button onClick={() => setSearchQuery('')} className="mt-2 text-sm text-orange-500 hover:underline">
+                        Clear search
+                      </button>
+                    )}
                   </div>
                 ) : (
                   getCooksList().map(cook => (

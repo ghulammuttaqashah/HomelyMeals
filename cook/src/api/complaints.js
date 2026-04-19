@@ -1,48 +1,30 @@
 import axiosInstance from "./axios";
 
-/**
- * Create a complaint
- */
 export const createComplaint = async (data) => {
   const response = await axiosInstance.post("/api/cook/complaints", data);
   return response.data;
 };
 
-/**
- * Get my complaints
- */
-export const getMyComplaints = async () => {
-  const response = await axiosInstance.get("/api/cook/complaints");
+export const getMyComplaints = async (page = 1) => {
+  const response = await axiosInstance.get("/api/cook/complaints", { params: { page, limit: 8 } });
   return response.data;
 };
 
-/**
- * Get complaints against me
- */
-export const getComplaintsAgainstMe = async () => {
-  const response = await axiosInstance.get("/api/cook/complaints/against-me");
+export const getComplaintsAgainstMe = async (page = 1) => {
+  const response = await axiosInstance.get("/api/cook/complaints/against-me", { params: { page, limit: 8 } });
   return response.data;
 };
 
-/**
- * Get single complaint details
- */
 export const getComplaintById = async (id) => {
   const response = await axiosInstance.get(`/api/cook/complaints/${id}`);
   return response.data;
 };
 
-/**
- * Get my warnings
- */
 export const getMyWarnings = async () => {
   const response = await axiosInstance.get("/api/cook/complaints/my-warnings");
   return response.data;
 };
 
-/**
- * Submit a reply to a complaint thread
- */
 export const submitComplaintReply = async (id, data) => {
   const response = await axiosInstance.post(`/api/cook/complaints/${id}/reply`, data);
   return response.data;

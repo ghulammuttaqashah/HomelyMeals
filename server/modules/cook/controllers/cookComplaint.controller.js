@@ -1,6 +1,7 @@
 import { Complaint, COOK_COMPLAINT_TYPES } from "../../../shared/models/complaint.model.js";
 import { Order } from "../../../shared/models/order.model.js";
 import { Cook } from "../models/cook.model.js";
+import { Customer } from "../../customer/models/customer.model.js";
 import { sendEmail } from "../../../shared/utils/sendEmail.js";
 
 /**
@@ -57,7 +58,7 @@ export const createComplaint = async (req, res) => {
 
     await complaint.save();
 
-    // Send confirmation email
+    // Send confirmation email to the complainant (cook)
     try {
       const cook = await Cook.findById(cookId);
       if (cook?.email) {
@@ -69,6 +70,20 @@ export const createComplaint = async (req, res) => {
       }
     } catch (emailErr) {
       console.error("Failed to send complaint confirmation email:", emailErr.message);
+    }
+
+    // Notify the accused customer
+    try {
+      const customer = await Customer.findById(order.customerId).select("name email");
+      if (customer?.email) {
+        await sendEmail(
+          customer.email,
+          "A Complaint Has Been Filed Against You — HomelyMeals",
+          `Hi ${customer.name},\n\nA complaint has been filed against you by a cook regarding order #${order.orderNumber}.\n\nComplaint Type: ${type}\n\nPlease log in to your HomelyMeals account and navigate to Complaints & Warnings to view the details and respond if needed.\n\nOur admin team will review the complaint and may reach out for further information.\n\nIf you believe this complaint is unjust, you can submit your response through the platform.\n\nRegards,\nHomelyMeals Team\n${process.env.EMAIL_USER}`
+        );
+      }
+    } catch (emailErr) {
+      console.error("Failed to send complaint notification to customer:", emailErr.message);
     }
 
     return res.status(201).json({
@@ -97,12 +112,23 @@ export const createComplaint = async (req, res) => {
 export const getMyComplaints = async (req, res) => {
   try {
     const cookId = req.user._id;
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(50, parseInt(req.query.limit) || 8);
+    const skip = (page - 1) * limit;
 
-    const complaints = await Complaint.find({ complainantId: cookId })
-      .sort({ createdAt: -1 })
-      .populate("orderId", "orderNumber totalAmount status");
+    const [complaints, total] = await Promise.all([
+      Complaint.find({ complainantId: cookId })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate("orderId", "orderNumber totalAmount status"),
+      Complaint.countDocuments({ complainantId: cookId }),
+    ]);
 
-    return res.status(200).json({ complaints });
+    return res.status(200).json({
+      complaints,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+    });
   } catch (error) {
     console.error("Get my complaints error:", error);
     return res.status(500).json({ message: "Server error" });
@@ -116,12 +142,23 @@ export const getMyComplaints = async (req, res) => {
 export const getComplaintsAgainstMe = async (req, res) => {
   try {
     const cookId = req.user._id;
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(50, parseInt(req.query.limit) || 8);
+    const skip = (page - 1) * limit;
 
-    const complaints = await Complaint.find({ againstUserId: cookId, complainantType: "customer" })
-      .sort({ createdAt: -1 })
-      .populate("orderId", "orderNumber totalAmount status");
+    const [complaints, total] = await Promise.all([
+      Complaint.find({ againstUserId: cookId, complainantType: "customer" })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate("orderId", "orderNumber totalAmount status"),
+      Complaint.countDocuments({ againstUserId: cookId, complainantType: "customer" }),
+    ]);
 
-    return res.status(200).json({ complaints });
+    return res.status(200).json({
+      complaints,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+    });
   } catch (error) {
     console.error("Get complaints against me error:", error);
     return res.status(500).json({ message: "Server error" });

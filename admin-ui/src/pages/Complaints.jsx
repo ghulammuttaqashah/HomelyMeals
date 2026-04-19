@@ -6,6 +6,7 @@ import {
   updateComplaint,
   sendWarning,
   getWarningHistory,
+  deleteComplaint,
 } from '../api/complaints'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
@@ -21,6 +22,7 @@ import {
   FiShield,
   FiMessageSquare,
   FiSend,
+  FiTrash2,
 } from 'react-icons/fi'
 
 const STATUS_OPTIONS = [
@@ -55,11 +57,29 @@ const Complaints = () => {
   const [warningMessage, setWarningMessage] = useState('')
   const [sendingWarning, setSendingWarning] = useState(false)
   const [showWarningForm, setShowWarningForm] = useState(false)
-  const [warningTarget, setWarningTarget] = useState(null) // { userId, userType, userName }
+  const [warningTarget, setWarningTarget] = useState(null)
+  const [deletingId, setDeletingId] = useState(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null)
+
+  const handleDelete = async () => {
+    if (!confirmDeleteId) return
+    setDeletingId(confirmDeleteId)
+    setConfirmDeleteId(null)
+    try {
+      const res = await deleteComplaint(confirmDeleteId)
+      toast.success(`Complaint deleted${res.data.warningsRemoved > 0 ? ` · ${res.data.warningsRemoved} warning(s) removed` : ''}`)
+      closeDetail()
+      fetchComplaints(pagination.page)
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to delete complaint')
+    } finally {
+      setDeletingId(null)
+    }
+  }
   const fetchComplaints = useCallback(async (page = 1) => {
     setLoading(true)
     try {
-      const params = { page, limit: 20 }
+      const params = { page, limit: 10 }
       if (filterStatus) params.status = filterStatus
       if (filterType) params.complainantType = filterType
 
@@ -215,60 +235,86 @@ const Complaints = () => {
           </div>
         ) : (
           <div className="bg-white rounded-lg shadow overflow-hidden min-h-[300px]">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[640px]">
+            {/* Mobile cards */}
+            <div className="lg:hidden divide-y divide-gray-100">
+              {complaints.map((c) => (
+                <div
+                  key={c._id}
+                  onClick={() => openDetail(c._id)}
+                  className="p-4 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <span className="text-sm font-semibold text-gray-800 leading-snug">{c.type}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 ${STATUS_COLORS[c.status]}`}>
+                      {c.status.replace('_', ' ')}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-gray-500 mb-1">
+                    <span><span className="text-gray-400">From:</span> {c.complainantName} <span className="capitalize text-gray-400">({c.complainantType})</span></span>
+                    <span><span className="text-gray-400">Against:</span> {c.againstUserName || '—'}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-gray-400">
+                    <span>Order #{c.orderId?.orderNumber || 'N/A'}</span>
+                    <div className="flex items-center gap-2">
+                      <span>{formatDate(c.createdAt)}</span>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(c._id) }}
+                        disabled={deletingId === c._id}
+                        className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors disabled:opacity-50"
+                        title="Delete complaint"
+                      >
+                        <FiTrash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden lg:block overflow-x-auto">
+              <table className="w-full text-sm" style={{minWidth: '700px'}}>
                 <thead className="bg-gray-50 border-b">
                   <tr>
-                    <th className="text-left px-3 sm:px-4 py-3 font-semibold text-gray-600">From</th>
-                    <th className="text-left px-3 sm:px-4 py-3 font-semibold text-gray-600 hidden md:table-cell">Against</th>
-                    <th className="text-left px-3 sm:px-4 py-3 font-semibold text-gray-600 hidden lg:table-cell">Order</th>
-                    <th className="text-left px-3 sm:px-4 py-3 font-semibold text-gray-600">Type</th>
-                    <th className="text-left px-3 sm:px-4 py-3 font-semibold text-gray-600">Status</th>
-                    <th className="text-left px-3 sm:px-4 py-3 font-semibold text-gray-600 hidden xl:table-cell">Date</th>
+                    <th className="text-left px-4 py-3 font-semibold text-gray-600">From</th>
+                    <th className="text-left px-4 py-3 font-semibold text-gray-600">Against</th>
+                    <th className="text-left px-4 py-3 font-semibold text-gray-600">Order</th>
+                    <th className="text-left px-4 py-3 font-semibold text-gray-600">Type</th>
+                    <th className="text-left px-4 py-3 font-semibold text-gray-600">Status</th>
+                    <th className="text-left px-4 py-3 font-semibold text-gray-600">Date</th>
+                    <th className="px-4 py-3"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
                   {complaints.map((c) => (
-                    <tr
-                      key={c._id}
-                      onClick={() => openDetail(c._id)}
-                      className="hover:bg-gray-50 cursor-pointer transition-colors"
-                    >
-                      <td className="px-3 sm:px-4 py-3">
-                        <div>
-                          <p className="font-medium text-gray-800">{c.complainantName}</p>
-                          <p className="text-xs text-gray-400 capitalize">{c.complainantType}</p>
-                        </div>
+                    <tr key={c._id} onClick={() => openDetail(c._id)} className="hover:bg-gray-50 cursor-pointer transition-colors">
+                      <td className="px-4 py-3">
+                        <p className="font-medium text-gray-800 whitespace-nowrap">{c.complainantName}</p>
+                        <p className="text-xs text-gray-400 capitalize">{c.complainantType}</p>
                       </td>
-                      <td className="px-3 sm:px-4 py-3 hidden md:table-cell">
-                        <div>
-                          <p className="font-medium text-gray-800">{c.againstUserName || '—'}</p>
-                          <p className="text-xs text-gray-400 capitalize">{c.againstUserType || ''}</p>
-                        </div>
+                      <td className="px-4 py-3">
+                        <p className="font-medium text-gray-800 whitespace-nowrap">{c.againstUserName || '—'}</p>
+                        <p className="text-xs text-gray-400 capitalize">{c.againstUserType || ''}</p>
                       </td>
-                      <td className="px-3 sm:px-4 py-3 text-gray-700 hidden lg:table-cell">
-                        #{c.orderId?.orderNumber || 'N/A'}
-                      </td>
-                      <td className="px-3 sm:px-4 py-3 text-gray-700">{c.type}</td>
-                      <td className="px-3 sm:px-4 py-3">
-                        <div className="flex flex-col gap-1 items-start">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[c.status]}`}>
+                      <td className="px-4 py-3 text-gray-700 whitespace-nowrap">#{c.orderId?.orderNumber || 'N/A'}</td>
+                      <td className="px-4 py-3 text-gray-700 whitespace-nowrap">{c.type}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap gap-1 items-center">
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${STATUS_COLORS[c.status]}`}>
                             {c.status.replace('_', ' ')}
                           </span>
-                          {!['resolved', 'rejected'].includes(c.status) && c.justification?.requested && !c.justification?.submitted && (
-                            <span className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-600">
-                              Wait: Defense
-                            </span>
-                          )}
-                          {!['resolved', 'rejected'].includes(c.status) && c.rebuttal?.requested && !c.rebuttal?.submitted && (
-                            <span className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-600">
-                              Wait: Rebuttal
-                            </span>
-                          )}
                         </div>
                       </td>
-                      <td className="px-3 sm:px-4 py-3 text-gray-500 text-xs whitespace-nowrap hidden xl:table-cell">
-                        {formatDate(c.createdAt)}
+                      <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">{formatDate(c.createdAt)}</td>
+                      <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={() => setConfirmDeleteId(c._id)}
+                          disabled={deletingId === c._id}
+                          className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors disabled:opacity-50"
+                          title="Delete complaint"
+                        >
+                          <FiTrash2 className="w-4 h-4" />
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -280,20 +326,27 @@ const Complaints = () => {
 
         {/* Pagination */}
         {pagination.pages > 1 && (
-          <div className="flex justify-center gap-2 mt-6">
-            {Array.from({ length: pagination.pages }, (_, i) => i + 1).map((page) => (
+          <div className="mt-4 px-4 py-3 bg-white rounded-lg shadow-sm border border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <p className="text-sm text-gray-500">
+              Page <span className="font-semibold text-gray-700">{pagination.page}</span> of <span className="font-semibold text-gray-700">{pagination.pages}</span>
+              <span className="ml-2 text-gray-400">({pagination.total} total)</span>
+            </p>
+            <div className="flex gap-2">
               <button
-                key={page}
-                onClick={() => fetchComplaints(page)}
-                className={`w-10 h-10 rounded-full ${
-                  pagination.page === page
-                    ? 'bg-orange-600 text-white'
-                    : 'bg-white text-gray-600 hover:bg-gray-100'
-                }`}
+                onClick={() => fetchComplaints(pagination.page - 1)}
+                disabled={pagination.page === 1}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {page}
+                Previous
               </button>
-            ))}
+              <button
+                onClick={() => fetchComplaints(pagination.page + 1)}
+                disabled={pagination.page === pagination.pages}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Next
+              </button>
+            </div>
           </div>
         )}
         </div>
@@ -529,6 +582,15 @@ const Complaints = () => {
                       </>
                     ) : 'Save Changes'}
                   </button>
+
+                  <button
+                    onClick={() => setConfirmDeleteId(c._id)}
+                    disabled={deletingId === c._id}
+                    className="w-full py-2.5 bg-white border border-red-300 text-red-600 font-semibold rounded-lg hover:bg-red-50 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <FiTrash2 className="w-4 h-4" />
+                    {deletingId === c._id ? 'Deleting...' : 'Delete Complaint'}
+                  </button>
                 </div>
 
                 {/* Warning Section */}
@@ -640,6 +702,40 @@ const Complaints = () => {
           </div>
         )
       })()}
+      {/* Delete Confirmation Modal */}
+      {confirmDeleteId && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 px-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-slate-200/50 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-red-100">
+                <FiTrash2 className="h-5 w-5 text-red-600" />
+              </div>
+              <h3 className="text-base font-bold text-slate-900">Delete Complaint</h3>
+            </div>
+            <p className="text-sm text-slate-600 mb-1">
+              This will permanently delete the complaint and remove any warnings linked to it. Affected user warning counts will be adjusted automatically.
+            </p>
+            <p className="text-xs text-slate-400 mb-6">This action cannot be undone.</p>
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirmDeleteId(null)}
+                className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 transition-colors flex items-center gap-2"
+              >
+                <FiTrash2 className="h-4 w-4" />
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

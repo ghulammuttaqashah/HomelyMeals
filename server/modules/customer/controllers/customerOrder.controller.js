@@ -181,6 +181,38 @@ export const placeOrder = async (req, res) => {
 };
 
 /**
+ * Cancel an unpaid card order if payment failed
+ * DELETE /api/customer/orders/:id/cancel-unpaid
+ */
+export const cancelUnpaidOrder = async (req, res) => {
+  try {
+    const customerId = req.user._id;
+    const { id } = req.params;
+
+    const order = await Order.findOne({ _id: id, customerId });
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    // Only allow cancelling card orders that haven't been paid
+    if (order.paymentMethod !== "card") {
+      return res.status(400).json({ message: "Only unpaid card orders can be cancelled this way" });
+    }
+    if (order.paymentStatus === "paid") {
+      return res.status(400).json({ message: "Order has already been paid" });
+    }
+
+    // Hard delete — remove it entirely so it doesn't clutter the cook's queue
+    await Order.findByIdAndDelete(id);
+
+    return res.status(200).json({ message: "Unpaid order removed successfully" });
+  } catch (error) {
+    console.error("Cancel unpaid order error:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+/**
  * Get customer's orders
  * GET /api/customer/orders
  */

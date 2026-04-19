@@ -8,7 +8,7 @@ import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
-import { placeOrder, calculateDeliveryInfo } from "../api/orders";
+import { placeOrder, calculateDeliveryInfo, cancelUnpaidOrder } from "../api/orders";
 import { getCookDeliveryInfo } from "../api/meals";
 import { createPaymentIntent, confirmPayment } from "../api/payments";
 import { clearDeliveryCache } from "../utils/clearDeliveryCache";
@@ -49,6 +49,7 @@ const CheckoutForm = ({ cookInfo, deliveryInfo, deliveryAddress, cart, subtotal,
   const [paymentMethod, setPaymentMethod] = useState("cod");
   const [submitting, setSubmitting] = useState(false);
   const [cardReady, setCardReady] = useState(false);
+  const [cardComplete, setCardComplete] = useState(false);
   const [showCardPolicyModal, setShowCardPolicyModal] = useState(false);
   const [cardPolicyAccepted, setCardPolicyAccepted] = useState(false);
 
@@ -85,6 +86,18 @@ const CheckoutForm = ({ cookInfo, deliveryInfo, deliveryAddress, cart, subtotal,
       return;
     }
 
+    // Validate card is filled before submitting
+    if (paymentMethod === "card") {
+      if (!stripe || !elements) {
+        toast.error("Stripe is not loaded. Please refresh and try again.");
+        return;
+      }
+      if (!cardComplete) {
+        toast.error("Please complete your card details before placing the order.");
+        return;
+      }
+    }
+
     setSubmitting(true);
 
     try {
@@ -114,39 +127,44 @@ const CheckoutForm = ({ cookInfo, deliveryInfo, deliveryAddress, cart, subtotal,
 
       // Handle card payment flow
       if (paymentMethod === "card" && orderId) {
-        if (!stripe || !elements) {
-          toast.error("Stripe is not loaded. Please refresh and try again.");
-          setSubmitting(false);
-          return;
-        }
+        let paymentSucceeded = false;
+        try {
+          // Create payment intent
+          const intentData = await createPaymentIntent(orderId, cart.cookId, totalAmount);
+          const { clientSecret, paymentIntentId } = intentData;
 
-        // Create payment intent
-        const intentData = await createPaymentIntent(orderId, cart.cookId, totalAmount);
-        const { clientSecret, paymentIntentId } = intentData;
-
-        // Confirm card payment
-        const cardElement = elements.getElement(CardElement);
-        const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
-          payment_method: {
-            card: cardElement,
-            billing_details: {
-              name: customer?.name || "Customer",
-              email: customer?.email || undefined,
+          // Confirm card payment
+          const cardElement = elements.getElement(CardElement);
+          const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+            payment_method: {
+              card: cardElement,
+              billing_details: {
+                name: customer?.name || "Customer",
+                email: customer?.email || undefined,
+              },
             },
-          },
-        });
+          });
 
-        if (error) {
-          toast.error(error.message || "Payment failed. Please try again.");
-          setSubmitting(false);
-          return;
+          if (error) {
+            toast.error(error.message || "Payment failed. Please try again.");
+          } else if (paymentIntent?.status === "succeeded") {
+            await confirmPayment(orderId, paymentIntentId);
+            paymentSucceeded = true;
+            toast.success("Payment successful! Order placed.");
+          } else {
+            toast.error("Payment did not complete. Please try again.");
+          }
+        } catch (paymentError) {
+          toast.error(paymentError.response?.data?.message || "Payment failed. Please try again.");
         }
 
-        if (paymentIntent?.status === "succeeded") {
-          await confirmPayment(orderId, paymentIntentId);
-          toast.success("Payment successful! Order placed.");
-        } else {
-          toast.error("Payment did not complete. Please try again.");
+        if (!paymentSucceeded) {
+          // Clean up the orphaned order so it doesn't appear in cook's queue
+          try {
+            await cancelUnpaidOrder(orderId);
+          } catch (_) {
+            // best-effort cleanup, don't surface this error
+          }
           setSubmitting(false);
           return;
         }
@@ -257,7 +275,8 @@ const CheckoutForm = ({ cookInfo, deliveryInfo, deliveryAddress, cart, subtotal,
             )}
             <CardElement 
               options={cardElementOptions} 
-              onReady={() => setCardReady(true)} 
+              onReady={() => setCardReady(true)}
+              onChange={(e) => setCardComplete(e.complete)}
             />
           </div>
         )}
@@ -274,7 +293,7 @@ const CheckoutForm = ({ cookInfo, deliveryInfo, deliveryAddress, cart, subtotal,
         type="submit"
         variant="primary"
         className="w-full py-3 sm:py-3.5 text-sm sm:text-base font-semibold shadow-lg hover:shadow-xl transition-all"
-        disabled={submitting || !deliveryInfo?.isWithinRange || (paymentMethod === "card" && !cardReady)}
+        disabled={submitting || !deliveryInfo?.isWithinRange || (paymentMethod === "card" && (!cardReady || !cardComplete))}
       >
         {submitting ? (
           <span className="flex items-center justify-center gap-2">
