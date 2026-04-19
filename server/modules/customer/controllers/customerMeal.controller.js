@@ -261,6 +261,13 @@ export const getCookDeliveryInfo = async (req, res) => {
       });
     }
 
+    console.log("🍳 Cook delivery info:", {
+      cookId: cook._id,
+      name: cook.name,
+      maxDeliveryDistance: cook.maxDeliveryDistance,
+      hasLocation: !!(cook.address?.location?.latitude && cook.address?.location?.longitude)
+    });
+
     res.status(200).json({
       success: true,
       cook: {

@@ -450,6 +450,13 @@ export const cancelOrderByCook = async (req, res) => {
       return res.status(404).json({ message: "Order not found" });
     }
 
+    // Online payment orders cannot be cancelled
+    if (order.paymentMethod !== "cod") {
+      return res.status(400).json({
+        message: "Online payment orders cannot be cancelled. Please contact support.",
+      });
+    }
+
     if (["delivered", "cancelled"].includes(order.status)) {
       return res.status(400).json({
         message: "Order cannot be cancelled in current status",

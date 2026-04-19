@@ -11,6 +11,7 @@ import { useAuth } from "../context/AuthContext";
 import { placeOrder, calculateDeliveryInfo } from "../api/orders";
 import { getCookDeliveryInfo } from "../api/meals";
 import { createPaymentIntent, confirmPayment } from "../api/payments";
+import { clearDeliveryCache } from "../utils/clearDeliveryCache";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import Button from "../components/Button";
@@ -48,9 +49,25 @@ const CheckoutForm = ({ cookInfo, deliveryInfo, deliveryAddress, cart, subtotal,
   const [paymentMethod, setPaymentMethod] = useState("cod");
   const [submitting, setSubmitting] = useState(false);
   const [cardReady, setCardReady] = useState(false);
+  const [showCardPolicyModal, setShowCardPolicyModal] = useState(false);
+  const [cardPolicyAccepted, setCardPolicyAccepted] = useState(false);
 
   const cookAcceptsCard = cookInfo?.isOnlinePaymentEnabled && cookInfo?.stripeAccountId;
   const totalAmount = subtotal + (deliveryInfo?.deliveryCharges || 0);
+
+  const handlePaymentMethodChange = (method) => {
+    if (method === "card" && !cardPolicyAccepted) {
+      setShowCardPolicyModal(true);
+    } else {
+      setPaymentMethod(method);
+    }
+  };
+
+  const acceptCardPolicy = () => {
+    setCardPolicyAccepted(true);
+    setPaymentMethod("card");
+    setShowCardPolicyModal(false);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -205,7 +222,7 @@ const CheckoutForm = ({ cookInfo, deliveryInfo, deliveryAddress, cart, subtotal,
               name="paymentMethod"
               value="card"
               checked={paymentMethod === "card"}
-              onChange={() => cookAcceptsCard && setPaymentMethod("card")}
+              onChange={() => cookAcceptsCard && handlePaymentMethodChange("card")}
               disabled={!cookAcceptsCard}
               className="sr-only"
             />
@@ -279,6 +296,69 @@ const CheckoutForm = ({ cookInfo, deliveryInfo, deliveryAddress, cart, subtotal,
           Delivery not available to this location
         </p>
       )}
+
+      {/* Card Payment Policy Modal */}
+      {showCardPolicyModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                <FiAlertCircle className="w-6 h-6 text-blue-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900">Card Payment Policy</h3>
+            </div>
+            
+            <div className="space-y-4 mb-6">
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <p className="text-sm font-semibold text-yellow-800 mb-2">⚠️ Important Notice</p>
+                <ul className="text-sm text-yellow-700 space-y-2">
+                  <li className="flex items-start gap-2">
+                    <span className="text-yellow-600 mt-0.5">•</span>
+                    <span><strong>No Cancellations:</strong> Online payment orders cannot be cancelled once placed.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-yellow-600 mt-0.5">•</span>
+                    <span><strong>Refund Process:</strong> For refund requests, contact support at <a href="mailto:homelymeals4@gmail.com" className="underline font-medium">homelymeals4@gmail.com</a></span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-yellow-600 mt-0.5">•</span>
+                    <span><strong>Secure Payment:</strong> Your payment is processed securely via Stripe.</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <p className="text-sm font-semibold text-green-800 mb-2">✅ Why Card Payment?</p>
+                <ul className="text-sm text-green-700 space-y-1">
+                  <li>• Instant order confirmation</li>
+                  <li>• No need for cash handling</li>
+                  <li>• Secure and convenient</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <Button
+                onClick={() => {
+                  setShowCardPolicyModal(false);
+                  setPaymentMethod("cod");
+                }}
+                variant="outline"
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={acceptCardPolicy}
+                variant="primary"
+                className="flex-1 bg-blue-600 hover:bg-blue-700"
+              >
+                I Understand
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 };
@@ -347,6 +427,12 @@ const Checkout = () => {
       if (!cart.cookId) return;
       try {
         const cookData = await getCookDeliveryInfo(cart.cookId);
+        console.log("🍳 Fetched cook delivery info:", {
+          cookId: cookData.cook.cookId,
+          name: cookData.cook.name,
+          maxDeliveryDistance: cookData.cook.maxDeliveryDistance,
+          hasLocation: !!(cookData.cook.latitude && cookData.cook.longitude)
+        });
         setCookInfo(cookData.cook);
         setCookInfoLoaded(true);
       } catch (error) {
@@ -377,8 +463,9 @@ const Checkout = () => {
         return;
       }
 
-      // Create cache key based on cook and customer coordinates
-      const cacheKey = `${cart.cookId}_${cookInfo.latitude.toFixed(4)}_${cookInfo.longitude.toFixed(4)}_${deliveryAddress.latitude.toFixed(4)}_${deliveryAddress.longitude.toFixed(4)}`;
+      // Create cache key based on cook, customer coordinates, AND cook's max delivery distance
+      // This ensures cache is invalidated when cook updates their delivery range
+      const cacheKey = `${cart.cookId}_${cookInfo.latitude.toFixed(4)}_${cookInfo.longitude.toFixed(4)}_${deliveryAddress.latitude.toFixed(4)}_${deliveryAddress.longitude.toFixed(4)}_${cookInfo.maxDeliveryDistance}`;
       
       // Check if we have cached data for these exact coordinates
       if (deliveryCache[cacheKey]) {
@@ -398,10 +485,23 @@ const Checkout = () => {
       setDeliveryError(null);
 
       try {
+        console.log("🔄 Calculating delivery info (not cached):", {
+          cookId: cart.cookId,
+          cookMaxDeliveryDistance: cookInfo.maxDeliveryDistance,
+          customerLat: deliveryAddress.latitude,
+          customerLng: deliveryAddress.longitude
+        });
+
         // Call backend API to calculate distance using OpenRouteService
         const result = await calculateDeliveryInfo(cart.cookId, {
           latitude: deliveryAddress.latitude,
           longitude: deliveryAddress.longitude,
+        });
+
+        console.log("📊 Backend calculation result:", {
+          distance: result.distance,
+          maxDeliveryDistance: result.maxDeliveryDistance,
+          isWithinRange: result.isWithinRange
         });
 
         const deliveryData = {

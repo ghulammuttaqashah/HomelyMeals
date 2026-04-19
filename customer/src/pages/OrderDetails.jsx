@@ -139,6 +139,16 @@ const OrderDetails = () => {
   }, [id]);
 
   const handleCancel = async () => {
+    // Check if it's an online payment order
+    if (order.paymentMethod !== "cod") {
+      toast.error(
+        "Online payment orders cannot be cancelled. Please contact support at homelymeals4@gmail.com for refund requests.",
+        { duration: 6000, icon: "🚫" }
+      );
+      setShowCancelModal(false);
+      return;
+    }
+
     if (!cancelReason.trim()) {
       toast.error("Please provide a reason for cancellation");
       return;
@@ -559,7 +569,17 @@ const OrderDetails = () => {
           {canCancel && (
             <div className="flex justify-center">
               <Button
-                onClick={() => setShowCancelModal(true)}
+                onClick={() => {
+                  // Show toast warning for online payment orders
+                  if (order.paymentMethod !== "cod") {
+                    toast.error(
+                      "Online payment orders cannot be cancelled. Please contact support at homelymeals4@gmail.com for refund requests.",
+                      { duration: 6000, icon: "🚫" }
+                    );
+                    return;
+                  }
+                  setShowCancelModal(true);
+                }}
                 variant="outline"
                 className="border-red-500 text-red-500 hover:bg-red-50 w-full sm:w-auto"
               >

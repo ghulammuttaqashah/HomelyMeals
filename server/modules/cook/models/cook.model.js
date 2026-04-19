@@ -55,7 +55,7 @@ const cookSchema = new mongoose.Schema(
       type: Number,
       default: 5, // Default 5 km
       min: 1,
-      max: 15,
+      max: 50, // Allow up to 50 km
     },
 
     /** Warning count from admin */

@@ -181,6 +181,58 @@ const SocketListener = () => {
             id: `order-delivered-${data.orderId || Date.now()}`,
           }
         );
+      } else if (event === "order_auto_cancelled") {
+        toast(
+          (t) => (
+            <div
+              className="flex items-start gap-3 cursor-pointer"
+              onClick={() => {
+                toast.dismiss(t.id);
+                if (data.orderId) navigate(`/orders/${data.orderId}`);
+              }}
+            >
+              <span className="text-2xl">⏰</span>
+              <div>
+                <p className="font-semibold text-red-600">Order Auto-Cancelled</p>
+                <p className="text-sm text-gray-600">
+                  {data.message || "Your order was automatically cancelled"}
+                </p>
+                <p className="text-xs text-red-700 mt-1">Tap to view</p>
+              </div>
+            </div>
+          ),
+          {
+            duration: 10000,
+            style: { background: "#fff", color: "#333", border: "2px solid #ef4444", padding: "12px", maxWidth: "400px" },
+            id: `order-auto-cancel-${data.orderId || Date.now()}`,
+          }
+        );
+      } else if (event === "order_cancelled") {
+        toast(
+          (t) => (
+            <div
+              className="flex items-start gap-3 cursor-pointer"
+              onClick={() => {
+                toast.dismiss(t.id);
+                if (data.orderId) navigate(`/orders/${data.orderId}`);
+              }}
+            >
+              <span className="text-2xl">❌</span>
+              <div>
+                <p className="font-semibold text-red-600">Order Cancelled</p>
+                <p className="text-sm text-gray-600">
+                  {data.message || "Your order has been cancelled"}
+                </p>
+                <p className="text-xs text-red-700 mt-1">Tap to view</p>
+              </div>
+            </div>
+          ),
+          {
+            duration: 8000,
+            style: { background: "#fff", color: "#333", border: "2px solid #ef4444", padding: "12px", maxWidth: "400px" },
+            id: `order-cancel-${data.orderId || Date.now()}`,
+          }
+        );
       } else if (data.message) {
         // Catch-all for any other order events with a message
         toast(

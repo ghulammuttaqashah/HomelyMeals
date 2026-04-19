@@ -15,6 +15,7 @@ const Orders = () => {
   const [sectionLoading, setSectionLoading] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [statusFilter, setStatusFilter] = useState('all')
+  const [cancelledByFilter, setCancelledByFilter] = useState('all')
   const [dateFilter, setDateFilter] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [pagination, setPagination] = useState({ page: 1, totalPages: 1 })
@@ -25,6 +26,13 @@ const Orders = () => {
     { value: 'out_for_delivery', label: 'Out for Delivery' },
     { value: 'delivered', label: 'Delivered' },
     { value: 'cancelled', label: 'Cancelled' },
+  ]
+
+  const cancelledByOptions = [
+    { value: 'all', label: 'All Cancellations' },
+    { value: 'system', label: 'Auto-Cancelled (System)' },
+    { value: 'customer', label: 'Cancelled by Customer' },
+    { value: 'cook', label: 'Cancelled by Cook' },
   ]
 
   const dateOptions = [
@@ -50,7 +58,7 @@ const Orders = () => {
   useEffect(() => {
     fetchOrders({ mode: initialLoading ? 'initial' : 'section' })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, dateFilter, pagination.page])
+  }, [statusFilter, cancelledByFilter, dateFilter, pagination.page])
 
   const getDateRange = (filter) => {
     const now = new Date()
@@ -100,6 +108,9 @@ const Orders = () => {
       if (statusFilter !== 'all') {
         params.status = statusFilter
       }
+      if (cancelledByFilter !== 'all') {
+        params.cancelledBy = cancelledByFilter
+      }
       Object.assign(params, getDateRange(dateFilter))
 
       const response = await getOrders(params)
@@ -133,7 +144,7 @@ const Orders = () => {
     return iconMap[status] || <FiPackage className="h-4 w-4 text-gray-500" />
   }
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (status, cancelledBy) => {
     const statusConfig = {
       pending: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Pending' },
       confirmed: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Confirmed' },
@@ -144,7 +155,14 @@ const Orders = () => {
       cancelled: { bg: 'bg-red-100', text: 'text-red-800', label: 'Cancelled' },
       expired: { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Expired' }
     }
-    const config = statusConfig[status] || { bg: 'bg-gray-100', text: 'text-gray-800', label: status }
+    
+    let config = statusConfig[status] || { bg: 'bg-gray-100', text: 'text-gray-800', label: status }
+    
+    // Special styling for auto-cancelled orders
+    if (status === 'cancelled' && cancelledBy === 'system') {
+      config = { bg: 'bg-orange-100', text: 'text-orange-800', label: 'Auto-Cancelled' }
+    }
+    
     return (
       <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${config.bg} ${config.text}`}>
         {config.label}
@@ -243,7 +261,7 @@ const Orders = () => {
           {/* Dropdown Filters */}
           <div className="mb-6 rounded-lg border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-4 sm:p-5">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-12">
-              <div className="sm:col-span-1 lg:col-span-4">
+              <div className="sm:col-span-1 lg:col-span-3">
                 <label htmlFor="dateFilter" className="mb-2 block text-sm font-semibold text-gray-700">Date Filter</label>
                 <select
                   id="dateFilter"
@@ -259,7 +277,7 @@ const Orders = () => {
                   ))}
                 </select>
               </div>
-              <div className="sm:col-span-1 lg:col-span-4">
+              <div className="sm:col-span-1 lg:col-span-3">
                 <label htmlFor="statusFilter" className="mb-2 block text-sm font-semibold text-gray-700">Status Filter</label>
                 <select
                   id="statusFilter"
@@ -275,12 +293,33 @@ const Orders = () => {
                   ))}
                 </select>
               </div>
-              <div className="sm:col-span-2 lg:col-span-4 flex items-end">
+              <div className="sm:col-span-1 lg:col-span-3">
+                <label htmlFor="cancelledByFilter" className="mb-2 block text-sm font-semibold text-gray-700">Cancellation Type</label>
+                <select
+                  id="cancelledByFilter"
+                  value={cancelledByFilter}
+                  onChange={(e) => {
+                    setCancelledByFilter(e.target.value)
+                    setPagination(prev => ({ ...prev, page: 1 }))
+                  }}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all cursor-pointer"
+                  disabled={statusFilter !== 'cancelled'}
+                >
+                  {cancelledByOptions.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+                {statusFilter !== 'cancelled' && (
+                  <p className="mt-1 text-xs text-gray-500">Select "Cancelled" status first</p>
+                )}
+              </div>
+              <div className="sm:col-span-2 lg:col-span-3 flex items-end">
                 <button
                   type="button"
                   onClick={() => {
                     setDateFilter('all')
                     setStatusFilter('all')
+                    setCancelledByFilter('all')
                     setSearchQuery('')
                     setPagination({ page: 1, totalPages: pagination.totalPages })
                   }}
@@ -363,7 +402,7 @@ const Orders = () => {
                           <div className="text-xs text-gray-500">{order.cook?.contact || ''}</div>
                         </td>
                         <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                          {getStatusBadge(order.status)}
+                          {getStatusBadge(order.status, order.cancelledBy)}
                         </td>
                         <td className="hidden sm:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
                           {getPaymentBadge(order)}

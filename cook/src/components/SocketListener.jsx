@@ -121,6 +121,42 @@ const SocketListener = () => {
             id: `cancel-req-${data.orderId || Date.now()}`,
           }
         );
+      } else if (event === "order_auto_cancelled") {
+        toast(
+          (t) => (
+            <div
+              className="flex items-start gap-3 cursor-pointer"
+              onClick={() => {
+                toast.dismiss(t.id);
+                if (data.orderId) {
+                  navigate(`/orders/${data.orderId}`);
+                } else {
+                  navigate("/orders");
+                }
+              }}
+            >
+              <span className="text-2xl">⏰</span>
+              <div>
+                <p className="font-semibold text-red-600">Order Auto-Cancelled</p>
+                <p className="text-sm text-gray-600">
+                  {data.message || "Order was automatically cancelled"}
+                </p>
+                <p className="text-xs text-red-700 mt-1">Tap to view</p>
+              </div>
+            </div>
+          ),
+          {
+            duration: 10000,
+            style: {
+              background: "#fff",
+              color: "#333",
+              border: "2px solid #ef4444",
+              padding: "12px",
+              maxWidth: "400px",
+            },
+            id: `order-auto-cancel-${data.orderId || Date.now()}`,
+          }
+        );
       }
       // Other order updates are already handled by individual page listeners
     });

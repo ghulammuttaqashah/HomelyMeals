@@ -249,8 +249,8 @@ const Profile = () => {
 
     // Validate delivery distance
     const distance = Number(profileData.maxDeliveryDistance)
-    if (isNaN(distance) || distance < 1 || distance > 15) {
-      toast.error('Delivery distance must be between 1 and 15 km')
+    if (isNaN(distance) || distance < 1 || distance > 50) {
+      toast.error('Delivery distance must be between 1 and 50 km')
       return
     }
 
@@ -443,7 +443,7 @@ const Profile = () => {
                         id="maxDeliveryDistance"
                         name="maxDeliveryDistance"
                         min="1"
-                        max="15"
+                        max="50"
                         value={profileData.maxDeliveryDistance}
                         onChange={handleProfileChange}
                         className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 pr-12 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"

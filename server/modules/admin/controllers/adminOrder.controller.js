@@ -10,6 +10,7 @@ export const getOrders = async (req, res) => {
     const { 
       status, 
       paymentStatus,
+      cancelledBy,
       cookId,
       customerId,
       startDate,
@@ -34,6 +35,15 @@ export const getOrders = async (req, res) => {
 
     if (customerId) {
       query.customerId = customerId;
+    }
+
+    // Filter by cancelledBy (for auto-cancelled orders)
+    if (cancelledBy) {
+      query.cancelledBy = cancelledBy;
+      // Ensure we only get cancelled orders when filtering by cancelledBy
+      if (!status || status !== 'cancelled') {
+        query.status = 'cancelled';
+      }
     }
 
     // Date range filter

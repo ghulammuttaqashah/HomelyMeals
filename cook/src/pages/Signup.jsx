@@ -56,17 +56,12 @@ const Signup = () => {
   })
   const [loading, setLoading] = useState(false)
   const [locationLoading, setLocationLoading] = useState(false)
-  const [coordinates, setCoordinates] = useState(null)
+  const [coordinates, setCoordinates] = useState({ lat: 27.7052, lng: 68.8574 })
   const [showPassword, setShowPassword] = useState(false)
   const [errors, setErrors] = useState({})
 
   // Default Sukkur coordinates
   const defaultCenter = [27.7052, 68.8574]
-
-  // Set initial Sukkur coordinates on mount
-  useEffect(() => {
-    setCoordinates({ lat: defaultCenter[0], lng: defaultCenter[1] })
-  }, [])
 
   // Reverse geocode - get address from coordinates
   const reverseGeocode = async (lat, lng) => {
@@ -217,8 +212,8 @@ const Signup = () => {
     }
 
     const distance = Number(formData.maxDeliveryDistance)
-    if (isNaN(distance) || distance < 1 || distance > 15) {
-      newErrors.maxDeliveryDistance = 'Distance must be between 1 and 15 km'
+    if (isNaN(distance) || distance < 1 || distance > 50) {
+      newErrors.maxDeliveryDistance = 'Distance must be between 1 and 50 km'
     }
 
     setErrors(newErrors)
@@ -630,7 +625,7 @@ const Signup = () => {
                       id="maxDeliveryDistance"
                       name="maxDeliveryDistance"
                       min="1"
-                      max="15"
+                      max="50"
                       value={formData.maxDeliveryDistance}
                       onChange={handleChange}
                       className={`w-full rounded-lg border ${
@@ -643,7 +638,7 @@ const Signup = () => {
                   {errors.maxDeliveryDistance && (
                     <p className="mt-1.5 text-xs text-red-500">{errors.maxDeliveryDistance}</p>
                   )}
-                  <p className="mt-1.5 text-xs sm:text-sm text-gray-600">Must be between 1 and 15 kilometers</p>
+                  <p className="mt-1.5 text-xs sm:text-sm text-gray-600">Must be between 1 and 50 kilometers</p>
                 </div>
 
                 {/* Visual indicator of delivery range */}

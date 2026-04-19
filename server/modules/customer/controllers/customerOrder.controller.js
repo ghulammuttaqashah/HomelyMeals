@@ -31,6 +31,14 @@ export const placeOrder = async (req, res) => {
       return res.status(404).json({ message: "Cook not found" });
     }
 
+    console.log("🍳 Cook details for order:", {
+      cookId: cook._id,
+      name: cook.name,
+      maxDeliveryDistance: cook.maxDeliveryDistance,
+      status: cook.status,
+      verificationStatus: cook.verificationStatus
+    });
+
     // Check cook status
     if (cook.status !== "active") {
       return res.status(400).json({ message: "Cook is not available" });
@@ -65,6 +73,12 @@ export const placeOrder = async (req, res) => {
     };
 
     const { distance, duration } = await calculateDistance(cookCoords, customerCoords);
+
+    console.log("📏 Distance calculation:", {
+      distance: `${distance} km`,
+      maxAllowed: `${cook.maxDeliveryDistance} km`,
+      withinRange: distance <= cook.maxDeliveryDistance
+    });
 
     // Check if within delivery range
     if (!isWithinDeliveryRange(distance, cook.maxDeliveryDistance)) {
@@ -316,6 +330,13 @@ export const requestCancellation = async (req, res) => {
       return res.status(404).json({ message: "Order not found" });
     }
 
+    // Online payment orders cannot be cancelled
+    if (order.paymentMethod !== "cod") {
+      return res.status(400).json({
+        message: "Online payment orders cannot be cancelled. Please contact support for refund requests.",
+      });
+    }
+
     // Cannot request cancellation for delivered or already cancelled orders
     if (["delivered", "cancelled"].includes(order.status)) {
       return res.status(400).json({
@@ -470,6 +491,13 @@ export const calculateDeliveryInfo = async (req, res) => {
     const deliveryCharges = await calculateDeliveryCharges(distance);
     const estimatedTime = calculateEstimatedDeliveryTime(distance);
     const isWithinRange = isWithinDeliveryRange(distance, cook.maxDeliveryDistance);
+
+    console.log("📊 Delivery calculation result:", {
+      distance,
+      cookMaxDeliveryDistance: cook.maxDeliveryDistance,
+      isWithinRange,
+      comparison: `${distance} <= ${cook.maxDeliveryDistance} = ${isWithinRange}`
+    });
 
     return res.status(200).json({
       distance,

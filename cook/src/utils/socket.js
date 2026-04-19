@@ -100,6 +100,7 @@ export const subscribeToOrderUpdates = (callback) => {
     "order_delivered",
     "order_status_updated",
     "order_cancelled",
+    "order_auto_cancelled",
     "cancellation_request",
     "dispute_created",
     "payment_proof_uploaded",

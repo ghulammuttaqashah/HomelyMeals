@@ -53,13 +53,13 @@ const Signup = () => {
     city: 'Sukkur',
     postalCode: '65200',
     landmark: '',
-    latitude: null,
-    longitude: null,
+    latitude: 27.7052,
+    longitude: 68.8574,
   })
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [errors, setErrors] = useState({})
-  const [mapPosition, setMapPosition] = useState(null)
+  const [mapPosition, setMapPosition] = useState([27.7052, 68.8574])
   const [gettingLocation, setGettingLocation] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState([])
@@ -68,16 +68,6 @@ const Signup = () => {
 
   // Default map center (Sukkur, Pakistan)
   const defaultCenter = [27.7052, 68.8574]
-
-  // Set initial Sukkur coordinates on mount
-  useEffect(() => {
-    setFormData((prev) => ({
-      ...prev,
-      latitude: defaultCenter[0],
-      longitude: defaultCenter[1],
-    }))
-    setMapPosition(defaultCenter)
-  }, [])
 
   // Reverse geocode using Nominatim
   const reverseGeocode = async (lat, lng) => {

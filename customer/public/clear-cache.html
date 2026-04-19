@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clear Delivery Cache</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f9fafb;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #f97316;
+      margin-bottom: 10px;
+    }
+    button {
+      background: #f97316;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+    button:hover {
+      background: #ea580c;
+    }
+    .success {
+      background: #dcfce7;
+      color: #166534;
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 20px;
+      display: none;
+    }
+    .info {
+      background: #dbeafe;
+      color: #1e40af;
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧹 Clear Delivery Cache</h1>
+    <p>If you're seeing outdated delivery range information on the checkout page, click the button below to clear the cache.</p>
+    
+    <div class="info">
+      <strong>ℹ️ When to use this:</strong>
+      <ul>
+        <li>Cook updated their delivery range but you still see the old value</li>
+        <li>Getting "exceeds delivery range" error even though you're within range</li>
+        <li>Delivery calculations seem incorrect</li>
+      </ul>
+    </div>
+
+    <button onclick="clearCache()">Clear Cache Now</button>
+    
+    <div class="success" id="success">
+      ✅ Cache cleared successfully! You can now close this page and refresh the checkout page.
+    </div>
+  </div>
+
+  <script>
+    function clearCache() {
+      try {
+        localStorage.removeItem('deliveryCache');
+        document.getElementById('success').style.display = 'block';
+        console.log('✅ Delivery cache cleared');
+      } catch (error) {
+        alert('Failed to clear cache: ' + error.message);
+      }
+    }
+  </script>
+</body>
+</html>
