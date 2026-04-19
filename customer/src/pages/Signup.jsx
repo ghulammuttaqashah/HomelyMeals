@@ -52,6 +52,7 @@ const Signup = () => {
     street: '',
     city: 'Sukkur',
     postalCode: '65200',
+    landmark: '',
     latitude: null,
     longitude: null,
   })
@@ -60,9 +61,23 @@ const Signup = () => {
   const [errors, setErrors] = useState({})
   const [mapPosition, setMapPosition] = useState(null)
   const [gettingLocation, setGettingLocation] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState([])
+  const [showSearchResults, setShowSearchResults] = useState(false)
+  const [isSearching, setIsSearching] = useState(false)
 
   // Default map center (Sukkur, Pakistan)
   const defaultCenter = [27.7052, 68.8574]
+
+  // Set initial Sukkur coordinates on mount
+  useEffect(() => {
+    setFormData((prev) => ({
+      ...prev,
+      latitude: defaultCenter[0],
+      longitude: defaultCenter[1],
+    }))
+    setMapPosition(defaultCenter)
+  }, [])
 
   // Reverse geocode using Nominatim
   const reverseGeocode = async (lat, lng) => {
@@ -140,6 +155,73 @@ const Signup = () => {
     }
   }, [mapPosition])
 
+  // Search for places using Nominatim
+  const searchPlaces = async (query) => {
+    if (!query || query.trim().length < 3) {
+      setSearchResults([])
+      setShowSearchResults(false)
+      return
+    }
+
+    setIsSearching(true)
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1&extratags=1`
+      )
+      const data = await response.json()
+      setSearchResults(data || [])
+      setShowSearchResults(true)
+    } catch (error) {
+      console.error('Search error:', error)
+      setSearchResults([])
+      toast.error('Search failed. Please try again.')
+    } finally {
+      setIsSearching(false)
+    }
+  }
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchQuery) {
+        searchPlaces(searchQuery)
+      }
+    }, 500)
+
+    return () => clearTimeout(timer)
+  }, [searchQuery])
+
+  // Handle selecting a search result
+  const handleSelectPlace = (place) => {
+    const lat = parseFloat(place.lat)
+    const lon = parseFloat(place.lon)
+    
+    const addr = place.address || {}
+    const displayParts = place.display_name ? place.display_name.split(',').map(p => p.trim()) : []
+    
+    let street = addr.road || addr.street || addr.pedestrian || addr.footway || addr.path || ''
+    if (!street && displayParts.length > 0) {
+      street = displayParts[0]
+    }
+    
+    const city = addr.city || addr.town || addr.village || addr.county || addr.state || formData.city
+    const postalCode = addr.postcode || formData.postalCode
+    
+    setMapPosition([lat, lon])
+    setFormData((prev) => ({
+      ...prev,
+      street: street || prev.street,
+      city: city,
+      postalCode: postalCode,
+      latitude: lat,
+      longitude: lon,
+    }))
+    
+    setSearchQuery('')
+    setShowSearchResults(false)
+    toast.success('Location selected!')
+  }
+
   const handleUseMyLocation = () => {
     if (!navigator.geolocation) {
       toast.error('Geolocation is not supported by your browser')
@@ -207,8 +289,16 @@ const Signup = () => {
       newErrors.password = 'Password must be at least 6 characters'
     }
 
+    if (!formData.houseNo.trim()) {
+      newErrors.houseNo = 'House/Flat number is required'
+    }
+
     if (!formData.street.trim()) {
       newErrors.street = 'Street is required'
+    }
+
+    if (!formData.city.trim()) {
+      newErrors.city = 'City is required'
     }
 
     setErrors(newErrors)
@@ -234,10 +324,11 @@ const Signup = () => {
         password: formData.password,
         address: {
           label: formData.label,
-          houseNo: formData.houseNo.trim() || undefined,
+          houseNo: formData.houseNo.trim(),
           street: formData.street.trim(),
           city: formData.city,
           postalCode: formData.postalCode,
+          landmark: formData.landmark.trim() || undefined,
           latitude: formData.latitude,
           longitude: formData.longitude,
         },
@@ -259,13 +350,13 @@ const Signup = () => {
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-br from-slate-50 via-white to-slate-100">
       <Header showButtons={false} />
-      <div className="flex flex-1 items-center justify-center px-4 py-8">
+      <div className="flex flex-1 items-center justify-center px-4 py-8 sm:py-12">
         <div className="w-full max-w-3xl">
-          <div className="rounded-xl bg-white p-6 shadow-lg border border-gray-100">
-            <div className="mb-6 text-center">
-              <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-orange-100">
+          <div className="rounded-2xl bg-white p-6 sm:p-8 shadow-xl border border-gray-100">
+            <div className="mb-6 sm:mb-8 text-center">
+              <div className="mx-auto mb-3 sm:mb-4 flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-full bg-gradient-to-br from-orange-400 to-orange-600 shadow-lg">
                 <svg
-                  className="h-7 w-7 text-orange-600"
+                  className="h-7 w-7 sm:h-8 sm:w-8 text-white"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -278,15 +369,15 @@ const Signup = () => {
                   />
                 </svg>
               </div>
-              <h1 className="text-2xl font-bold text-gray-900">Create Account</h1>
-              <p className="mt-1 text-sm text-gray-500">Join HomelyMeals today</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Create Account</h1>
+              <p className="mt-1.5 sm:mt-2 text-sm sm:text-base text-gray-600">Join HomelyMeals today</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-6">
               {/* Personal Information */}
               <div>
-                <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-700">
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-orange-100 text-xs text-orange-600">1</span>
+                <h3 className="mb-4 flex items-center gap-2 text-sm sm:text-base font-semibold text-gray-800">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-orange-400 to-orange-600 text-xs font-bold text-white shadow-sm">1</span>
                   Personal Information
                 </h3>
                 <div className="grid gap-4 md:grid-cols-2">
@@ -367,21 +458,81 @@ const Signup = () => {
               </div>
 
               {/* Address Section */}
-              <div className="border-t border-gray-100 pt-5">
-                <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-700">
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-orange-100 text-xs text-orange-600">2</span>
+              <div className="border-t border-gray-200 pt-6">
+                <h3 className="mb-4 flex items-center gap-2 text-sm sm:text-base font-semibold text-gray-800">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-orange-400 to-orange-600 text-xs font-bold text-white shadow-sm">2</span>
                   Delivery Address
                 </h3>
 
                 {/* Map Section */}
-                <div className="mb-4">
-                  <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                    <label className="text-sm font-medium text-gray-700">Select Location on Map</label>
+                <div className="mb-5">
+                  {/* Place Search Input */}
+                  <div className="mb-4 relative">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Search for a Place (University, Hospital, Landmark, etc.)
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onFocus={() => searchResults.length > 0 && setShowSearchResults(true)}
+                        placeholder="e.g., IBA Sukkur, Civil Hospital, City Mall..."
+                        className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 pl-10 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 shadow-sm"
+                      />
+                      <svg className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                      {isSearching && (
+                        <svg className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 animate-spin text-orange-500" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                      )}
+                    </div>
+
+                    {/* Search Results Dropdown */}
+                    {showSearchResults && searchResults.length > 0 && (
+                      <div className="absolute z-50 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg max-h-60 overflow-y-auto">
+                        {searchResults.map((result, index) => (
+                          <button
+                            key={index}
+                            type="button"
+                            onClick={() => handleSelectPlace(result)}
+                            className="w-full px-4 py-3 text-left hover:bg-orange-50 border-b border-gray-100 last:border-b-0 transition-colors"
+                          >
+                            <div className="flex items-start gap-2">
+                              <svg className="h-5 w-5 text-orange-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                              </svg>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900 truncate">
+                                  {result.display_name.split(',')[0]}
+                                </p>
+                                <p className="text-xs text-gray-500 truncate">
+                                  {result.display_name}
+                                </p>
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                      <svg className="h-4 w-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                      </svg>
+                      Select Location on Map
+                    </label>
                     <div className="flex gap-2">
                       <button
                         type="button"
                         onClick={forwardGeocode}
-                        className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                        className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm"
                       >
                         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -392,7 +543,7 @@ const Signup = () => {
                         type="button"
                         onClick={handleUseMyLocation}
                         disabled={gettingLocation}
-                        className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                        className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 px-3 py-2 text-xs font-medium text-white hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 transition-all shadow-sm"
                       >
                         {gettingLocation ? (
                           <>
@@ -414,7 +565,7 @@ const Signup = () => {
                       </button>
                     </div>
                   </div>
-                  <div className="h-48 overflow-hidden rounded-lg border border-gray-300">
+                  <div className={`h-52 sm:h-60 overflow-hidden rounded-xl border-2 transition-colors shadow-md ${mapPosition ? 'border-green-400' : 'border-gray-300'}`}>
                     <MapContainer
                       center={mapPosition || defaultCenter}
                       zoom={mapPosition ? 15 : 12}
@@ -428,14 +579,17 @@ const Signup = () => {
                       <RecenterMap position={mapPosition} />
                     </MapContainer>
                   </div>
-                  <p className="mt-1 text-xs text-gray-500">
+                  <p className="mt-2 text-xs sm:text-sm text-gray-600 flex items-center gap-1.5">
+                    <svg className="h-3.5 w-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                     Click on map to select location, or use buttons above
                   </p>
                 </div>
 
                 {/* Address Form Fields */}
                 <div className="space-y-4">
-                  <div className="grid gap-4 md:grid-cols-3">
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     <div className="space-y-1">
                       <label htmlFor="label" className="block text-sm font-medium text-gray-700">
                         Address Label
@@ -452,11 +606,11 @@ const Signup = () => {
                             setFormData((prev) => ({ ...prev, label: val }))
                           }
                         }}
-                        className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 shadow-sm"
                       >
-                        <option value="Home">🏠 Home</option>
-                        <option value="Work">🏢 Work</option>
-                        <option value="Other">📍 Other</option>
+                        <option value="Home">Home</option>
+                        <option value="Work">Work</option>
+                        <option value="Other">Other</option>
                       </select>
                       {!['Home', 'Work'].includes(formData.label) && (
                         <input
@@ -464,8 +618,8 @@ const Signup = () => {
                           name="customLabel"
                           value={formData.label === 'Other' ? '' : formData.label}
                           onChange={(e) => setFormData((prev) => ({ ...prev, label: e.target.value }))}
-                          placeholder="Enter custom label (e.g., Office, Mom's House)"
-                          className="mt-2 w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          placeholder="Enter custom label"
+                          className="mt-2 w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 shadow-sm"
                         />
                       )}
                     </div>
@@ -474,9 +628,11 @@ const Signup = () => {
                       id="houseNo"
                       name="houseNo"
                       type="text"
+                      required
                       value={formData.houseNo}
                       onChange={handleChange}
                       placeholder="e.g., 123, Flat 4B"
+                      error={errors.houseNo}
                     />
                     <FormInput
                       label="Street"
@@ -491,7 +647,7 @@ const Signup = () => {
                     />
                   </div>
 
-                  <div className="grid gap-4 md:grid-cols-2">
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     <FormInput
                       label="City"
                       id="city"
@@ -500,6 +656,7 @@ const Signup = () => {
                       required
                       value={formData.city}
                       onChange={handleChange}
+                      error={errors.city}
                     />
                     <FormInput
                       label="Postal Code"
@@ -510,15 +667,31 @@ const Signup = () => {
                       value={formData.postalCode}
                       onChange={handleChange}
                     />
+                    <FormInput
+                      label="Landmark (Optional)"
+                      id="landmark"
+                      name="landmark"
+                      type="text"
+                      value={formData.landmark}
+                      onChange={handleChange}
+                      placeholder="e.g., Near City Mall"
+                    />
                   </div>
 
                   {/* Coordinates Display */}
                   {formData.latitude && formData.longitude && (
-                    <div className="flex items-center gap-2 rounded-lg bg-green-50 px-3 py-2 text-xs text-green-700">
-                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    <div className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 px-4 py-2.5 text-xs sm:text-sm text-green-700 shadow-sm">
+                      <svg className="h-5 w-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      Location set: {formData.latitude.toFixed(4)}, {formData.longitude.toFixed(4)}
+                      <div className="flex-1">
+                        <span className="font-medium">Location set:</span> {formData.latitude.toFixed(4)}, {formData.longitude.toFixed(4)}
+                        {formData.latitude === 27.7052 && formData.longitude === 68.8574 && (
+                          <span className="block text-xs text-green-600 mt-0.5">
+                            (Default: Sukkur - You can update this later from your Profile)
+                          </span>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -527,7 +700,7 @@ const Signup = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-lg bg-orange-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:cursor-not-allowed disabled:opacity-60 transition-colors"
+                className="w-full rounded-lg bg-gradient-to-r from-orange-600 to-orange-700 px-6 py-3.5 text-sm font-semibold text-white shadow-lg hover:from-orange-700 hover:to-orange-800 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 transition-all"
               >
                 <span className="flex items-center justify-center gap-2">
                   {loading ? (
@@ -547,10 +720,10 @@ const Signup = () => {
               </button>
             </form>
 
-            <div className="mt-5 text-center">
+            <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
                 Already have an account?{' '}
-                <Link to="/login" className="font-semibold text-orange-600 hover:text-orange-700">
+                <Link to="/login" className="font-semibold text-orange-600 hover:text-orange-700 transition-colors">
                   Sign in
                 </Link>
               </p>

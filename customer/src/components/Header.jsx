@@ -284,7 +284,15 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
                 className="rounded-lg border border-orange-600 bg-white px-4 py-1.5 text-sm font-medium text-orange-600 hover:bg-orange-50 transition-colors">
                 Join as Customer
               </button>
-              <button type="button" onClick={() => { window.location.href = import.meta.env.VITE_COOK_URL || 'http://localhost:5174' }}
+              <button 
+                type="button" 
+                onClick={() => { 
+                  if (isInstalled) {
+                    toast.error('Please use the Cook app to manage your kitchen', { duration: 3000 })
+                    return
+                  }
+                  window.location.href = import.meta.env.VITE_COOK_URL || 'http://localhost:5174' 
+                }}
                 className="rounded-lg bg-orange-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-orange-700 transition-colors">
                 Join as Cook
               </button>
@@ -467,7 +475,15 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
                     className="w-full px-4 py-3 rounded-xl border-2 border-orange-600 text-orange-600 font-bold text-sm hover:bg-orange-50 transition-colors">
                     Join as Customer
                   </button>
-                  <button onClick={() => { window.location.href = import.meta.env.VITE_COOK_URL || 'http://localhost:5174' }}
+                  <button 
+                    onClick={() => { 
+                      if (isInstalled) {
+                        toast.error('Please use the Cook app to manage your kitchen', { duration: 3000 })
+                        setShowMobileMenu(false)
+                        return
+                      }
+                      window.location.href = import.meta.env.VITE_COOK_URL || 'http://localhost:5174' 
+                    }}
                     className="w-full px-4 py-3 rounded-xl bg-orange-600 text-white font-bold text-sm hover:bg-orange-700 transition-colors">
                     Join as Cook
                   </button>

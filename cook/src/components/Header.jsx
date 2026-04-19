@@ -81,6 +81,11 @@ const Header = ({ showSignOut = false }) => {
       else if (status === 'approved' || status === 'verified') navigate('/dashboard')
       else navigate('/status')
     } else {
+      // Don't redirect to customer app if in PWA mode
+      if (isInstalled) {
+        toast.error('Please use the Customer app to browse meals', { duration: 3000 })
+        return
+      }
       const customerUrl = import.meta.env.VITE_CUSTOMER_URL || 'http://localhost:5173'
       window.location.href = customerUrl
     }

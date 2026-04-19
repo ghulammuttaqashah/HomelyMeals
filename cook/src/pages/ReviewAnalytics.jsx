@@ -53,13 +53,13 @@ const ReviewAnalyticsPage = () => {
     return (
         <div className="min-h-screen flex flex-col bg-gray-50">
             <Header />
-            <main className="flex-1 container mx-auto px-4 py-8">
-                <div className="mb-6 flex justify-between items-center">
-                    <h1 className="text-3xl font-bold">Review Analytics</h1>
+            <main className="flex-1 container mx-auto px-3 sm:px-4 py-4 sm:py-8">
+                <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0">
+                    <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Review Analytics</h1>
                     <select
                         value={timeFilter}
                         onChange={(e) => setTimeFilter(e.target.value)}
-                        className="px-4 py-2 border rounded-lg bg-white"
+                        className="px-3 sm:px-4 py-2 border rounded-lg bg-white text-sm sm:text-base w-full sm:w-auto"
                     >
                         <option value="all">All Time</option>
                         <option value="7">Last 7 Days</option>
@@ -67,7 +67,7 @@ const ReviewAnalyticsPage = () => {
                     </select>
                 </div>
 
-                <div className="space-y-8">
+                <div className="space-y-4 sm:space-y-8">
                     {/* Cook Reviews Analytics */}
                     <ReviewAnalytics
                         analytics={cookAnalytics}
