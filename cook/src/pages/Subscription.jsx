@@ -33,6 +33,11 @@ const CheckoutForm = ({ clientSecret, onSuccess, cook }) => {
   const stripe = useStripe()
   const elements = useElements()
   const [processing, setProcessing] = useState(false)
+  const [cardComplete, setCardComplete] = useState(false)
+
+  const handleCardChange = (event) => {
+    setCardComplete(event.complete)
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -73,11 +78,11 @@ const CheckoutForm = ({ clientSecret, onSuccess, cook }) => {
     <form onSubmit={handleSubmit} className="space-y-4 rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
       <h3 className="text-lg font-bold text-gray-900">Pay with Stripe</h3>
       <div className="rounded-lg border border-gray-300 p-3">
-        <CardElement options={cardElementOptions} />
+        <CardElement options={cardElementOptions} onChange={handleCardChange} />
       </div>
       <button
         type="submit"
-        disabled={!stripe || processing}
+        disabled={!stripe || processing || !cardComplete}
         className="inline-flex items-center justify-center gap-2 rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {processing ? (
