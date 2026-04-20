@@ -49,7 +49,7 @@ app.use(express.json());
 // Database
 connectDB();
 
-// Initialize Socket.io
+// Initialize Socket
 initializeSocket(server);
 
 // Start cron jobs
