@@ -34,6 +34,17 @@ const cookMealSchema = new mongoose.Schema(
       type: String, // image url
       default: "",
     },
+    healthTags: {
+      type: [String],
+      enum: ["healthy", "oily", "spicy", "high-protein", "low-calorie", "vegetarian", "vegan", "gluten-free", "dairy-free", "light", "heavy"],
+      default: [],
+    },
+    nutritionInfo: {
+      calories: { type: Number, default: 0 },
+      protein: { type: Number, default: 0 },
+      carbs: { type: Number, default: 0 },
+      fat: { type: Number, default: 0 },
+    },
   },
   { timestamps: true }
 );
