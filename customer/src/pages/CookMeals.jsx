@@ -262,11 +262,14 @@ const CookMeals = () => {
             <div className="rounded-xl bg-white p-6 sm:p-8 shadow-sm border border-orange-100/50">
               <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
                 <div className="flex h-28 w-28 sm:h-32 sm:w-32 flex-shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-orange-100 shadow-md ring-4 ring-orange-50">
-                  {cook?.profilePicture ? (
-                    <img
-                      src={cook.profilePicture}
-                      alt={cook.name}
-                      className="h-full w-full object-cover"
+                  <img
+                    src={cook?.profilePicture || '/default-profile.jpg'}
+                    alt={cook.name}
+                    className="h-full w-full object-cover"
+                    onError={(e) => {
+                      e.target.src = '/default-profile.jpg'
+                    }}
+                  />
                     />
                   ) : (
                     <svg

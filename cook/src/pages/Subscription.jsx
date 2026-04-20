@@ -226,6 +226,64 @@ const Subscription = () => {
                           : '-'}
                       </p>
                     </div>
+
+                    {/* Expiry Countdown */}
+                    {subscription.end_date && subscription.status === 'active' && (() => {
+                      const now = new Date();
+                      const endDate = new Date(subscription.end_date);
+                      const daysUntilExpiry = Math.ceil((endDate - now) / (1000 * 60 * 60 * 24));
+                      
+                      if (daysUntilExpiry <= 7) {
+                        return (
+                          <div className={`rounded-lg p-4 border-2 ${
+                            daysUntilExpiry === 0 
+                              ? 'bg-red-50 border-red-300' 
+                              : daysUntilExpiry <= 3 
+                                ? 'bg-orange-50 border-orange-300' 
+                                : 'bg-yellow-50 border-yellow-300'
+                          }`}>
+                            <div className="flex items-center gap-3">
+                              <div className={`h-12 w-12 rounded-full flex items-center justify-center ${
+                                daysUntilExpiry === 0 
+                                  ? 'bg-red-100 text-red-600' 
+                                  : daysUntilExpiry <= 3 
+                                    ? 'bg-orange-100 text-orange-600' 
+                                    : 'bg-yellow-100 text-yellow-600'
+                              }`}>
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                              </div>
+                              <div className="flex-1">
+                                <p className={`text-lg font-bold ${
+                                  daysUntilExpiry === 0 
+                                    ? 'text-red-900' 
+                                    : daysUntilExpiry <= 3 
+                                      ? 'text-orange-900' 
+                                      : 'text-yellow-900'
+                                }`}>
+                                  {daysUntilExpiry === 0 
+                                    ? 'Expires Today!' 
+                                    : `${daysUntilExpiry} ${daysUntilExpiry === 1 ? 'Day' : 'Days'} Left`}
+                                </p>
+                                <p className={`text-sm ${
+                                  daysUntilExpiry === 0 
+                                    ? 'text-red-700' 
+                                    : daysUntilExpiry <= 3 
+                                      ? 'text-orange-700' 
+                                      : 'text-yellow-700'
+                                }`}>
+                                  {daysUntilExpiry === 0 
+                                    ? 'Renew immediately to avoid service interruption' 
+                                    : 'Renew soon to keep your kitchen active'}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                   </div>
                 )}
               </section>

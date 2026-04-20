@@ -214,6 +214,29 @@ export const getCurrentCook = async (req, res) => {
 
     const hasActiveSubscription = await syncCookSubscriptionAccess(cook);
 
+    // Get active subscription details for expiry warnings
+    let subscriptionInfo = null;
+    if (hasActiveSubscription) {
+      const { Subscription } = await import("../../shared/models/subscription.model.js");
+      const activeSub = await Subscription.findOne({
+        cook_id: cook._id,
+        status: "active",
+      }).sort({ end_date: -1 });
+
+      if (activeSub && activeSub.end_date) {
+        const now = new Date();
+        const endDate = new Date(activeSub.end_date);
+        const daysUntilExpiry = Math.ceil((endDate - now) / (1000 * 60 * 60 * 24));
+        
+        subscriptionInfo = {
+          endDate: activeSub.end_date,
+          daysUntilExpiry: daysUntilExpiry,
+          isExpiringSoon: daysUntilExpiry <= 7 && daysUntilExpiry > 0,
+          isExpiredToday: daysUntilExpiry === 0,
+        };
+      }
+    }
+
     return res.status(200).json({
       cook: {
         id: cook._id,
@@ -224,6 +247,7 @@ export const getCurrentCook = async (req, res) => {
         verificationStatus: cook.verificationStatus,
         serviceStatus: cook.serviceStatus,
         hasActiveSubscription,
+        subscriptionInfo,
         status: cook.status,
         statusReason: cook.statusReason,
         maxDeliveryDistance: cook.maxDeliveryDistance,

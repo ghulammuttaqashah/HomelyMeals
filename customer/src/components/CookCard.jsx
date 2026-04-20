@@ -23,29 +23,14 @@ const CookCard = ({ cook }) => {
       <Card className="h-full overflow-hidden hover:shadow-lg transition-all duration-300 hover:border-orange-300 flex flex-col">
         {/* Cook Banner Image */}
         <div className="aspect-[4/3] w-full overflow-hidden bg-gray-100 relative">
-          {cook.profilePicture ? (
-            <img 
-              src={cook.profilePicture} 
-              alt={cook.name} 
-              className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-orange-50 to-amber-50">
-              <svg 
-                className="h-16 w-16 text-orange-200" 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth={1.5} 
-                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" 
-                />
-              </svg>
-            </div>
-          )}
+          <img 
+            src={cook.profilePicture || '/default-profile.jpg'} 
+            alt={cook.name} 
+            className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
+            onError={(e) => {
+              e.target.src = '/default-profile.jpg'
+            }}
+          />
           {/* Badge for Meal Count */}
           <div className="absolute bottom-3 right-3 rounded-full bg-white/95 backdrop-blur-sm px-3 py-1.5 text-xs font-bold text-gray-800 shadow-md border border-gray-200">
             🍽️ {cook.mealCount} {cook.mealCount === 1 ? 'Meal' : 'Meals'}

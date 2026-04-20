@@ -151,6 +151,86 @@ const Dashboard = () => {
             </div>
           </div>
 
+          {/* Subscription Expiry Warning Card - Shows when subscription is expiring soon */}
+          {hasActiveSubscription && cook?.subscriptionInfo?.isExpiringSoon && (() => {
+            const info = cook.subscriptionInfo;
+            return (
+              <div className={`mb-6 rounded-xl p-5 border-2 shadow-md ${
+                info.isExpiredToday 
+                  ? 'bg-red-50 border-red-300' 
+                  : info.daysUntilExpiry <= 3 
+                    ? 'bg-orange-50 border-orange-300' 
+                    : 'bg-yellow-50 border-yellow-300'
+              }`}>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                  <div className={`h-14 w-14 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    info.isExpiredToday 
+                      ? 'bg-red-100 text-red-600' 
+                      : info.daysUntilExpiry <= 3 
+                        ? 'bg-orange-100 text-orange-600' 
+                        : 'bg-yellow-100 text-yellow-600'
+                  }`}>
+                    <svg className="w-7 h-7 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className={`text-lg font-bold ${
+                      info.isExpiredToday 
+                        ? 'text-red-900' 
+                        : info.daysUntilExpiry <= 3 
+                          ? 'text-orange-900' 
+                          : 'text-yellow-900'
+                    }`}>
+                      {info.isExpiredToday 
+                        ? '⚠️ Your subscription expires today!' 
+                        : `⏰ Your subscription expires in ${info.daysUntilExpiry} ${info.daysUntilExpiry === 1 ? 'day' : 'days'}`}
+                    </h3>
+                    <p className={`mt-1 text-sm ${
+                      info.isExpiredToday 
+                        ? 'text-red-700' 
+                        : info.daysUntilExpiry <= 3 
+                          ? 'text-orange-700' 
+                          : 'text-yellow-700'
+                    }`}>
+                      {info.isExpiredToday 
+                        ? 'Renew immediately to avoid service interruption and keep your kitchen active.' 
+                        : 'Renew your subscription soon to ensure uninterrupted service to your customers.'}
+                    </p>
+                    {info.endDate && (
+                      <p className={`mt-2 text-xs font-medium ${
+                        info.isExpiredToday 
+                          ? 'text-red-600' 
+                          : info.daysUntilExpiry <= 3 
+                            ? 'text-orange-600' 
+                            : 'text-yellow-600'
+                      }`}>
+                        Expires on: {new Date(info.endDate).toLocaleDateString('en-US', { 
+                          weekday: 'long', 
+                          day: 'numeric', 
+                          month: 'long', 
+                          year: 'numeric' 
+                        })}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => handleCardClick('/subscription')}
+                    className={`whitespace-nowrap rounded-lg px-6 py-3 text-sm font-bold text-white shadow-md hover:shadow-lg transition-all ${
+                      info.isExpiredToday 
+                        ? 'bg-red-600 hover:bg-red-700' 
+                        : info.daysUntilExpiry <= 3 
+                          ? 'bg-orange-600 hover:bg-orange-700' 
+                          : 'bg-yellow-600 hover:bg-yellow-700'
+                    }`}
+                  >
+                    Renew Now
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Cards Grid - Ordered to match header navigation */}
           <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
 

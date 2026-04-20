@@ -11,6 +11,7 @@ import FileUploadField from '../components/FileUploadField'
 const UploadDocuments = () => {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
+  const [useDefaultProfile, setUseDefaultProfile] = useState(false)
   const [files, setFiles] = useState({
     cnicFront: null,
     cnicBack: null,
@@ -65,8 +66,13 @@ const UploadDocuments = () => {
   const handleSubmit = async (event) => {
     event.preventDefault()
 
-    if (!files.cnicFront || !files.cnicBack || !files.profilePicture) {
-      toast.error('CNIC front, back, and profile picture are required')
+    if (!files.cnicFront || !files.cnicBack) {
+      toast.error('CNIC front and back are required')
+      return
+    }
+
+    if (!useDefaultProfile && !files.profilePicture) {
+      toast.error('Please upload a profile picture or select "Use Default Image"')
       return
     }
 
@@ -86,8 +92,16 @@ const UploadDocuments = () => {
       toast.loading('Uploading CNIC Back...', { id: loadingToast })
       const cnicBackUrl = await uploadToCloudinary(files.cnicBack)
 
-      toast.loading('Uploading Profile Picture...', { id: loadingToast })
-      const profilePictureUrl = await uploadToCloudinary(files.profilePicture)
+      // Handle profile picture - use default or uploaded
+      let profilePictureUrl
+      if (useDefaultProfile) {
+        // Use the default image from public folder
+        profilePictureUrl = '/default-profile.jpg'
+        toast.loading('Using default profile image...', { id: loadingToast })
+      } else {
+        toast.loading('Uploading Profile Picture...', { id: loadingToast })
+        profilePictureUrl = await uploadToCloudinary(files.profilePicture)
+      }
       
       toast.loading('Uploading Kitchen Photos...', { id: loadingToast })
       const kitchenPhotosUrls = []
@@ -136,7 +150,7 @@ const UploadDocuments = () => {
     }
   }
 
-  const isSubmitDisabled = !files.cnicFront || !files.cnicBack || !files.profilePicture || files.kitchenPhotos.length === 0 || loading
+  const isSubmitDisabled = !files.cnicFront || !files.cnicBack || (!useDefaultProfile && !files.profilePicture) || files.kitchenPhotos.length === 0 || loading
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
@@ -173,18 +187,76 @@ const UploadDocuments = () => {
 
               {/* Profile Picture / Logo */}
               <div className="rounded-lg border border-orange-100 bg-orange-50/50 p-4">
-                <FileUploadField
-                  label="Profile Picture / Logo"
-                  required
-                  accept="image/*"
-                  onChange={(e) => handleFileChange(e, 'profilePicture')}
-                  preview={previews.profilePicture}
-                  helperText={
-                    <span className="text-orange-600 font-medium">
-                      Note: This will be visible to your customers. Please upload a clear photo of yourself or your brand logo.
-                    </span>
-                  }
-                />
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Profile Picture / Logo <span className="text-red-500">*</span>
+                  </label>
+                  
+                  {/* Option Toggle */}
+                  <div className="flex gap-3 mb-4">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUseDefaultProfile(false)
+                        setPreviews(prev => ({ ...prev, profilePicture: null }))
+                      }}
+                      className={`flex-1 px-4 py-2.5 rounded-lg border-2 font-medium text-sm transition-all ${
+                        !useDefaultProfile
+                          ? 'border-orange-500 bg-orange-50 text-orange-700'
+                          : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                      }`}
+                    >
+                      Upload Custom
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUseDefaultProfile(true)
+                        setFiles(prev => ({ ...prev, profilePicture: null }))
+                        setPreviews(prev => ({ ...prev, profilePicture: '/default-profile.jpg' }))
+                      }}
+                      className={`flex-1 px-4 py-2.5 rounded-lg border-2 font-medium text-sm transition-all ${
+                        useDefaultProfile
+                          ? 'border-orange-500 bg-orange-50 text-orange-700'
+                          : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                      }`}
+                    >
+                      Use Default Image
+                    </button>
+                  </div>
+
+                  {/* Show upload field or default preview */}
+                  {!useDefaultProfile ? (
+                    <FileUploadField
+                      label=""
+                      required={false}
+                      accept="image/*"
+                      onChange={(e) => handleFileChange(e, 'profilePicture')}
+                      preview={previews.profilePicture}
+                      helperText={
+                        <span className="text-orange-600 font-medium">
+                          This will be visible to your customers. Please upload a clear photo of yourself or your brand logo.
+                        </span>
+                      }
+                    />
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="relative w-full aspect-video rounded-lg overflow-hidden border-2 border-dashed border-orange-300 bg-white">
+                        <img
+                          src="/default-profile.jpg"
+                          alt="Default Profile"
+                          className="w-full h-full object-contain"
+                        />
+                        <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-medium">
+                          ✓ Default Selected
+                        </div>
+                      </div>
+                      <p className="text-sm text-gray-600">
+                        Using default profile image. You can change this later from your profile settings.
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Kitchen Photos */}

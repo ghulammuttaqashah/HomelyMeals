@@ -16,6 +16,8 @@ const Header = ({ showSignOut = false }) => {
   const [unreadChats, setUnreadChats] = useState(0)
   const [scrolled, setScrolled] = useState(false)
   const hasActiveSubscription = Boolean(cook?.hasActiveSubscription)
+  const subscriptionInfo = cook?.subscriptionInfo
+  const showExpiryWarning = subscriptionInfo?.isExpiringSoon || subscriptionInfo?.isExpiredToday
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20)
@@ -286,6 +288,65 @@ const Header = ({ showSignOut = false }) => {
               </div>
             </div>
           </nav>
+        </div>
+      )}
+
+      {/* Subscription Expiry Warning Banner - Shows when subscription is expiring soon */}
+      {showSignOut && isApproved && hasActiveSubscription && showExpiryWarning && (
+        <div className={`border-t py-3 px-4 ${
+          subscriptionInfo.isExpiredToday 
+            ? 'bg-red-50 border-red-200' 
+            : subscriptionInfo.daysUntilExpiry <= 3 
+              ? 'bg-orange-50 border-orange-200' 
+              : 'bg-yellow-50 border-yellow-200'
+        }`}>
+          <div className="mx-auto max-w-7xl flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-3 text-center sm:text-left">
+              <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${
+                subscriptionInfo.isExpiredToday 
+                  ? 'bg-red-100 text-red-600' 
+                  : subscriptionInfo.daysUntilExpiry <= 3 
+                    ? 'bg-orange-100 text-orange-600' 
+                    : 'bg-yellow-100 text-yellow-600'
+              }`}>
+                <FiBell className="animate-bounce" />
+              </div>
+              <div>
+                <p className={`text-sm font-bold leading-tight ${
+                  subscriptionInfo.isExpiredToday 
+                    ? 'text-red-900' 
+                    : subscriptionInfo.daysUntilExpiry <= 3 
+                      ? 'text-orange-900' 
+                      : 'text-yellow-900'
+                }`}>
+                  {subscriptionInfo.isExpiredToday 
+                    ? '⚠️ Subscription expires today!' 
+                    : `⏰ Subscription expires in ${subscriptionInfo.daysUntilExpiry} ${subscriptionInfo.daysUntilExpiry === 1 ? 'day' : 'days'}`}
+                </p>
+                <p className={`text-xs ${
+                  subscriptionInfo.isExpiredToday 
+                    ? 'text-red-700' 
+                    : subscriptionInfo.daysUntilExpiry <= 3 
+                      ? 'text-orange-700' 
+                      : 'text-yellow-700'
+                }`}>
+                  Renew now to avoid service interruption
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => handleNavClick('/subscription')}
+              className={`whitespace-nowrap rounded-lg px-4 py-2 text-xs font-bold uppercase tracking-wider text-white ${
+                subscriptionInfo.isExpiredToday 
+                  ? 'bg-red-600 hover:bg-red-700' 
+                  : subscriptionInfo.daysUntilExpiry <= 3 
+                    ? 'bg-orange-600 hover:bg-orange-700' 
+                    : 'bg-yellow-600 hover:bg-yellow-700'
+              }`}
+            >
+              Renew Now
+            </button>
+          </div>
         </div>
       )}
 

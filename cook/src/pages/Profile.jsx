@@ -334,11 +334,11 @@ const Profile = () => {
                               className="h-full w-full object-cover"
                             />
                           ) : (
-                            <div className="flex h-full w-full items-center justify-center bg-orange-50 text-orange-600">
-                              <svg className="h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                              </svg>
-                            </div>
+                            <img
+                              src="/default-profile.jpg"
+                              alt="Default Profile"
+                              className="h-full w-full object-cover"
+                            />
                           )}
                         </div>
                       </div>
@@ -346,7 +346,9 @@ const Profile = () => {
                       <div className="flex-1 space-y-3">
                         <div>
                           <p className="text-base font-semibold text-gray-900">Profile Picture / Logo</p>
-                          <p className="text-sm text-gray-500">This will be shown to your customers</p>
+                          <p className="text-sm text-gray-500">
+                            {profileData.profilePicture ? 'This will be shown to your customers' : 'Using default image'}
+                          </p>
                         </div>
                         <div className="flex items-center gap-3">
                           <label
@@ -356,7 +358,7 @@ const Profile = () => {
                             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                             </svg>
-                            Change Photo
+                            {profileData.profilePicture ? 'Change Photo' : 'Upload Photo'}
                             <input
                               id="profile-upload"
                               type="file"
@@ -380,10 +382,13 @@ const Profile = () => {
                           {profileData.profilePicture && (
                             <button
                               type="button"
-                              onClick={() => setProfileData(prev => ({ ...prev, profilePicture: '' }))}
+                              onClick={() => {
+                                setProfileData(prev => ({ ...prev, profilePicture: '' }))
+                                toast.success('Switched to default image. Click "Save Changes" to apply.')
+                              }}
                               className="text-sm font-medium text-red-600 hover:text-red-700"
                             >
-                              Remove
+                              Use Default
                             </button>
                           )}
                         </div>
