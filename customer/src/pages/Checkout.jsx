@@ -302,7 +302,7 @@ const CheckoutForm = ({ cookInfo, deliveryInfo, deliveryAddress, cart, subtotal,
           </span>
         ) : (
           <span className="flex items-center justify-center gap-2">
-            {paymentMethod === "card" ? `Pay Rs. ${totalAmount}` : `Place Order · Rs. ${totalAmount}`}
+            {paymentMethod === "card" ? `Pay Rs. ${Math.round(totalAmount)}` : `Place Order · Rs. ${Math.round(totalAmount)}`}
             <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
             </svg>
@@ -572,16 +572,48 @@ const Checkout = () => {
     
     setLoading(true);
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        // Store temp location and open modal for address details
-        setTempLocation({
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-        });
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+
+        // Store temp location immediately so map shows up
+        setTempLocation({ latitude: lat, longitude: lon });
         setShowAddressModal(true);
         setSearchQuery('');
         setSearchResults([]);
         setShowSearchResults(false);
+
+        // Reverse geocode to auto-fill address form
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&addressdetails=1`
+          );
+          const data = await res.json();
+          const addr = data.address || {};
+          const displayParts = (data.display_name || '').split(',').map(p => p.trim());
+
+          const street =
+            addr.road || addr.street || addr.pedestrian || addr.footway ||
+            addr.path || displayParts[0] || '';
+          const city =
+            addr.city || addr.town || addr.village || addr.municipality ||
+            addr.county || addr.state_district || displayParts[displayParts.length - 3] || '';
+          const postalCode = addr.postcode || '';
+
+          setCustomAddressForm(prev => ({
+            ...prev,
+            street,
+            city,
+            postalCode,
+          }));
+          if (street || city) {
+            toast.success('📍 Location detected! Address auto-filled.');
+          }
+        } catch (err) {
+          console.error('Reverse geocode error:', err);
+          // Don't block the user — they can fill in manually
+        }
+
         setLoading(false);
       },
       (error) => {
@@ -812,7 +844,7 @@ const Checkout = () => {
                         <div className="w-3 h-3 border-2 border-orange-600 border-t-transparent rounded-full animate-spin" />
                         <span className="text-xs">Calculating...</span>
                       </span>
-                    ) : deliveryInfo ? `Rs. ${deliveryInfo.deliveryCharges}` : (
+                    ) : deliveryInfo ? `Rs. ${Math.round(deliveryInfo.deliveryCharges)}` : (
                       <span className="text-xs text-gray-400">Pending</span>
                     )}
                   </span>
@@ -822,7 +854,7 @@ const Checkout = () => {
               <div className="flex justify-between items-center mb-5">
                 <span className="text-base sm:text-lg font-bold text-gray-800">Total</span>
                 <span className="text-lg sm:text-xl lg:text-2xl font-bold text-orange-600">
-                  Rs. {deliveryInfo ? totalAmount : subtotal}
+                  Rs. {deliveryInfo ? Math.round(totalAmount) : subtotal}
                 </span>
               </div>
 
@@ -983,7 +1015,7 @@ const Checkout = () => {
                       <span className="font-semibold text-green-700">~{deliveryInfo.estimatedTime} mins</span>
                     </div>
                     <div className="ml-auto font-bold text-green-700 text-sm sm:text-base">
-                      Delivery: Rs. {deliveryInfo.deliveryCharges}
+                      Delivery: Rs. {Math.round(deliveryInfo.deliveryCharges)}
                     </div>
                   </div>
                 </div>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'react-hot-toast'
+import { useNavigate } from 'react-router-dom'
 import Card from './Card'
 import { useCart } from '../context/CartContext'
 import { useAuth } from '../context/AuthContext'
@@ -7,10 +8,11 @@ import { getMealReviews, checkCanReviewMeal } from '../api/review'
 import StarRating from './StarRating'
 import ReviewsList from './ReviewsList'
 import ReviewModal from './ReviewModal'
-import { FiShoppingCart, FiPlus, FiMinus, FiCheck, FiStar } from 'react-icons/fi'
+import { FiShoppingCart, FiPlus, FiMinus, FiCheck, FiStar, FiArrowRight } from 'react-icons/fi'
 import DishAnalytics from './DishAnalytics'
 
 const MealCard = ({ meal, cook, cookServesArea = true }) => {
+  const navigate = useNavigate()
   const [imageLoaded, setImageLoaded] = useState(false)
   const [imageError, setImageError] = useState(false)
   const [quantity, setQuantity] = useState(1)
@@ -79,7 +81,31 @@ const MealCard = ({ meal, cook, cookServesArea = true }) => {
     )
 
     setAdded(true)
-    toast.success(`${meal.name} added to cart`)
+    toast(
+      (t) => (
+        <div className="flex items-center gap-3">
+          <FiShoppingCart className="w-5 h-5 text-orange-500 flex-shrink-0" />
+          <span className="text-sm font-medium text-gray-800 flex-1">
+            <span className="font-semibold text-orange-600">{meal.name}</span> added to cart
+          </span>
+          <button
+            onClick={() => {
+              toast.dismiss(t.id)
+              navigate('/cart')
+            }}
+            className="flex items-center gap-1 bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors flex-shrink-0"
+          >
+            Go to Cart
+            <FiArrowRight className="w-3 h-3" />
+          </button>
+        </div>
+      ),
+      {
+        duration: 5000,
+        style: { padding: '12px 16px', maxWidth: '380px' },
+        icon: null,
+      }
+    )
 
     setTimeout(() => {
       setAdded(false)
@@ -99,12 +125,14 @@ const MealCard = ({ meal, cook, cookServesArea = true }) => {
       const mealId = meal.id || meal.mealId
       const eligibility = await checkCanReviewMeal(mealId)
 
-      if (eligibility.canReview) {
-        setReviewEligibility(eligibility)
-        setShowReviewModal(true)
-      } else {
+      if (!eligibility.canReview) {
         toast.error(eligibility.message || 'Cannot review this meal')
+        return
       }
+
+      // Backend already selected the oldest unreviewed order
+      setReviewEligibility(eligibility)
+      setShowReviewModal(true)
     } catch (error) {
       console.error('Error checking review eligibility:', error)
       toast.error('Failed to check review eligibility')
@@ -114,18 +142,21 @@ const MealCard = ({ meal, cook, cookServesArea = true }) => {
   }
 
   const handleReviewSubmitted = () => {
-    // Refresh reviews after submission
+    const mealId = meal.id || meal.mealId
     const fetchReviews = async () => {
       try {
-        const mealId = meal.id || meal.mealId
         if (mealId) {
           const data = await getMealReviews(mealId)
           setMealReviews(data.reviews || [])
           setMealRating(data.averageRating || 0)
 
-          // Re-check eligibility
+          // Re-check eligibility to update eligible orders
           const eligibility = await checkCanReviewMeal(mealId)
-          setReviewEligibility(eligibility)
+          if (eligibility.canReview) {
+            setReviewEligibility(eligibility)
+          } else {
+            setReviewEligibility(null)
+          }
         }
       } catch (error) {
         console.error('Error refreshing reviews:', error)

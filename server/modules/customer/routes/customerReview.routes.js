@@ -93,6 +93,25 @@ router.post('/', protect, async (req, res) => {
         });
     } catch (error) {
         console.error('Submit review error:', error);
+        
+        // Handle duplicate key error specifically
+        if (error.code === 11000) {
+            // Check which index caused the error
+            if (error.keyPattern?.customerId && error.keyPattern?.cookId && error.keyPattern?.reviewType) {
+                return res.status(400).json({ 
+                    message: 'You have already reviewed this cook. Please run the database migration to fix this issue.',
+                    hint: 'Run: node server/migrations/fix-review-indexes.js'
+                });
+            } else if (error.keyPattern?.customerId && error.keyPattern?.orderId) {
+                return res.status(400).json({ 
+                    message: 'You have already submitted this review for this order'
+                });
+            }
+            return res.status(400).json({ 
+                message: 'Duplicate review detected'
+            });
+        }
+        
         res.status(500).json({ message: 'Failed to submit review', error: error.message });
     }
 });
@@ -274,44 +293,61 @@ router.delete('/:reviewId', protect, async (req, res) => {
     }
 });
 
-// Check if customer can review a cook
+// Check if customer can review a cook (one review per order)
 router.get('/can-review-cook/:cookId', protect, async (req, res) => {
     try {
         const { cookId } = req.params;
         const customerId = req.user._id;
 
-        // Check if already reviewed
-        const existingReview = await Review.findOne({ customerId, cookId, reviewType: 'cook' });
-        if (existingReview) {
-            return res.json({
-                canReview: false,
-                hasOrdered: true,
-                alreadyReviewed: true,
-                message: 'You have already reviewed this cook'
-            });
-        }
-
-        // Find any delivered order from this cook
-        const deliveredOrder = await Order.findOne({
+        // Find ALL delivered orders from this cook, oldest first
+        const deliveredOrders = await Order.find({
             customerId,
             cookId,
             status: 'delivered'
-        }).sort({ createdAt: -1 });
+        }).sort({ createdAt: 1 }); // oldest first → review queue order
 
-        if (!deliveredOrder) {
+        if (!deliveredOrders.length) {
             return res.json({
                 canReview: false,
                 hasOrdered: false,
-                alreadyReviewed: false,
+                eligibleOrders: [],
                 message: 'Order from this cook to leave a review'
+            });
+        }
+
+        // Find which orders already have a cook review
+        const reviewedOrderIds = await Review.distinct('orderId', {
+            customerId,
+            cookId,
+            reviewType: 'cook'
+        });
+
+        const reviewedSet = new Set(reviewedOrderIds.map(id => id.toString()));
+
+        const eligibleOrders = deliveredOrders
+            .filter(o => !reviewedSet.has(o._id.toString()))
+            .map(o => ({
+                orderId: o._id,
+                orderNumber: o.orderNumber,
+                createdAt: o.createdAt,
+                totalAmount: o.totalAmount,
+            }));
+
+        if (!eligibleOrders.length) {
+            return res.json({
+                canReview: false,
+                hasOrdered: true,
+                eligibleOrders: [],
+                message: 'You have already reviewed this cook for all your orders'
             });
         }
 
         res.json({
             canReview: true,
             hasOrdered: true,
-            alreadyReviewed: false,
-            eligibleOrderId: deliveredOrder._id,
+            eligibleOrders,
+            // Convenience: first (most recent) eligible order
+            eligibleOrderId: eligibleOrders[0].orderId,
             cookId
         });
     } catch (error) {
@@ -320,45 +356,63 @@ router.get('/can-review-cook/:cookId', protect, async (req, res) => {
     }
 });
 
-// Check if customer can review a meal
+// Check if customer can review a meal (one review per order)
 router.get('/can-review-meal/:mealId', protect, async (req, res) => {
     try {
         const { mealId } = req.params;
         const customerId = req.user._id;
 
-        // Check if already reviewed
-        const existingReview = await Review.findOne({ customerId, mealId });
-        if (existingReview) {
-            return res.json({
-                canReview: false,
-                hasOrdered: true,
-                alreadyReviewed: true,
-                message: 'You have already reviewed this meal'
-            });
-        }
-
-        // Find any delivered order containing this meal
-        const deliveredOrder = await Order.findOne({
+        // Find ALL delivered orders containing this meal, oldest first
+        const deliveredOrders = await Order.find({
             customerId,
             status: 'delivered',
             'items.mealId': mealId
-        }).sort({ createdAt: -1 });
+        }).sort({ createdAt: 1 }); // oldest first → review queue order
 
-        if (!deliveredOrder) {
+        if (!deliveredOrders.length) {
             return res.json({
                 canReview: false,
                 hasOrdered: false,
-                alreadyReviewed: false,
+                eligibleOrders: [],
                 message: 'Order this meal to leave a review'
+            });
+        }
+
+        // Find which orders already have a review for this meal
+        const reviewedOrderIds = await Review.distinct('orderId', {
+            customerId,
+            mealId,
+            reviewType: 'meal'
+        });
+
+        const reviewedSet = new Set(reviewedOrderIds.map(id => id.toString()));
+
+        const eligibleOrders = deliveredOrders
+            .filter(o => !reviewedSet.has(o._id.toString()))
+            .map(o => ({
+                orderId: o._id,
+                orderNumber: o.orderNumber,
+                createdAt: o.createdAt,
+                totalAmount: o.totalAmount,
+                cookId: o.cookId,
+            }));
+
+        if (!eligibleOrders.length) {
+            return res.json({
+                canReview: false,
+                hasOrdered: true,
+                eligibleOrders: [],
+                message: 'You have already reviewed this meal for all your orders'
             });
         }
 
         res.json({
             canReview: true,
             hasOrdered: true,
-            alreadyReviewed: false,
-            eligibleOrderId: deliveredOrder._id,
-            cookId: deliveredOrder.cookId,
+            eligibleOrders,
+            // Convenience: first (most recent) eligible order
+            eligibleOrderId: eligibleOrders[0].orderId,
+            cookId: eligibleOrders[0].cookId,
             mealId
         });
     } catch (error) {

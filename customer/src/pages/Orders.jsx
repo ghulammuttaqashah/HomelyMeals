@@ -7,7 +7,7 @@ import { useCart } from "../context/CartContext";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import Loader from "../components/Loader";
-import { FiPackage, FiCheck, FiX, FiChevronRight, FiArrowLeft, FiClock, FiRepeat } from "react-icons/fi";
+import { FiPackage, FiCheck, FiX, FiChevronRight, FiArrowLeft, FiClock, FiRepeat, FiRefreshCw } from "react-icons/fi";
 
 const STATUS_CONFIG = {
   confirmed: { label: "Confirmed", color: "bg-blue-100 text-blue-800", icon: FiCheck },
@@ -30,6 +30,7 @@ const Orders = () => {
   const [activeTab, setActiveTab] = useState("active");
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
 
   const fetchOrders = useCallback(async (page = 1) => {
@@ -97,6 +98,16 @@ const Orders = () => {
     setCartFromOrder(order);
     toast.success("Items added to cart!");
     navigate("/checkout");
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await fetchOrders(pagination.page);
+      toast.success("Orders refreshed", { id: "refresh-orders" });
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const OrderCard = ({ order }) => {
@@ -195,7 +206,17 @@ const Orders = () => {
           <span>Back to Dashboard</span>
         </button>
 
-        <h1 className="text-2xl font-bold text-gray-800 mb-6">My Orders</h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold text-gray-800">My Orders</h1>
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing || loading}
+            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <FiRefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Refresh</span>
+          </button>
+        </div>
 
         {/* Tabs */}
         <div className="flex gap-2 mb-6 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">

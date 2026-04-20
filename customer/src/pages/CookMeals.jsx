@@ -127,12 +127,14 @@ const CookMeals = () => {
       setCheckingCookEligibility(true)
       const eligibility = await checkCanReviewCook(cookId)
 
-      if (eligibility.canReview) {
-        setCookReviewEligibility(eligibility)
-        setShowCookReviewModal(true)
-      } else {
+      if (!eligibility.canReview) {
         toast.error(eligibility.message || 'Cannot review this cook')
+        return
       }
+
+      // Backend already selected the oldest unreviewed order
+      setCookReviewEligibility(eligibility)
+      setShowCookReviewModal(true)
     } catch (error) {
       console.error('Error checking cook review eligibility:', error)
       toast.error('Failed to check review eligibility')
@@ -142,8 +144,11 @@ const CookMeals = () => {
   }
 
   const handleCookReviewSubmitted = () => {
-    // Refresh cook reviews after submission
     fetchCookReviews()
+    // Re-check eligibility so button reflects remaining unreviewed orders
+    checkCanReviewCook(cookId).then(eligibility => {
+      if (!eligibility.canReview) setCookReviewEligibility(null)
+    }).catch(() => {})
   }
 
   const filterAndSortMeals = () => {
