@@ -133,18 +133,23 @@ const UploadDocuments = () => {
         other: otherUrl,
       }
 
-      await submitDocuments(payload)
+      const response = await submitDocuments(payload)
+      console.log('Document submission response:', response)
       
       toast.dismiss(loadingToast)
       toast.success('Documents submitted successfully!')
+      
+      // Redirect after short delay
       setTimeout(() => {
+        console.log('Redirecting to /status...')
         navigate('/status', { replace: true })
       }, 1500)
     } catch (error) {
       toast.dismiss(loadingToast)
-      const message = error.message || 'Couldn\'t upload documents. Please try smaller files.'
+      console.error('Upload error details:', error)
+      console.error('Error response:', error.response)
+      const message = error.response?.data?.message || error.message || 'Couldn\'t upload documents. Please try smaller files.'
       toast.error(message)
-      console.error('Upload error:', error)
     } finally {
       setLoading(false)
     }
