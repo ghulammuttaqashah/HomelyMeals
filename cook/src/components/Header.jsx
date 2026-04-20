@@ -85,7 +85,7 @@ const Header = ({ showSignOut = false }) => {
     } else {
       // Don't redirect to customer app if in PWA mode
       if (isInstalled) {
-        toast.error('Please use the Customer app to browse meals', { duration: 3000 })
+        toast.error('Please use the Customer app to browse meals', { duration: 2000 })
         return
       }
       const customerUrl = import.meta.env.VITE_CUSTOMER_URL || 'http://localhost:5173'
@@ -114,11 +114,26 @@ const Header = ({ showSignOut = false }) => {
   }
 
   const handleInstallApp = async () => {
+    // Show loading toast while waiting for user action
+    const loadingToast = toast.loading('Opening installation prompt...', {
+      duration: Infinity,
+    })
+    
     const success = await installApp()
+    
+    // Dismiss loading toast
+    toast.dismiss(loadingToast)
+    
     if (success) {
       toast.success('HomelyMeals installed! Open it from your home screen 📱', {
-        duration: 5000,
+        duration: 2000,
         icon: '🎉',
+      })
+    } else {
+      // User cancelled or installation failed
+      toast('Installation cancelled', {
+        duration: 2000,
+        icon: 'ℹ️',
       })
     }
   }

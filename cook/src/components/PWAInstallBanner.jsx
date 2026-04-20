@@ -32,8 +32,13 @@ const PWAInstallBanner = () => {
   }, [isInstallable, isInstalled, canShowIOSInstall])
 
   const handleInstall = async () => {
+    // Don't close popup immediately - wait for user action
     const installed = await installApp()
-    if (installed) setShowPopup(false)
+    if (installed) {
+      // Only close popup if installation was successful
+      setShowPopup(false)
+    }
+    // If user cancelled, keep popup open so they can try again
   }
 
   const handleDismiss = () => {

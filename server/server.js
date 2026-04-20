@@ -59,6 +59,7 @@ app.get("/", (req, res) => {
   res.send("Homely Meals API is working!");
 });
 
+
 // Routes
 app.use("/api/admin", adminRoutes);
 app.use("/api/customer", customerRoutes);

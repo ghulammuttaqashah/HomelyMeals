@@ -104,17 +104,23 @@ export const usePWA = () => {
     }
 
     try {
-      deferredPrompt.prompt()
+      // Show the install prompt
+      await deferredPrompt.prompt()
+      
+      // Wait for the user to respond to the prompt
       const { outcome } = await deferredPrompt.userChoice
       console.log('[PWA] Install outcome:', outcome)
       
       if (outcome === 'accepted') {
+        console.log('[PWA] User accepted the install prompt')
         setIsInstallable(false)
         setDeferredPrompt(null)
         window.__pwaInstallPrompt = null
         return true
+      } else {
+        console.log('[PWA] User dismissed the install prompt')
+        return false
       }
-      return false
     } catch (error) {
       console.error('[PWA] Install error:', error)
       return false

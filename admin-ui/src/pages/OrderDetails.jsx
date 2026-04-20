@@ -238,7 +238,7 @@ const OrderDetails = () => {
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Delivery Fee</span>
-                    <span className="text-gray-900">Rs. {order.deliveryCharges || order.deliveryFee || 0}</span>
+                    <span className="text-gray-900">Rs. {Math.round(order.deliveryCharges || order.deliveryFee || 0)}</span>
                   </div>
                   <div className="flex justify-between text-base font-semibold pt-2 border-t border-gray-200">
                     <span className="text-gray-900">Total</span>

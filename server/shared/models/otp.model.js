@@ -7,17 +7,21 @@ const otpVerificationSchema = new mongoose.Schema({
   expiryTime: { type: Date, required: true },
   isVerified: { type: Boolean, default: false },
   tempData: {
-  name: String,
-  contact: String,
-  password: String,
-  address: {
-    houseNo: String,
-    street: String,
-    city: String,
-    postalCode: String
+    name: String,
+    contact: String,
+    password: String,
+    address: {
+      label: String,
+      houseNo: String,
+      street: String,
+      city: String,
+      postalCode: String,
+      landmark: String,
+      latitude: Number,
+      longitude: Number
+    },
+    maxDeliveryDistance: Number, // For cook signup
   }
-}
-
 }, { timestamps: true });
 
 export const OTPVerification = mongoose.model("OTPVerification", otpVerificationSchema);

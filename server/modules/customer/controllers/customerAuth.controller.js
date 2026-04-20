@@ -102,6 +102,7 @@ export const verifyOtpAndCreateAccount = async (req, res) => {
       street: address.street,
       city: address.city || "Sukkur",
       postalCode: address.postalCode || "65200",
+      landmark: address.landmark || "",
       latitude: address.latitude || null,
       longitude: address.longitude || null,
       isDefault: true,

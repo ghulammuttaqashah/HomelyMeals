@@ -8,7 +8,7 @@ import { getUnreadCount } from '../api/chat'
 import { getSocket } from '../utils/socket'
 import {
   FiShoppingCart, FiPackage, FiMessageCircle, FiAlertTriangle,
-  FiMenu, FiX, FiUser, FiLogOut, FiMapPin, FiDownload
+  FiMenu, FiX, FiUser, FiLogOut, FiMapPin, FiDownload, FiHome
 } from 'react-icons/fi'
 import { usePWA } from '../utils/usePWA'
 
@@ -91,11 +91,26 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
   const handleLogoClick = () => navigate(isAuthenticated ? '/dashboard' : '/')
 
   const handleInstallApp = async () => {
+    // Show loading toast while waiting for user action
+    const loadingToast = toast.loading('Opening installation prompt...', {
+      duration: Infinity,
+    })
+    
     const success = await installApp()
+    
+    // Dismiss loading toast
+    toast.dismiss(loadingToast)
+    
     if (success) {
       toast.success('HomelyMeals installed! Open it from your home screen 📱', {
-        duration: 5000,
+        duration: 2000,
         icon: '🎉',
+      })
+    } else {
+      // User cancelled or installation failed
+      toast('Installation cancelled', {
+        duration: 2000,
+        icon: 'ℹ️',
       })
     }
   }
@@ -234,6 +249,12 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
 
           {isAuthenticated ? (
             <>
+              <button type="button" onClick={() => navigate('/dashboard')}
+                className="flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+                <FiHome className="h-4 w-4" />
+                <span className="hidden lg:inline font-medium">Dashboard</span>
+              </button>
+
               <button type="button" onClick={() => navigate('/chats')}
                 className="relative flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
                 <FiMessageCircle className="h-4 w-4" />
@@ -288,7 +309,7 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
                 type="button" 
                 onClick={() => { 
                   if (isInstalled) {
-                    toast.error('Please use the Cook app to manage your kitchen', { duration: 3000 })
+                    toast.error('Please use the Cook app to manage your kitchen', { duration: 2000 })
                     return
                   }
                   window.location.href = import.meta.env.VITE_COOK_URL || 'http://localhost:5174' 
@@ -423,6 +444,7 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
                   {/* Nav links */}
                   <div className="flex-1 space-y-1 overflow-y-auto pr-1">
                     {[
+                      { icon: FiHome, label: 'Dashboard', path: '/dashboard' },
                       { icon: FiShoppingCart, label: 'Cart', path: '/cart', badge: itemCount },
                       { icon: FiMessageCircle, label: 'Chats', path: '/chats', badge: unreadChats },
                       { icon: FiPackage, label: 'Orders', path: '/orders' },
@@ -478,7 +500,7 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
                   <button 
                     onClick={() => { 
                       if (isInstalled) {
-                        toast.error('Please use the Cook app to manage your kitchen', { duration: 3000 })
+                        toast.error('Please use the Cook app to manage your kitchen', { duration: 2000 })
                         setShowMobileMenu(false)
                         return
                       }

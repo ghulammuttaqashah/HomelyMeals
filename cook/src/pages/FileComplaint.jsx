@@ -24,16 +24,16 @@ import {
 
 const COMPLAINT_TYPES = [
   {
-    value: "Fake Payment",
-    label: "Fake Payment",
-    description: "The customer submitted a fake or fraudulent payment proof without making an actual payment.",
-    icon: "💸",
-  },
-  {
     value: "Customer Didn't Receive Order Even Though I Delivered",
     label: "Customer Didn't Receive Order Even Though I Delivered",
     description: "You successfully delivered the order but the customer claims they did not receive it.",
     icon: "📦",
+  },
+  {
+    value: "Other",
+    label: "Other",
+    description: "Describe a different issue not listed above.",
+    icon: "📝",
   },
 ];
 
@@ -61,6 +61,7 @@ const FileComplaint = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
   const [type, setType] = useState("");
+  const [otherTypeText, setOtherTypeText] = useState("");
   const [description, setDescription] = useState("");
   const [images, setImages] = useState([]);
   const [uploading, setUploading] = useState(false);
@@ -128,10 +129,18 @@ const FileComplaint = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate "Other" type has custom text
+    if (type === "Other" && !otherTypeText.trim()) {
+      toast.error("Please describe the issue type");
+      return;
+    }
+    
     if (!selectedOrder || !type || !description.trim()) {
       toast.error("Please fill in all required fields");
       return;
     }
+    
     setSubmitting(true);
     try {
       let proofUrls = [];
@@ -142,7 +151,17 @@ const FileComplaint = () => {
         );
         setUploading(false);
       }
-      await createComplaint({ orderId: selectedOrder, type, description: description.trim(), proofUrls });
+      
+      // Use custom text if "Other" is selected
+      const complaintType = type === "Other" ? `Other: ${otherTypeText.trim()}` : type;
+      
+      await createComplaint({ 
+        orderId: selectedOrder, 
+        type: complaintType, 
+        description: description.trim(), 
+        proofUrls 
+      });
+      
       toast.success("Complaint submitted successfully!");
       navigate("/complaints");
     } catch (err) {
@@ -154,7 +173,7 @@ const FileComplaint = () => {
     }
   };
 
-  const isFormValid = selectedOrder && type && description.trim().length >= 10;
+  const isFormValid = selectedOrder && type && description.trim().length >= 10 && (type !== "Other" || otherTypeText.trim().length > 0);
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -203,7 +222,7 @@ const FileComplaint = () => {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                 {[
                   { label: "Order selected", done: !!selectedOrder },
-                  { label: "Issue type chosen", done: !!type },
+                  { label: "Issue type chosen", done: !!type && (type !== "Other" || otherTypeText.trim().length > 0) },
                   { label: "Description written", done: description.trim().length >= 10 },
                 ].map((step, i) => (
                   <div key={i} className="flex items-center gap-2.5">
@@ -386,7 +405,12 @@ const FileComplaint = () => {
                       <button
                         key={ct.value}
                         type="button"
-                        onClick={() => setType(ct.value)}
+                        onClick={() => {
+                          setType(ct.value);
+                          if (ct.value !== "Other") {
+                            setOtherTypeText("");
+                          }
+                        }}
                         className={`text-left p-4 rounded-xl border-2 transition-all duration-150 ${
                           type === ct.value
                             ? "border-orange-500 bg-orange-50 shadow-sm"
@@ -409,6 +433,27 @@ const FileComplaint = () => {
                       </button>
                     ))}
                   </div>
+                  
+                  {/* Other Type Input */}
+                  {type === "Other" && (
+                    <div className="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-xl">
+                      <label className="block text-sm font-semibold text-gray-800 mb-2">
+                        Describe the issue type <span className="text-red-400">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={otherTypeText}
+                        onChange={(e) => setOtherTypeText(e.target.value)}
+                        maxLength={50}
+                        placeholder="E.g., Customer was rude, Payment delayed, etc."
+                        className="w-full px-4 py-2.5 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm text-gray-700 placeholder-gray-400 bg-white"
+                        required
+                      />
+                      <p className={`text-xs mt-1.5 text-right ${otherTypeText.length > 45 ? "text-orange-600 font-medium" : "text-gray-500"}`}>
+                        {otherTypeText.length}/50 characters
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Step 3 — Description */}

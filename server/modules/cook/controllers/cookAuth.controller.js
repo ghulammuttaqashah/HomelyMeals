@@ -24,7 +24,7 @@ const syncCookSubscriptionAccess = async (cook) => {
  * STEP 1: Request Signup OTP
  */
 export const signupRequest = async (req, res) => {
-  const { name, email, contact, password, address } = req.body;
+  const { name, email, contact, password, address, latitude, longitude, maxDeliveryDistance } = req.body;
 
   try {
     if (!isValidEmail(email))
@@ -46,12 +46,25 @@ export const signupRequest = async (req, res) => {
     const otpCode = generateOtp();
     const expiryTime = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
 
+    // Include coordinates in address if provided
+    const addressWithLocation = address ? {
+      ...address,
+      latitude: latitude || null,
+      longitude: longitude || null,
+    } : null;
+
     const otpEntry = new OTPVerification({
       email,
       otpCode,
       purpose: "cook-signup",
       expiryTime,
-      tempData: { name, contact, password: hashedPassword, address },
+      tempData: { 
+        name, 
+        contact, 
+        password: hashedPassword, 
+        address: addressWithLocation,
+        maxDeliveryDistance: maxDeliveryDistance || 5,
+      },
     });
 
     await otpEntry.save();
@@ -95,14 +108,28 @@ export const verifyOtpAndCreateAccount = async (req, res) => {
     otpEntry.isVerified = true;
     await otpEntry.save();
 
-    const { name, contact, password, address } = otpEntry.tempData;
+    const { name, contact, password, address, maxDeliveryDistance } = otpEntry.tempData;
+
+    // Extract coordinates from address if available
+    const cookAddress = {
+      houseNo: address?.houseNo || "",
+      street: address?.street || "",
+      city: address?.city || "Sukkur",
+      postalCode: address?.postalCode || "65200",
+      landmark: address?.landmark || "",
+      location: {
+        latitude: address?.latitude || null,
+        longitude: address?.longitude || null,
+      }
+    };
 
     const cook = new Cook({
       name,
       email,
       contact,
       password,
-      address,
+      address: cookAddress,
+      maxDeliveryDistance: maxDeliveryDistance || 5,
       verificationStatus: "not_started",
       serviceStatus: "closed",
       status: "active",
@@ -122,6 +149,7 @@ export const verifyOtpAndCreateAccount = async (req, res) => {
         serviceStatus: cook.serviceStatus,
         status: cook.status,
         profilePicture: cook.profilePicture,
+        maxDeliveryDistance: cook.maxDeliveryDistance,
       },
     });
   } catch (err) {
@@ -170,9 +198,9 @@ export const cookSignin = async (req, res) => {
       const latNum = latitude !== undefined ? parseFloat(latitude) : NaN;
       const lngNum = longitude !== undefined ? parseFloat(longitude) : NaN;
       if (Number.isFinite(latNum) && Number.isFinite(lngNum)) {
-        cook.location = {
-          type: "Point",
-          coordinates: [lngNum, latNum],
+        cook.address.location = {
+          latitude: latNum,
+          longitude: lngNum,
         };
         await cook.save();
       }
@@ -217,7 +245,7 @@ export const getCurrentCook = async (req, res) => {
     // Get active subscription details for expiry warnings
     let subscriptionInfo = null;
     if (hasActiveSubscription) {
-      const { Subscription } = await import("../../shared/models/subscription.model.js");
+      const { Subscription } = await import("../../../shared/models/subscription.model.js");
       const activeSub = await Subscription.findOne({
         cook_id: cook._id,
         status: "active",

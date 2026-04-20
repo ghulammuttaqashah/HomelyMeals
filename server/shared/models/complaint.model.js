@@ -9,8 +9,8 @@ export const CUSTOMER_COMPLAINT_TYPES = [
 ];
 
 export const COOK_COMPLAINT_TYPES = [
-  "Fake Payment",
   "Customer Didn't Receive Order Even Though I Delivered",
+  "Other",
 ];
 
 const proofSchema = new mongoose.Schema(

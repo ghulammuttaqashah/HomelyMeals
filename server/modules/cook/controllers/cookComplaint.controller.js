@@ -18,12 +18,18 @@ export const createComplaint = async (req, res) => {
       return res.status(400).json({ message: "Order, type, and description are required" });
     }
 
-    // Validate complaint type
-    if (!COOK_COMPLAINT_TYPES.includes(type)) {
+    // Validate complaint type (allow "Other: [custom text]" format)
+    const isValidType = COOK_COMPLAINT_TYPES.includes(type) || type.startsWith("Other: ");
+    if (!isValidType) {
       return res.status(400).json({
         message: "Invalid complaint type",
         validTypes: COOK_COMPLAINT_TYPES,
       });
+    }
+    
+    // Validate "Other" type has description
+    if (type.startsWith("Other: ") && type.length <= 7) {
+      return res.status(400).json({ message: "Please provide a description for 'Other' complaint type" });
     }
 
     // Validate proof images limit
