@@ -36,7 +36,7 @@ export const advancedChatbot = async (req, res) => {
     // Let AI analyze the query with context awareness
     const aiDecision = await analyzeQueryIntent(message, conversationHistory);
     
-    console.log("🧠 AI Decision:", aiDecision);
+    console.log("🧠 AI Decision:", JSON.stringify(aiDecision, null, 2));
 
     // Handle follow-up requests using previous context
     if (aiDecision.isFollowUp && aiDecision.previousData) {
@@ -60,7 +60,10 @@ export const advancedChatbot = async (req, res) => {
 
     // If AI wants to search database
     if (aiDecision.needsDatabase && aiDecision.filters) {
+      console.log("📊 Querying database with filters:", aiDecision.filters);
       const dbResults = await queryTopSellingMeals(aiDecision.filters);
+      
+      console.log(`✅ Database returned ${dbResults.data?.length || 0} results`);
       
       if (dbResults.data && dbResults.data.length > 0) {
         // Generate natural response with data
@@ -74,6 +77,7 @@ export const advancedChatbot = async (req, res) => {
           filters: aiDecision.filters // Store filters for follow-up
         });
       } else {
+        console.log("⚠️ No results found, trying alternatives");
         // No results found - try to find nearest alternatives
         const alternatives = await findNearestAlternatives(aiDecision.filters);
         
@@ -90,6 +94,7 @@ export const advancedChatbot = async (req, res) => {
         }
         
         // Truly no results
+        console.log("❌ No results and no alternatives");
         const response = await generateNoResultsResponse(message, aiDecision.filters);
         
         return res.status(200).json({
@@ -102,6 +107,7 @@ export const advancedChatbot = async (req, res) => {
     }
 
     // General conversation (no database needed)
+    console.log("💭 Using general conversation response");
     const response = await generateChatResponse(message, conversationHistory);
 
     return res.status(200).json({
@@ -109,6 +115,8 @@ export const advancedChatbot = async (req, res) => {
       response: response.text,
       data: null,
       hasData: false,
+      showButtons: response.showButtons || false,
+      buttons: response.buttons || null
     });
   } catch (error) {
     console.error("Chat error:", error);
@@ -250,11 +258,28 @@ function isFollowUpRequest(message) {
   // Exclude greetings, goodbyes, and polite phrases
   const excludePhrases = [
     'bye', 'goodbye', 'thanks', 'thank you',
-    'no worry', 'no problem', 'nevermind', 'never mind', 'forget it'
+    'no worry', 'no problem', 'nevermind', 'never mind', 'forget it',
+    'see you', 'later', 'good night', 'goodnight'
   ];
   
   // Check if message contains any exclude phrase
   if (excludePhrases.some(phrase => msg.includes(phrase))) {
+    return false;
+  }
+  
+  // If message contains food names or prices, it's a NEW query, not follow-up
+  const foodKeywords = [
+    'tea', 'coffee', 'biryani', 'burger', 'pizza', 'pasta', 'rice', 'chicken',
+    'karahi', 'korma', 'haleem', 'nihari', 'pulao', 'kebab', 'tikka', 'roll',
+    'sandwich', 'salad', 'soup', 'curry', 'daal', 'naan', 'roti', 'paratha',
+    'beef', 'mutton', 'fish', 'egg', 'vegetable', 'fruit'
+  ];
+  
+  const hasFoodKeyword = foodKeywords.some(food => msg.includes(food));
+  const hasPrice = /\d+/.test(msg) || msg.includes('under') || msg.includes('below') || msg.includes('cheap');
+  
+  // If message has food name OR price, it's a NEW search, not follow-up
+  if (hasFoodKeyword || hasPrice) {
     return false;
   }
   
@@ -270,6 +295,7 @@ function isFollowUpRequest(message) {
     return true;
   }
   
+  // Only match if it's EXACTLY a follow-up phrase (not part of a larger query)
   return followUpPhrases.some(phrase => msg === phrase || msg.startsWith(phrase + ' '));
 }
 
@@ -299,14 +325,22 @@ async function analyzeQueryIntent(message, conversationHistory) {
       };
     }
     
-    // FALLBACK PATTERN MATCHER - Catch common food queries before LLM
-    const fallbackResult = detectFoodQueryPattern(message);
+    // FALLBACK PARSER: Simple regex patterns for common queries
+    // This runs BEFORE AI to catch obvious database queries
+    const fallbackResult = parseQueryWithRegex(message);
     if (fallbackResult) {
-      console.log("🎯 Pattern matcher detected food query:", fallbackResult);
+      console.log("✅ Regex fallback parser matched:", fallbackResult);
+      return fallbackResult;
+    }
+    
+    // Check for cook-related queries (don't use AI for these)
+    const msg = message.toLowerCase().trim();
+    if (msg.includes('cook') && (msg.includes('top') || msg.includes('best') || msg.includes('rated'))) {
+      console.log("👨‍🍳 Cook query detected - not a meal search");
       return {
-        needsDatabase: true,
+        needsDatabase: false,
         isFollowUp: false,
-        filters: fallbackResult.filters
+        filters: null
       };
     }
     
@@ -321,47 +355,48 @@ async function analyzeQueryIntent(message, conversationHistory) {
 
     const systemPrompt = `You are an intelligent query analyzer for a food delivery chatbot.
 
-Analyze the user's query and decide:
-1. Does it need database search? (meal search, food query, "what's available", etc.)
-2. If yes, extract search filters
+Analyze the user's query using natural language understanding (NOT keyword matching).
 
 USER QUERY: "${message}"${contextInfo}
 
-CRITICAL DISTINCTION:
-- If asking about "cook", "chef", "cooks", "chefs" → needsDatabase: false (asking for cook info, not meals)
-- If asking about "meal", "food", "dish", specific food names → needsDatabase: true (asking for meals)
-
-DECISION RULES (STRICT):
-- If asking about COOKS ("top rated cook", "best cook", "which cook", "good cook") → needsDatabase: false
-- If mentioning ANY food item (tea, coffee, biryani, pasta, burger, pizza, etc.) → needsDatabase: true, extract mealName
-- If saying "i want X", "i need X", "give me X", "show me X" where X is food → needsDatabase: true
-- If asking "what should I eat", "recommend", "suggest" → needsDatabase: true  
-- If asking about top rated MEALS, best MEALS, popular MEALS → needsDatabase: true
-- If mentioning budget/price (e.g., "i have 200", "under 50", "below 100") → needsDatabase: true, extract maxPrice
-- If general question, greeting, chitchat → needsDatabase: false
+CRITICAL RULES:
+1. ANY mention of food items (tea, coffee, biryani, burger, pasta, soup, etc.) → needsDatabase: true
+2. ANY mention of price/budget (under X, below X, cheap, i have X) → needsDatabase: true
+3. Phrases like "is there", "do you have", "any", "available" → needsDatabase: true
+4. Health/recommendation queries (what should I eat for flu, best for cold, etc.) → needsDatabase: false (handled by smart advisor)
+5. Goodbyes (bye, goodbye, see you, later) → needsDatabase: false
+6. Greetings (hey, hello, hi) → needsDatabase: false
+7. Cook queries (top rated cook, best cook) → needsDatabase: false (handled separately)
+8. ONLY return needsDatabase: true for DIRECT meal searches
 
 FILTER EXTRACTION (if needsDatabase: true):
-- mealName: dish name or null (e.g., "biryani", "tea", "pasta", "coffee")
-- timePeriod: "today", "yesterday", "week", "month", "overall" (default: "overall")
-- limit: number 1-50 (default: 10)
-- maxPrice: number or null (extract from "i have X", "under X", "below X", "budget X")
-- minRating: number or null
+- mealName: Extract dish name ONLY, remove ALL filler words (need, want, for, with, about, is there, are there, do you have, any, find me, me, my, meal, meals, food)
+- If only generic words remain (meal, food), set mealName to null (search all meals)
+- timePeriod: Extract from "today", "yesterday", "this week", etc. (default: "overall")
+- limit: Extract from "top 5", "best 3", etc. (default: 10)
+- maxPrice: Extract from "under X", "below X", "undr X", "X budget", "i have X", "cheap" (default: null)
+- minRating: Extract from "top rated", "best", "highly rated" (default: null, or 4 if mentioned)
 
-EXAMPLES (LEARN FROM THESE):
-"biryani" → {needsDatabase: true, filters: {mealName: "biryani", timePeriod: "overall", limit: 10}}
-"i want tea" → {needsDatabase: true, filters: {mealName: "tea", timePeriod: "overall", limit: 10}}
-"tea under 50" → {needsDatabase: true, filters: {mealName: "tea", timePeriod: "overall", limit: 10, maxPrice: 50}}
-"tea under 50?" → {needsDatabase: true, filters: {mealName: "tea", timePeriod: "overall", limit: 10, maxPrice: 50}}
-"give me coffee" → {needsDatabase: true, filters: {mealName: "coffee", timePeriod: "overall", limit: 10}}
-"show me pizza" → {needsDatabase: true, filters: {mealName: "pizza", timePeriod: "overall", limit: 10}}
-"i need burger" → {needsDatabase: true, filters: {mealName: "burger", timePeriod: "overall", limit: 10}}
-"pasta under 200" → {needsDatabase: true, filters: {mealName: "pasta", timePeriod: "overall", limit: 10, maxPrice: 200}}
-"i have 200" → {needsDatabase: true, filters: {mealName: null, timePeriod: "overall", limit: 10, maxPrice: 200}}
-"under 100" → {needsDatabase: true, filters: {mealName: null, timePeriod: "overall", limit: 10, maxPrice: 100}}
+EXAMPLES - Natural language understanding:
+"find me meal under 200" → {needsDatabase: true, filters: {mealName: null, maxPrice: 200}}
+"briyani undr 200" → {needsDatabase: true, filters: {mealName: "biryani", maxPrice: 200}}
+"is there any pasta" → {needsDatabase: true, filters: {mealName: "pasta"}}
+"tea under 50" → {needsDatabase: true, filters: {mealName: "tea", maxPrice: 50}}
+"is there biryani under 100" → {needsDatabase: true, filters: {mealName: "biryani", maxPrice: 100}}
+"need tea under 50?" → {needsDatabase: true, filters: {mealName: "tea", maxPrice: 50}}
+"best biryani?" → {needsDatabase: true, filters: {mealName: "biryani", minRating: 4}}
+"need tea" → {needsDatabase: true, filters: {mealName: "tea"}}
+"coffee" → {needsDatabase: true, filters: {mealName: "coffee"}}
+"soup" → {needsDatabase: true, filters: {mealName: "soup"}}
+"i have 200" → {needsDatabase: true, filters: {maxPrice: 200}}
+"300" → {needsDatabase: true, filters: {maxPrice: 300}}
+"under 150" → {needsDatabase: true, filters: {maxPrice: 150}}
+"what should i eat" → {needsDatabase: true, filters: {mealName: null}}
 "top rated cook" → {needsDatabase: false, filters: null}
-"best cook" → {needsDatabase: false, filters: null}
-"top rated meal" → {needsDatabase: true, filters: {mealName: null, timePeriod: "overall", limit: 10, minRating: 4}}
-"hello" → {needsDatabase: false, filters: null}
+"i have flu best meals for me" → {needsDatabase: false, filters: null}
+"what best for flu" → {needsDatabase: false, filters: null}
+"okay bye" → {needsDatabase: false, filters: null}
+"hey" → {needsDatabase: false, filters: null}
 
 Return ONLY JSON:
 {
@@ -381,16 +416,20 @@ Return ONLY JSON:
         { role: "system", content: systemPrompt },
         { role: "user", content: message },
       ],
-      temperature: 0.3, // Slightly increased for better pattern matching
+      temperature: 0.1, // Lower temperature for more consistent parsing
       max_tokens: 200,
     });
 
     let output = response.choices[0].message.content.trim();
     
+    console.log("🤖 AI Raw Response:", output);
+    
     // Clean JSON
     output = output.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
 
     const decision = JSON.parse(output);
+    
+    console.log("🧠 AI Parsed Decision:", JSON.stringify(decision, null, 2));
     
     // Validate filters if present
     if (decision.needsDatabase && decision.filters) {
@@ -403,8 +442,17 @@ Return ONLY JSON:
     
     return decision;
   } catch (error) {
-    console.error("Intent analysis error:", error);
-    // Fallback: assume it's a general query
+    console.error("❌ Intent analysis error:", error.message || error);
+    
+    // ENHANCED FALLBACK: Try regex parser again
+    const fallbackResult = parseQueryWithRegex(message);
+    if (fallbackResult) {
+      console.log("✅ Using regex fallback after AI error");
+      return fallbackResult;
+    }
+    
+    // Last resort: assume it's a general query
+    console.log("⚠️ Falling back to general conversation");
     return {
       needsDatabase: false,
       isFollowUp: false,
@@ -414,116 +462,137 @@ Return ONLY JSON:
 }
 
 /**
- * Fallback pattern matcher for common food queries
- * Catches queries that LLM might miss
+ * Regex-based fallback parser for simple, obvious queries
+ * Catches patterns like "X under Y", "i have X", "cheap X", etc.
  */
-function detectFoodQueryPattern(message) {
+function parseQueryWithRegex(message) {
   const msg = message.toLowerCase().trim();
   
-  // Pattern 1: "i want/need/have X" where X might be food
-  const wantNeedPattern = /^(?:i\s+)?(?:want|need|have|got)\s+(.+)$/i;
-  const wantNeedMatch = msg.match(wantNeedPattern);
+  // Remove question marks and clean up
+  const cleanMsg = msg.replace(/\?/g, '').trim();
   
-  if (wantNeedMatch) {
-    const query = wantNeedMatch[1].trim();
+  // Pattern 1: "X under Y" or "X below Y" (e.g., "tea under 50", "biryani below 200", "is there biryani under 100")
+  const pricePattern1 = /(.+?)\s+(under|below|undr|less than|max)\s+(\d+)/i;
+  const match1 = cleanMsg.match(pricePattern1);
+  if (match1) {
+    let mealName = match1[1]
+      .replace(/please|kindly|can i get|show me|find me|find|need|want|looking for|search for|is there|are there|do you have|any|give me/gi, '')
+      .trim();
     
-    // Check if it contains price info
-    const pricePattern = /(\d+)/;
-    const priceMatch = query.match(pricePattern);
+    // Clean up meal name - remove filler words and articles
+    mealName = mealName.replace(/\b(a|an|the|some|me|my)\b/gi, '').trim();
     
-    if (priceMatch) {
-      const price = parseInt(priceMatch[1]);
-      // "i have 200" or "i want tea 50"
-      const foodWords = query.replace(/\d+/g, '').replace(/under|below|less than|rs|rupees/gi, '').trim();
+    // If meal name is just "meal" or empty, set to null (search all meals)
+    if (!mealName || mealName === 'meal' || mealName === 'meals' || mealName === 'food') {
+      mealName = null;
+    }
+    
+    const maxPrice = parseInt(match1[3]);
+    
+    return {
+      needsDatabase: true,
+      isFollowUp: false,
+      filters: {
+        mealName: mealName,
+        maxPrice: maxPrice,
+        timePeriod: "overall",
+        limit: 10,
+        minRating: null
+      }
+    };
+  }
+  
+  // Pattern 2: "under Y" or "i have Y" (e.g., "under 50", "i have 200", just "300")
+  const pricePattern2 = /^(under|below|i have|budget|max)?\s*(\d+)$/i;
+  const match2 = cleanMsg.match(pricePattern2);
+  if (match2) {
+    const maxPrice = parseInt(match2[2]);
+    
+    return {
+      needsDatabase: true,
+      isFollowUp: false,
+      filters: {
+        mealName: null,
+        maxPrice: maxPrice,
+        timePeriod: "overall",
+        limit: 10,
+        minRating: null
+      }
+    };
+  }
+  
+  // Pattern 3: "cheap X" or "best X" (e.g., "cheap biryani", "best burger")
+  // Must come BEFORE single food item check
+  const qualifierPattern = /^(cheap|best|top|good|popular)\s+([a-z\s]+)$/i;
+  const match3 = cleanMsg.match(qualifierPattern);
+  if (match3) {
+    const qualifier = match3[1].toLowerCase();
+    let mealName = match3[2].trim();
+    
+    // Clean up meal name
+    mealName = mealName.replace(/\b(a|an|the|some|any|food|meal|dish)\b/gi, '').trim();
+    
+    return {
+      needsDatabase: true,
+      isFollowUp: false,
+      filters: {
+        mealName: mealName || null,
+        maxPrice: qualifier === 'cheap' ? 200 : null,
+        timePeriod: "overall",
+        limit: 10,
+        minRating: (qualifier === 'best' || qualifier === 'top') ? 4 : null
+      }
+    };
+  }
+  
+  // Pattern 4: Single food item (e.g., "tea", "coffee", "biryani", "is there any pasta", "list")
+  const foodKeywords = [
+    'tea', 'coffee', 'biryani', 'burger', 'pizza', 'pasta', 'rice', 'chicken',
+    'karahi', 'korma', 'haleem', 'nihari', 'pulao', 'kebab', 'tikka', 'roll',
+    'sandwich', 'salad', 'soup', 'curry', 'daal', 'naan', 'roti', 'paratha',
+    'beef', 'mutton', 'fish', 'egg', 'vegetable', 'fruit', 'broth'
+  ];
+  
+  const words = cleanMsg.split(/\s+/);
+  
+  // Check if it's JUST a food word (or with "need"/"want"/"is there any")
+  const foundFood = foodKeywords.find(food => words.includes(food));
+  
+  if (foundFood && words.length <= 5) {
+    // Make sure it's not a complex query
+    const complexWords = ['what', 'how', 'why', 'when', 'where', 'which'];
+    const hasComplexWord = words.some(w => complexWords.includes(w));
+    
+    if (!hasComplexWord) {
+      // Extract price if mentioned
+      const priceMatch = cleanMsg.match(/(\d+)/);
+      const maxPrice = priceMatch ? parseInt(priceMatch[1]) : null;
       
       return {
+        needsDatabase: true,
+        isFollowUp: false,
         filters: {
-          mealName: foodWords.length > 0 && foodWords.length < 20 ? foodWords : null,
+          mealName: foundFood,
+          maxPrice: maxPrice,
           timePeriod: "overall",
           limit: 10,
-          maxPrice: price,
-          minRating: null
-        }
-      };
-    } else {
-      // "i want tea" - assume it's food
-      return {
-        filters: {
-          mealName: query,
-          timePeriod: "overall",
-          limit: 10,
-          maxPrice: null,
           minRating: null
         }
       };
     }
   }
   
-  // Pattern 2: "give me/show me X"
-  const giveMePattern = /^(?:give|show|get)\s+(?:me\s+)?(.+)$/i;
-  const giveMeMatch = msg.match(giveMePattern);
-  
-  if (giveMeMatch) {
-    const query = giveMeMatch[1].trim();
+  // Pattern 5: "list" or "please list" after health advice (search for soup)
+  if ((cleanMsg === 'list' || cleanMsg === 'please list' || cleanMsg === 'list that are available') && 
+      cleanMsg.length < 30) {
     return {
+      needsDatabase: true,
+      isFollowUp: false,
       filters: {
-        mealName: query,
-        timePeriod: "overall",
-        limit: 10,
+        mealName: 'soup', // Default to soup for health-related lists
         maxPrice: null,
-        minRating: null
-      }
-    };
-  }
-  
-  // Pattern 3: "X under/below Y" (e.g., "tea under 50", "biryani below 200")
-  const priceFilterPattern = /^(.+?)\s+(?:under|below|less than)\s+(?:rs\.?\s*)?(\d+)\??$/i;
-  const priceFilterMatch = msg.match(priceFilterPattern);
-  
-  if (priceFilterMatch) {
-    const foodName = priceFilterMatch[1].trim();
-    const price = parseInt(priceFilterMatch[2]);
-    
-    return {
-      filters: {
-        mealName: foodName,
         timePeriod: "overall",
         limit: 10,
-        maxPrice: price,
-        minRating: null
-      }
-    };
-  }
-  
-  // Pattern 4: Just a price "under 50", "below 100"
-  const justPricePattern = /^(?:under|below|less than)\s+(?:rs\.?\s*)?(\d+)\??$/i;
-  const justPriceMatch = msg.match(justPricePattern);
-  
-  if (justPriceMatch) {
-    const price = parseInt(justPriceMatch[1]);
-    return {
-      filters: {
-        mealName: null,
-        timePeriod: "overall",
-        limit: 10,
-        maxPrice: price,
-        minRating: null
-      }
-    };
-  }
-  
-  // Pattern 5: Single word that might be food (but not greetings/goodbyes)
-  const excludeWords = ['hi', 'hello', 'hey', 'bye', 'goodbye', 'thanks', 'thank', 'yes', 'no', 'ok', 'okay'];
-  const words = msg.split(/\s+/);
-  
-  if (words.length === 1 && !excludeWords.includes(words[0]) && words[0].length > 2) {
-    // Single word query - likely food name
-    return {
-      filters: {
-        mealName: words[0],
-        timePeriod: "overall",
-        limit: 10,
-        maxPrice: null,
         minRating: null
       }
     };
@@ -749,7 +818,19 @@ async function generateResponseWithData(query, results, filters) {
   // NO LLM - Simple template with DB count only
   const count = results.length;
   const priceInfo = filters.maxPrice ? ` under Rs. ${filters.maxPrice}` : '';
-  const mealInfo = filters.mealName ? ` for ${filters.mealName}` : '';
+  
+  // Clean up meal name - remove question marks and extra words
+  let mealInfo = '';
+  if (filters.mealName) {
+    const cleanMealName = filters.mealName
+      .replace(/\?/g, '')
+      .replace(/\b(for|with|about|is there|are there|do you have|any)\b/gi, '')
+      .trim();
+    
+    if (cleanMealName) {
+      mealInfo = ` for ${cleanMealName}`;
+    }
+  }
   
   return {
     text: `Here ${count === 1 ? 'is' : 'are'} ${count} meal${count > 1 ? 's' : ''}${priceInfo}${mealInfo}:`
@@ -775,67 +856,213 @@ async function generateNoResultsResponse(query, filters) {
 }
 
 /**
- * Generate natural chat response for general queries
- * Handles cook queries and general questions
+ * Generate intelligent chat response using LLM reasoning
+ * TRUE AI ASSISTANT - Not robotic, not menu-based
  */
 async function generateChatResponse(message, conversationHistory) {
-  const msg = message.toLowerCase();
-  
-  // Handle cook-related queries - redirect to Browse Cooks menu
-  if (msg.includes('cook') || msg.includes('chef')) {
-    if (msg.includes('top rated') || msg.includes('best') || msg.includes('good')) {
-      return { text: "To see top-rated cooks, please use the '👨‍🍳 Browse Cooks' option from the main menu." };
-    }
-    return { text: "You can browse cooks and see their profiles using the '👨‍🍳 Browse Cooks' option from the main menu." };
-  }
-  
-  // Handle goodbyes
-  if (msg.includes('bye') || msg.includes('goodbye')) {
-    return { text: "Goodbye! Feel free to come back anytime you're hungry! 😊" };
-  }
-  
-  // Handle greetings
-  if (msg === 'hello' || msg === 'hi' || msg === 'hey') {
-    return { text: "Hello! 👋 I can help you find meals or browse cooks. What are you looking for?" };
-  }
-  
-  // Handle thanks
-  if (msg.includes('thank') || msg === 'thanks') {
-    return { text: "You're welcome! Let me know if you need anything else! 😊" };
-  }
-  
-  // For other queries, provide helpful response
   try {
-    const systemPrompt = `You are a helpful food delivery assistant for Homely Meals.
+    const msg = message.toLowerCase().trim();
+    
+    // Handle goodbyes directly (no AI needed)
+    const goodbyePhrases = ['bye', 'goodbye', 'see you', 'later', 'good night', 'goodnight'];
+    if (goodbyePhrases.some(phrase => msg.includes(phrase))) {
+      const goodbyes = [
+        "Goodbye! Come back anytime you're hungry! 👋",
+        "See you later! Enjoy your meal! 😊",
+        "Take care! Happy eating! 🍽️",
+        "Bye! Feel free to return anytime! 👋"
+      ];
+      return { text: goodbyes[Math.floor(Math.random() * goodbyes.length)] };
+    }
+    
+    // Handle simple greetings directly
+    const greetings = ['hey', 'hello', 'hi', 'sup', 'yo'];
+    if (greetings.includes(msg)) {
+      return { text: "Hey! 👋 I can help you find meals, cooks, or answer questions. What are you looking for?" };
+    }
+    
+    // Handle navigation queries - show buttons with helpful message
+    const navigationQueries = {
+      cook: {
+        keywords: ['cook', 'chef', 'seller'],
+        message: "I can help you find great cooks! Here are your options:",
+        buttons: [
+          { label: '⭐ Top Rated Cooks', action: 'top_rated_cooks' },
+          { label: '🔥 Top Selling Cooks', action: 'top_selling_cooks' },
+          { label: '🍽️ Best Cooks by Items', action: 'cooks_by_items' },
+          { label: '🏠 Main Menu', action: 'main_menu' }
+        ]
+      },
+      order: {
+        keywords: ['order', 'track', 'delivery', 'status'],
+        message: "Need help with orders? Here's what I can do:",
+        buttons: [
+          { label: '📦 Track Order', action: 'track_order' },
+          { label: '📝 Order History', action: 'view_order_history' },
+          { label: '🏠 Main Menu', action: 'main_menu' }
+        ]
+      },
+      complaint: {
+        keywords: ['complaint', 'complain', 'issue', 'problem', 'report'],
+        message: "I'm sorry to hear you're having an issue. Let me help:",
+        buttons: [
+          { label: '📝 File Complaint', action: 'file_complaint' },
+          { label: '🏠 Main Menu', action: 'main_menu' }
+        ]
+      },
+      recommendation: {
+        keywords: ['recommend', 'suggestion', 'suggest', 'what should i eat', 'what to eat'],
+        message: "I can give you personalized recommendations! Choose an option:",
+        buttons: [
+          { label: '🎯 Personalized Meals', action: 'personalized_meals' },
+          { label: '🧠 Smart Food Advisor', action: 'smart_advisor' },
+          { label: '❤️ Health-Based Meals', action: 'health_meals' },
+          { label: '🏠 Main Menu', action: 'main_menu' }
+        ]
+      },
+      browse: {
+        keywords: ['browse', 'show meals', 'all meals', 'menu', 'catalog'],
+        message: "Let me help you browse meals:",
+        buttons: [
+          { label: '🍽️ All Meals', action: 'all_meals' },
+          { label: '🔥 Top Selling Meals', action: 'top_selling_menu' },
+          { label: '🏠 Main Menu', action: 'main_menu' }
+        ]
+      }
+    };
+    
+    // Check if query matches any navigation category
+    for (const [category, config] of Object.entries(navigationQueries)) {
+      const hasKeyword = config.keywords.some(keyword => msg.includes(keyword));
+      if (hasKeyword) {
+        return {
+          text: config.message,
+          showButtons: true,
+          buttons: config.buttons
+        };
+      }
+    }
+    
+    // Handle health queries directly (no AI needed for common cases)
+    const healthKeywords = ['flu', 'fever', 'cold', 'sick', 'cough', 'headache', 'stomach', 'pain'];
+    const hasHealthKeyword = healthKeywords.some(keyword => msg.includes(keyword));
+    
+    if (hasHealthKeyword) {
+      const healthAdvice = {
+        'flu': "For flu, try warm soups, ginger tea, chicken broth, and foods rich in vitamin C like citrus fruits. Stay hydrated! 🍵",
+        'fever': "For fever, eat light foods like soups, broths, fruits, and drink plenty of fluids. Avoid heavy or spicy meals. 🥣",
+        'cold': "For cold, have warm soups, ginger tea, honey, and vitamin C-rich foods. Stay warm and hydrated! ☕",
+        'sick': "When sick, stick to light, easy-to-digest foods like soups, broths, rice, and fruits. Rest and hydrate! 🍲",
+        'cough': "For cough, try warm liquids like tea with honey, soups, and avoid cold or fried foods. 🍯",
+        'headache': "For headache, stay hydrated, eat regular meals, and avoid caffeine. Try ginger tea or light snacks. 💧",
+        'stomach': "For stomach issues, eat bland foods like rice, bananas, toast, and avoid spicy or oily foods. 🍚",
+        'pain': "For pain, eat anti-inflammatory foods like ginger, turmeric, and stay hydrated. Consult a doctor if severe. 🌿"
+      };
+      
+      // Find matching health condition
+      for (const [condition, advice] of Object.entries(healthAdvice)) {
+        if (msg.includes(condition)) {
+          return { text: advice };
+        }
+      }
+      
+      // Generic health advice
+      return { text: "When not feeling well, focus on light, nutritious foods like soups, fruits, and plenty of fluids. Take care! 💚" };
+    }
+    
+    // Build conversation context
+    const context = conversationHistory.slice(-6).map(msg => 
+      `${msg.sender}: ${msg.text}`
+    ).join('\n');
 
-STRICT RULES:
-- NEVER mention specific meal names (no "biryani", "pasta", etc.)
-- Keep responses SHORT (1-2 sentences)
-- If user asks about food, tell them to search for it
-- If user asks about cooks, tell them to use Browse Cooks menu
+    const systemPrompt = `You are an intelligent food delivery assistant for Homely Meals - a platform connecting customers with home cooks.
+
+CORE CAPABILITIES:
+- Answer questions naturally like ChatGPT
+- Provide food knowledge (nutrition, cooking, ingredients, health advice)
+- Help with orders, tracking, complaints
+- Give recommendations and suggestions
+- Explain how the service works
+- Be conversational and helpful
+
+PERSONALITY:
+- Smart and knowledgeable
+- Friendly but not overly cheerful
+- Direct and helpful
+- Natural conversational style
+- NOT robotic or template-based
+
+RESPONSE RULES:
+1. Answer the actual question asked
+2. Be concise but complete (2-4 sentences)
+3. For health queries (flu, cold, fever), give food advice directly
+4. For meal searches, acknowledge and suggest using search
+5. For general knowledge (protein, healthy food, etc.), answer directly
+6. For orders/tracking, offer to help
+7. Use emojis sparingly (max 1-2)
+8. Don't always end with questions
+9. Don't spam menu options
+10. NEVER say "I'm here to help" as a generic response - always answer the specific question
+11. For unclear queries like "who is there", respond naturally and ask for clarification
+
+HEALTH ADVICE EXAMPLES:
+- "what best for flu" → "For flu, try warm soups, ginger tea, chicken broth, and foods rich in vitamin C like citrus fruits. Stay hydrated!"
+- "food for gym" → "For gym nutrition, focus on high-protein meals like chicken, eggs, lentils, and complex carbs like brown rice."
+- "i have flu best meals" → "For flu, I recommend warm soups, ginger tea, and vitamin C-rich foods. Would you like me to search for soup options?"
+
+UNCLEAR QUERIES:
+- "who is there" → "I'm your Homely Meals assistant! I can help you find meals, browse cooks, track orders, or answer questions. What would you like to do?"
+- "what" → "I'm here to help with meals and orders! You can ask me to find food, browse cooks, or get recommendations."
+
+CONVERSATION CONTEXT:
+${context || 'No previous conversation'}
 
 USER MESSAGE: "${message}"
 
-Respond helpfully but WITHOUT mentioning specific meal names.`;
+Respond naturally and intelligently to what the user actually asked. Be specific and helpful, not generic.`;
 
     const response = await groq.chat.completions.create({
       model: "llama-3.3-70b-versatile",
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "user", content: message },
+        { role: "user", content: message }
       ],
       temperature: 0.7,
-      max_tokens: 100,
+      max_tokens: 300,
     });
 
     return {
       text: response.choices[0].message.content.trim()
     };
   } catch (error) {
-    console.error("Chat response error:", error);
-    return {
-      text: "I'm here to help! What would you like to search for? 😊"
-    };
+    console.error("❌ Chat response error:", error.message || error);
+    
+    // Rate limit fallback - try to give helpful response based on query
+    if (error.status === 429 || error.code === 'rate_limit_exceeded') {
+      const msg = message.toLowerCase().trim();
+      
+      // Provide contextual fallbacks
+      if (msg.includes('who') || msg.includes('what') || msg.includes('how')) {
+        return { text: "I'm your Homely Meals assistant! 🤖 I can help you find meals, browse cooks, track orders, or answer questions. What would you like to do?" };
+      }
+      
+      return { text: "I'm experiencing high demand right now. Try asking about meals, cooks, or orders!" };
+    }
+    
+    // Check if it's a simple number (price query)
+    const numberMatch = message.match(/^\d+$/);
+    if (numberMatch) {
+      return { text: `Looking for meals under Rs. ${numberMatch[0]}? Let me search for you!` };
+    }
+    
+    // Check for common unclear queries
+    const msg = message.toLowerCase().trim();
+    if (msg.includes('who') || msg === 'what' || msg === 'huh' || msg === 'hmm') {
+      return { text: "I'm your Homely Meals assistant! 🤖 I can help you find meals, browse cooks, track orders, or answer questions. What would you like to do?" };
+    }
+    
+    // Generic error fallback - but still try to be helpful
+    return { text: "I'm having trouble understanding. Could you rephrase? For example: 'tea under 50' or 'best biryani'" };
   }
 }
 

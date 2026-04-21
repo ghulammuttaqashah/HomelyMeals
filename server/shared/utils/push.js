@@ -2,12 +2,24 @@ import webpush from "web-push";
 import dotenv from "dotenv";
 dotenv.config();
 
-// Configure web-push with VAPID keys
-webpush.setVapidDetails(
-  "mailto:homelymeals4@gmail.com",
-  process.env.VAPID_PUBLIC_KEY,
-  process.env.VAPID_PRIVATE_KEY
-);
+// Configure web-push with VAPID keys (only if valid keys are provided)
+try {
+  const vapidPublicKey = process.env.VAPID_PUBLIC_KEY;
+  const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
+  
+  if (vapidPublicKey && vapidPrivateKey && vapidPublicKey.length > 20 && vapidPrivateKey.length > 20) {
+    webpush.setVapidDetails(
+      "mailto:homelymeals4@gmail.com",
+      vapidPublicKey,
+      vapidPrivateKey
+    );
+    console.log("✅ Web push notifications configured");
+  } else {
+    console.warn("⚠️  VAPID keys not configured - push notifications disabled");
+  }
+} catch (error) {
+  console.warn("⚠️  Failed to configure web push:", error.message);
+}
 
 export const sendPushNotification = async (subscription, payload) => {
   if (!subscription) {

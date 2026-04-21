@@ -1110,32 +1110,6 @@ const ChatbotFinal = () => {
     setIsLoading(true)
 
     try {
-      // Check if it's a goodbye/acknowledgment after goodbye
-      const goodbyeKeywords = ['bye', 'goodbye', 'see you', 'talk later'];
-      const acknowledgmentKeywords = ['yes', 'sure', 'ok', 'okay', 'thanks', 'thank you'];
-      
-      const isGoodbye = goodbyeKeywords.some(keyword => 
-        userMessage.toLowerCase().includes(keyword)
-      );
-      
-      const isAcknowledgment = acknowledgmentKeywords.some(keyword => 
-        userMessage.toLowerCase().trim() === keyword
-      );
-      
-      // Check if previous message was a goodbye
-      const lastBotMessage = chatHistory.slice().reverse().find(msg => msg.sender === 'bot');
-      const previousWasGoodbye = lastBotMessage && goodbyeKeywords.some(keyword => 
-        lastBotMessage.text.toLowerCase().includes(keyword)
-      );
-      
-      // If user is acknowledging after goodbye, just clear and show menu
-      if (isAcknowledgment && previousWasGoodbye) {
-        addChatMessage('bot', 'Feel free to use the menu options below to get started! 😊')
-        setMenu(null)
-        setIsLoading(false)
-        return
-      }
-      
       // Use GENERAL AI with context awareness
       const response = await sendAdvancedChatMessage(userMessage, chatHistory)
       
@@ -1143,31 +1117,50 @@ const ChatbotFinal = () => {
         // Store bot response with data and filters for follow-up context
         addChatMessage('bot', response.response, response.data || null, response.filters || null)
         
-        if (isGoodbye) {
-          // Clear menu on goodbye
-          setMenu(null)
-        } else if (response.hasData && response.data && response.data.length > 0) {
-          // If response has data, show meal cards with back button
+        // If response has buttons (navigation), show them
+        if (response.showButtons && response.buttons && response.buttons.length > 0) {
+          setMenu({
+            type: 'buttons',
+            buttons: response.buttons
+          })
+        }
+        // If response has data, show meal cards with Main Menu button
+        else if (response.hasData && response.data && response.data.length > 0) {
           setMenu({
             type: 'cards',
             data: response.data,
             buttons: [
-              { label: '← Back', action: 'main_menu' }
+              { label: '🏠 Main Menu', action: 'main_menu' }
             ]
           })
         } else {
-          // No data - clear previous cards
-          setMenu(null)
+          // No data - show Main Menu button only
+          setMenu({
+            type: 'buttons',
+            buttons: [
+              { label: '🏠 Main Menu', action: 'main_menu' }
+            ]
+          })
         }
       } else {
         addChatMessage('bot', 'Sorry, I couldn\'t process that. Try rephrasing!')
-        setMenu(null) // Clear cards on error
+        setMenu({
+          type: 'buttons',
+          buttons: [
+            { label: '🏠 Main Menu', action: 'main_menu' }
+          ]
+        })
       }
       
     } catch (error) {
       console.error('Chat error:', error)
       addChatMessage('bot', 'Oops! Something went wrong. Please try again!')
-      setMenu(null) // Clear cards on error
+      setMenu({
+        type: 'buttons',
+        buttons: [
+          { label: '🏠 Main Menu', action: 'main_menu' }
+        ]
+      })
     } finally {
       setIsLoading(false)
     }
@@ -1558,19 +1551,18 @@ const ChatbotFinal = () => {
                 </div>
               </div>
               <div className="flex items-center gap-1">
-                {chatHistory.length > 0 && (
-                  <button
-                    onClick={showMainMenu}
-                    className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors"
-                    title="Clear & Restart"
-                  >
-                    <FiHome className="w-4 h-4" />
-                  </button>
-                )}
+                {/* Always show home button to clear and return to main menu */}
+                <button
+                  onClick={showMainMenu}
+                  className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors"
+                  title="Main Menu / Clear Chat"
+                >
+                  <FiHome className="w-4 h-4" />
+                </button>
                 <button
                   onClick={toggleChat}
                   className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors"
-                  title="Close"
+                  title="Close Chat"
                 >
                   <FiX className="w-5 h-5" />
                 </button>
@@ -2056,20 +2048,9 @@ const ChatbotFinal = () => {
                 <FiSend className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             </div>
-            <div className="flex items-center justify-between mt-2">
-              <p className="text-[10px] sm:text-xs text-gray-500">
-                💬 AI-Powered Search
-              </p>
-              {chatHistory.length > 0 && (
-                <button
-                  onClick={showMainMenu}
-                  className="text-[10px] sm:text-xs text-orange-600 hover:text-orange-700 font-medium flex items-center gap-1"
-                >
-                  <FiHome className="w-3 h-3" />
-                  Main Menu
-                </button>
-              )}
-            </div>
+            <p className="text-[10px] sm:text-xs text-gray-500 mt-2 text-center">
+              💬 AI-Powered Search • Press Enter to send
+            </p>
           </div>
         </div>
         </>
