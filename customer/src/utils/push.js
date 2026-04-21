@@ -15,6 +15,13 @@ function urlBase64ToUint8Array(base64String) {
   return outputArray;
 }
 
+export const askNotificationPermission = async () => {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'default') {
+    await Notification.requestPermission();
+  }
+};
+
 export const subscribeUserToPush = async () => {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
     console.log('Push messaging is not supported.');

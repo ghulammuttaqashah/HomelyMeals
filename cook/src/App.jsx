@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from './context/AuthContext'
@@ -24,8 +25,14 @@ import Complaints from './pages/Complaints'
 import FileComplaint from './pages/FileComplaint'
 import Subscription from './pages/Subscription'
 import PaymentSettings from './pages/PaymentSettings'
+import { askNotificationPermission } from './utils/push'
 
 const App = () => {
+  useEffect(() => {
+    // Ask for permission when app opens (will not push to DB until logon)
+    askNotificationPermission();
+  }, []);
+
   return (
     <BrowserRouter>
       <AuthProvider>
