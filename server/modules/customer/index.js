@@ -21,7 +21,7 @@ router.use("/reviews", customerReviewRoutes);
 router.use("/complaints", customerComplaintRoutes);
 router.use("/payments", customerPaymentRoutes);
 router.use("/analytics", customerAnalyticsRoutes);
-router.use("/chatbot", chatbotRoutes);
-router.use("/chatbot", customerChatbotRoutes);
+router.use("/chatbot", chatbotRoutes); // MAIN CHAT - must be FIRST
+router.use("/chatbot", customerChatbotRoutes); // Other chatbot features
 
 export default router;

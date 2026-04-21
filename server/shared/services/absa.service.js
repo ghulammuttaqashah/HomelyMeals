@@ -161,7 +161,7 @@ export const calculateAnalytics = (reviews) => {
 
     return {
         aspects,
-        averageRating: Math.round(averageRating * 10) / 10,
+        averageRating: Math.round(averageRating),
         totalReviews: reviews.length
     };
 };

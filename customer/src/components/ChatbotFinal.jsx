@@ -99,12 +99,14 @@ const ChatbotFinal = () => {
   // MESSAGE HELPERS
   // ============================================
   
-  // Add chat message (user/bot conversation)
-  const addChatMessage = (sender, text) => {
+  // Add chat message (user/bot conversation) with optional data and filters
+  const addChatMessage = (sender, text, data = null, filters = null) => {
     const message = {
       sender,
       text,
-      timestamp: new Date()
+      timestamp: new Date(),
+      data: data, // Store meal data for follow-up context
+      filters: filters // Store filters for follow-up context
     }
     setChatHistory(prev => [...prev, message])
   }
@@ -1108,21 +1110,64 @@ const ChatbotFinal = () => {
     setIsLoading(true)
 
     try {
-      // Use GENERAL AI (no UI changes, only chat responses)
+      // Check if it's a goodbye/acknowledgment after goodbye
+      const goodbyeKeywords = ['bye', 'goodbye', 'see you', 'talk later'];
+      const acknowledgmentKeywords = ['yes', 'sure', 'ok', 'okay', 'thanks', 'thank you'];
+      
+      const isGoodbye = goodbyeKeywords.some(keyword => 
+        userMessage.toLowerCase().includes(keyword)
+      );
+      
+      const isAcknowledgment = acknowledgmentKeywords.some(keyword => 
+        userMessage.toLowerCase().trim() === keyword
+      );
+      
+      // Check if previous message was a goodbye
+      const lastBotMessage = chatHistory.slice().reverse().find(msg => msg.sender === 'bot');
+      const previousWasGoodbye = lastBotMessage && goodbyeKeywords.some(keyword => 
+        lastBotMessage.text.toLowerCase().includes(keyword)
+      );
+      
+      // If user is acknowledging after goodbye, just clear and show menu
+      if (isAcknowledgment && previousWasGoodbye) {
+        addChatMessage('bot', 'Feel free to use the menu options below to get started! 😊')
+        setMenu(null)
+        setIsLoading(false)
+        return
+      }
+      
+      // Use GENERAL AI with context awareness
       const response = await sendAdvancedChatMessage(userMessage, chatHistory)
       
       if (response.success) {
-        addChatMessage('bot', response.response)
+        // Store bot response with data and filters for follow-up context
+        addChatMessage('bot', response.response, response.data || null, response.filters || null)
         
-        // Global chat NEVER shows cards - only text responses
-        // If user wants to search meals, they should use Feature Search
+        if (isGoodbye) {
+          // Clear menu on goodbye
+          setMenu(null)
+        } else if (response.hasData && response.data && response.data.length > 0) {
+          // If response has data, show meal cards with back button
+          setMenu({
+            type: 'cards',
+            data: response.data,
+            buttons: [
+              { label: '← Back', action: 'main_menu' }
+            ]
+          })
+        } else {
+          // No data - clear previous cards
+          setMenu(null)
+        }
       } else {
         addChatMessage('bot', 'Sorry, I couldn\'t process that. Try rephrasing!')
+        setMenu(null) // Clear cards on error
       }
       
     } catch (error) {
       console.error('Chat error:', error)
       addChatMessage('bot', 'Oops! Something went wrong. Please try again!')
+      setMenu(null) // Clear cards on error
     } finally {
       setIsLoading(false)
     }
@@ -1513,11 +1558,11 @@ const ChatbotFinal = () => {
                 </div>
               </div>
               <div className="flex items-center gap-1">
-                {currentView !== 'main' && (
+                {chatHistory.length > 0 && (
                   <button
                     onClick={showMainMenu}
                     className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors"
-                    title="Main Menu"
+                    title="Clear & Restart"
                   >
                     <FiHome className="w-4 h-4" />
                   </button>
@@ -1525,6 +1570,7 @@ const ChatbotFinal = () => {
                 <button
                   onClick={toggleChat}
                   className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors"
+                  title="Close"
                 >
                   <FiX className="w-5 h-5" />
                 </button>
@@ -2010,9 +2056,20 @@ const ChatbotFinal = () => {
                 <FiSend className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             </div>
-            <p className="text-[10px] sm:text-xs text-gray-500 mt-2 text-center">
-              💬 AI-Powered Search • Press Enter to send
-            </p>
+            <div className="flex items-center justify-between mt-2">
+              <p className="text-[10px] sm:text-xs text-gray-500">
+                💬 AI-Powered Search
+              </p>
+              {chatHistory.length > 0 && (
+                <button
+                  onClick={showMainMenu}
+                  className="text-[10px] sm:text-xs text-orange-600 hover:text-orange-700 font-medium flex items-center gap-1"
+                >
+                  <FiHome className="w-3 h-3" />
+                  Main Menu
+                </button>
+              )}
+            </div>
           </div>
         </div>
         </>

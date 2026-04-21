@@ -1,6 +1,10 @@
 // shared/services/chatbot.service.js
 import Groq from 'groq-sdk';
 import { GROQ_API_KEY } from '../config/env.js';
+import CookMeal from '../../modules/cook/models/cookMeal.model.js';
+import { Order } from '../models/order.model.js';
+import Review from '../models/review.model.js';
+import { hasActiveCookSubscription } from '../utils/subscriptionAccess.js';
 
 const groq = new Groq({ apiKey: GROQ_API_KEY });
 
@@ -11,6 +15,194 @@ if (GROQ_API_KEY) {
     console.log('🔑 API Key (first 10 chars):', GROQ_API_KEY.substring(0, 10) + '...');
     console.log('🔑 API Key Length:', GROQ_API_KEY.length);
 }
+
+/**
+ * Fetch REAL meals from database based on entities
+ * NO FAKE DATA - ONLY DATABASE RESULTS
+ */
+const fetchRealMeals = async (entities) => {
+    try {
+        const { food, price, preference } = entities;
+        
+        console.log('🔍 Fetching meals with filters:', { food, price, preference });
+        
+        // Build query
+        const query = { availability: 'Available' };
+        
+        // Add food filter if specified
+        if (food) {
+            query.name = { $regex: food, $options: 'i' };
+        }
+        
+        // Add price filter if specified
+        if (price) {
+            query.price = { $lte: price };
+        }
+        
+        // Fetch meals from database
+        let meals = await CookMeal.find(query)
+            .populate('cookId', 'name address.city averageRating')
+            .sort({ createdAt: -1 })
+            .limit(50)
+            .lean();
+        
+        console.log(`📊 Found ${meals.length} meals in database`);
+        
+        // Filter by active subscription
+        const mealsWithSubscription = [];
+        for (const meal of meals) {
+            if (meal.cookId) {
+                const hasSubscription = await hasActiveCookSubscription(meal.cookId._id);
+                if (hasSubscription) {
+                    mealsWithSubscription.push(meal);
+                }
+            }
+        }
+        
+        console.log(`✅ ${mealsWithSubscription.length} meals from subscribed cooks`);
+        
+        // Enrich with ratings and order counts
+        const enrichedMeals = await Promise.all(
+            mealsWithSubscription.map(async (meal) => {
+                // Get reviews
+                const reviews = await Review.find({
+                    mealId: meal._id,
+                    reviewType: 'meal'
+                }).lean();
+                
+                let averageRating = 0;
+                if (reviews.length > 0) {
+                    averageRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
+                }
+                
+                // Get order count
+                const orderStats = await Order.aggregate([
+                    {
+                        $match: {
+                            status: 'delivered',
+                            'items.mealId': meal._id
+                        }
+                    },
+                    { $unwind: '$items' },
+                    {
+                        $match: {
+                            'items.mealId': meal._id
+                        }
+                    },
+                    {
+                        $group: {
+                            _id: null,
+                            totalQuantity: { $sum: '$items.quantity' }
+                        }
+                    }
+                ]);
+                
+                const totalOrders = orderStats.length > 0 ? orderStats[0].totalQuantity : 0;
+                
+                return {
+                    _id: meal._id,
+                    name: meal.name,
+                    description: meal.description,
+                    price: meal.price,
+                    category: meal.category,
+                    itemImage: meal.itemImage,
+                    cookId: meal.cookId._id,
+                    cookName: meal.cookId.name,
+                    cookCity: meal.cookId.address?.city,
+                    averageRating: Math.round(averageRating * 10) / 10,
+                    reviewCount: reviews.length,
+                    totalOrders
+                };
+            })
+        );
+        
+        // Apply preference-based sorting
+        let sortedMeals = enrichedMeals;
+        
+        if (preference === 'cheap') {
+            sortedMeals.sort((a, b) => a.price - b.price);
+        } else if (preference === 'tasty' || preference === 'popular') {
+            sortedMeals.sort((a, b) => {
+                if (b.averageRating !== a.averageRating) {
+                    return b.averageRating - a.averageRating;
+                }
+                return b.totalOrders - a.totalOrders;
+            });
+        } else if (preference === 'healthy') {
+            // Filter for healthy keywords
+            sortedMeals = sortedMeals.filter(m => {
+                const name = m.name.toLowerCase();
+                return name.includes('salad') || name.includes('grilled') || 
+                       name.includes('steamed') || name.includes('vegetable') ||
+                       name.includes('soup') || name.includes('boiled');
+            });
+        }
+        
+        // Remove duplicates by name (case-insensitive)
+        const uniqueMeals = [];
+        const seenNames = new Set();
+        
+        for (const meal of sortedMeals) {
+            const normalizedName = meal.name.toLowerCase().trim();
+            if (!seenNames.has(normalizedName)) {
+                seenNames.add(normalizedName);
+                uniqueMeals.push(meal);
+            }
+        }
+        
+        // Limit to top 5 results
+        const finalMeals = uniqueMeals.slice(0, 5);
+        
+        console.log(`🎯 Returning ${finalMeals.length} unique meals`);
+        
+        return finalMeals;
+        
+    } catch (error) {
+        console.error('❌ Error fetching real meals:', error);
+        return [];
+    }
+};
+
+/**
+ * Generate response text with meal count
+ */
+const generateMealResponseText = (entities, meals) => {
+    const { food, price, preference } = entities;
+    
+    let parts = [];
+    if (food) parts.push(food);
+    if (preference) parts.push(preference);
+    if (price) parts.push(`under Rs ${price}`);
+    
+    const query = parts.length > 0 ? parts.join(', ') : 'meals';
+    
+    if (meals.length === 0) {
+        return `I couldn't find any ${query} right now. Try adjusting your search!`;
+    }
+    
+    return `Found ${meals.length} ${query} for you! Here are the best options:`;
+};
+
+/**
+ * Generate text when no meals found
+ */
+const generateNoMealsText = (entities) => {
+    const { food, price, preference } = entities;
+    
+    let message = 'No meals found';
+    
+    if (food && price) {
+        message = `No ${food} found under Rs ${price}. Try increasing your budget or search for other items!`;
+    } else if (food) {
+        message = `No ${food} available right now. Try searching for other dishes!`;
+    } else if (price) {
+        message = `No meals found under Rs ${price}. Try increasing your budget!`;
+    } else if (preference === 'healthy') {
+        message = 'No healthy meals available right now. Check back soon!';
+    }
+    
+    return message;
+};
 
 /**
  * Rule-based intent classifier (fallback if AI fails)
@@ -163,7 +355,7 @@ const extractEntitiesRuleBased = (message, conversationHistory = []) => {
 /**
  * Generate response text based on intent
  */
-const generateResponseText = (intent, entities) => {
+const generateResponseText = (intent, entities, meals = []) => {
     const { food, price, preference } = entities;
     
     switch (intent) {
@@ -182,6 +374,10 @@ const generateResponseText = (intent, entities) => {
         case 'budget_meals':
             return 'Looking for budget-friendly meals? I\'ll show you great options! 💰';
         case 'recommendation':
+            if (meals && meals.length > 0) {
+                return generateMealResponseText(entities, meals);
+            }
+            
             let parts = [];
             if (food) parts.push(food);
             if (preference) parts.push(preference);
@@ -351,7 +547,7 @@ RETURN ONLY JSON. NO OTHER TEXT.`;
  * Process user message using AI
  * @param {string} userMessage - User's message
  * @param {Array} conversationHistory - Previous messages for context
- * @returns {Promise<Object>} AI response with text, intent, entities, and actions
+ * @returns {Promise<Object>} AI response with text, intent, entities, meals, and actions
  */
 export const processMessage = async (userMessage, conversationHistory = []) => {
     try {
@@ -365,6 +561,7 @@ export const processMessage = async (userMessage, conversationHistory = []) => {
                     preference: null
                 },
                 sentiment: 'neutral',
+                meals: [],
                 suggestedActions: ['view_meals', 'track_order']
             };
         }
@@ -374,21 +571,22 @@ export const processMessage = async (userMessage, conversationHistory = []) => {
         // Check if Groq API key is available
         if (!GROQ_API_KEY) {
             console.warn('⚠️ GROQ_API_KEY not found, using rule-based classification');
-            console.log('Environment check - API KEY:', GROQ_API_KEY ? 'LOADED' : 'MISSING');
             const ruleIntent = classifyIntentRuleBased(userMessage, conversationHistory);
             const ruleEntities = extractEntitiesRuleBased(userMessage, conversationHistory);
             
+            // Fetch real meals if recommendation intent
+            const meals = ruleIntent === 'recommendation' ? 
+                await fetchRealMeals(ruleEntities) : [];
+            
             return {
-                text: generateResponseText(ruleIntent, ruleEntities),
+                text: generateResponseText(ruleIntent, ruleEntities, meals),
                 intent: ruleIntent,
                 entities: ruleEntities,
                 sentiment: 'neutral',
+                meals: meals,
                 suggestedActions: getSuggestedActions(ruleIntent)
             };
         }
-
-        console.log('✅ API KEY Status:', GROQ_API_KEY ? 'LOADED' : 'MISSING');
-        console.log('🔑 API KEY (first 10 chars):', GROQ_API_KEY ? GROQ_API_KEY.substring(0, 10) + '...' : 'N/A');
 
         // Build messages array with conversation history
         const messages = [
@@ -398,7 +596,6 @@ export const processMessage = async (userMessage, conversationHistory = []) => {
         // Add recent conversation history (last 10 messages for better context)
         const recentHistory = conversationHistory.slice(-10);
         recentHistory.forEach(msg => {
-            // Only add messages with actual content
             if (msg.text && msg.text.trim()) {
                 messages.push({
                     role: msg.sender === 'user' ? 'user' : 'assistant',
@@ -414,23 +611,11 @@ export const processMessage = async (userMessage, conversationHistory = []) => {
         });
 
         console.log('Conversation history length:', recentHistory.length);
-        console.log('Total messages sent to AI:', messages.length);
 
-        // Define and verify model - using llama-3.3-70b-versatile (latest and most powerful)
         const MODEL_NAME = 'llama-3.3-70b-versatile';
         console.log('🚀 Using model:', MODEL_NAME);
 
-        console.log('\n========== GROQ API CALL ==========');
-        console.log('🚀 Calling Groq API...');
-        console.log('📦 Model: llama-3.3-70b-versatile');
-        console.log('🔧 Temperature: 0.3');
-        console.log('📝 Messages being sent to LLM:');
-        messages.forEach((msg, idx) => {
-            console.log(`  [${idx}] ${msg.role}: ${msg.content.substring(0, 100)}${msg.content.length > 100 ? '...' : ''}`);
-        });
-        console.log('===================================\n');
-
-        // Call Groq API with verified model
+        // Call Groq API
         const response = await groq.chat.completions.create({
             model: MODEL_NAME,
             messages: messages,
@@ -438,17 +623,10 @@ export const processMessage = async (userMessage, conversationHistory = []) => {
             max_tokens: 300
         });
 
-        console.log('\n========== GROQ API RESPONSE ==========');
         console.log('✅ API Response Received from Groq!');
-        console.log('📊 Model Used:', response.model);
-        console.log('📊 Response ID:', response.id);
-        console.log('📊 Finish Reason:', response.choices[0].finish_reason);
-        console.log('=======================================\n');
 
         let output = response.choices[0].message.content.trim();
         
-        console.log('📄 AI RAW OUTPUT:', output);
-
         // Clean up output - remove markdown code blocks if present
         if (output.startsWith('```json')) {
             output = output.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
@@ -462,22 +640,28 @@ export const processMessage = async (userMessage, conversationHistory = []) => {
         let result;
         try {
             result = JSON.parse(output);
-            console.log('AI PARSED RESULT:', result);
+            console.log('✅ AI PARSED RESULT:', JSON.stringify(result, null, 2));
+            console.log('🎯 Intent:', result.intent);
+            console.log('🍽️ Food:', result.food);
+            console.log('💰 Price:', result.price);
+            console.log('⭐ Preference:', result.preference);
         } catch (parseError) {
-            console.error('JSON Parse Error:', parseError.message);
-            console.error('Failed to parse:', output);
+            console.error('❌ JSON Parse Error:', parseError.message);
+            console.error('❌ Failed to parse:', output);
             
-            // If JSON parsing fails, return a fallback with the raw text
+            // Fallback to rule-based
+            const ruleIntent = classifyIntentRuleBased(userMessage, conversationHistory);
+            const ruleEntities = extractEntitiesRuleBased(userMessage, conversationHistory);
+            const meals = ruleIntent === 'recommendation' ? 
+                await fetchRealMeals(ruleEntities) : [];
+            
             return {
-                text: output || 'How can I help you? 😊',
-                intent: 'fallback',
-                entities: {
-                    food: null,
-                    price: null,
-                    preference: null
-                },
+                text: generateResponseText(ruleIntent, ruleEntities, meals),
+                intent: ruleIntent,
+                entities: ruleEntities,
                 sentiment: 'neutral',
-                suggestedActions: ['view_meals', 'track_order', 'file_complaint']
+                meals: meals,
+                suggestedActions: getSuggestedActions(ruleIntent)
             };
         }
 
@@ -491,11 +675,64 @@ export const processMessage = async (userMessage, conversationHistory = []) => {
                 preference: result.preference || null
             },
             sentiment: result.sentiment || 'neutral',
+            meals: [],
             suggestedActions: result.suggestedActions || ['view_meals', 'track_order']
         };
 
         console.log('🎯 AI Response Intent:', finalResponse.intent);
         console.log('📦 AI Response Entities:', finalResponse.entities);
+        
+        // SAFETY CHECK: If entities have food/price but intent is not recommendation, force it
+        if ((finalResponse.entities.food || finalResponse.entities.price) && 
+            finalResponse.intent !== 'recommendation') {
+            console.log('⚠️ SAFETY CHECK: Forcing intent to recommendation due to food/price entities');
+            finalResponse.intent = 'recommendation';
+        }
+        
+        // ADDITIONAL SAFETY: Check message for food keywords
+        const foodKeywords = ['biryani', 'pizza', 'burger', 'chicken', 'rice', 'pasta', 
+                             'noodles', 'sandwich', 'meal', 'food', 'dish', 'soup', 'salad',
+                             'karahi', 'korma', 'tikka', 'kebab', 'paratha', 'naan'];
+        const msgLower = userMessage.toLowerCase();
+        const hasFoodKeyword = foodKeywords.some(keyword => msgLower.includes(keyword));
+        const hasPrice = /\d+/.test(msgLower);
+        
+        if ((hasFoodKeyword || hasPrice) && finalResponse.intent !== 'recommendation') {
+            console.log('⚠️ SAFETY CHECK: Message contains food/price keywords, forcing recommendation');
+            finalResponse.intent = 'recommendation';
+            
+            // Extract entities if AI missed them
+            if (!finalResponse.entities.food && hasFoodKeyword) {
+                const detectedFood = foodKeywords.find(keyword => msgLower.includes(keyword));
+                finalResponse.entities.food = detectedFood;
+                console.log('🔧 Extracted food from message:', detectedFood);
+            }
+            
+            if (!finalResponse.entities.price && hasPrice) {
+                const priceMatch = msgLower.match(/\d+/);
+                finalResponse.entities.price = priceMatch ? parseInt(priceMatch[0]) : null;
+                console.log('🔧 Extracted price from message:', finalResponse.entities.price);
+            }
+        }
+
+        // CRITICAL: Fetch REAL meals from database if recommendation intent
+        if (finalResponse.intent === 'recommendation') {
+            console.log('🍽️ ========== FETCHING REAL MEALS ==========');
+            console.log('🔍 Entities:', finalResponse.entities);
+            finalResponse.meals = await fetchRealMeals(finalResponse.entities);
+            console.log(`✅ Found ${finalResponse.meals.length} real meals from database`);
+            if (finalResponse.meals.length > 0) {
+                console.log('📋 Meals:', finalResponse.meals.map(m => `${m.name} - Rs ${m.price}`));
+            }
+            console.log('==========================================');
+            
+            // Update response text with meal count
+            if (finalResponse.meals.length > 0) {
+                finalResponse.text = generateMealResponseText(finalResponse.entities, finalResponse.meals);
+            } else {
+                finalResponse.text = generateNoMealsText(finalResponse.entities);
+            }
+        }
 
         // If AI returned fallback, use rule-based classification
         if (finalResponse.intent === 'fallback') {
@@ -503,21 +740,19 @@ export const processMessage = async (userMessage, conversationHistory = []) => {
             
             const ruleIntent = classifyIntentRuleBased(userMessage, conversationHistory);
             const ruleEntities = extractEntitiesRuleBased(userMessage, conversationHistory);
-            
-            console.log('Rule-based intent:', ruleIntent);
-            console.log('Rule-based entities:', ruleEntities);
+            const meals = ruleIntent === 'recommendation' ? 
+                await fetchRealMeals(ruleEntities) : [];
             
             finalResponse = {
-                text: generateResponseText(ruleIntent, ruleEntities),
+                text: generateResponseText(ruleIntent, ruleEntities, meals),
                 intent: ruleIntent,
                 entities: ruleEntities,
                 sentiment: userMessage.toLowerCase().includes('bad') || 
                           userMessage.toLowerCase().includes('worst') || 
                           userMessage.toLowerCase().includes('terrible') ? 'negative' : 'neutral',
+                meals: meals,
                 suggestedActions: getSuggestedActions(ruleIntent)
             };
-            
-            console.log('Rule-based FINAL RESPONSE:', finalResponse);
         }
 
         console.log('FINAL RESPONSE:', finalResponse);
@@ -527,44 +762,25 @@ export const processMessage = async (userMessage, conversationHistory = []) => {
     } catch (error) {
         console.error('\n❌ ========== GROQ API ERROR ==========');
         console.error('❌ GROQ ERROR:', error.response?.data || error.message);
-        console.error('Error Type:', error.constructor.name);
-        console.error('Error Message:', error.message);
-        
-        // Check for different error types
-        if (error.response) {
-            console.error('📊 Response Status:', error.response.status);
-            console.error('📊 Response Status Text:', error.response.statusText);
-            console.error('📊 Response Data:', JSON.stringify(error.response.data, null, 2));
-        } else if (error.request) {
-            console.error('📡 No Response Received');
-        } else {
-            console.error('⚙️ Setup Error:', error.message);
-        }
-        
-        console.error('🔍 Full Error Stack:', error.stack);
-        console.error('=======================================\n');
         
         // Use rule-based classification as fallback
         console.log('🔄 Falling back to rule-based classification...');
         
         const ruleIntent = classifyIntentRuleBased(userMessage, conversationHistory);
         const ruleEntities = extractEntitiesRuleBased(userMessage, conversationHistory);
-        
-        console.log('Rule-based intent:', ruleIntent);
-        console.log('Rule-based entities:', ruleEntities);
+        const meals = ruleIntent === 'recommendation' ? 
+            await fetchRealMeals(ruleEntities) : [];
         
         const sentiment = userMessage.toLowerCase().includes('bad') || 
                          userMessage.toLowerCase().includes('worst') || 
                          userMessage.toLowerCase().includes('terrible') ? 'negative' : 'neutral';
         
-        // Return error message without debug marker
-        const errorMessage = generateResponseText(ruleIntent, ruleEntities);
-        
         return {
-            text: errorMessage,
+            text: generateResponseText(ruleIntent, ruleEntities, meals),
             intent: ruleIntent,
             entities: ruleEntities,
             sentiment: sentiment,
+            meals: meals,
             suggestedActions: getSuggestedActions(ruleIntent)
         };
     }

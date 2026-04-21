@@ -32,7 +32,7 @@ const DrillDownAnalytics = ({ analytics, type, entityId }) => {
                     </div>
                     <div className="text-right">
                         <div className="text-2xl font-bold text-orange-600">
-                            {analytics.averageRating.toFixed(1)}
+                            {Math.round(analytics.averageRating)}
                         </div>
                         <div className="text-sm text-gray-600">
                             {analytics.totalReviews} reviews
@@ -60,7 +60,7 @@ const DrillDownAnalytics = ({ analytics, type, entityId }) => {
                             height={100}
                             style={{ cursor: 'pointer' }}
                         />
-                        <YAxis />
+                        <YAxis allowDecimals={false} />
                         <Tooltip 
                             cursor={{ fill: 'rgba(251, 146, 60, 0.1)' }}
                             contentStyle={{ 
