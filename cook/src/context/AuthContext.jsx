@@ -99,6 +99,10 @@ export const AuthProvider = ({ children }) => {
   }, [])
 
   const signin = useCallback(async (credentials) => {
+    // Request permission immediately while gesture is valid
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
     const data = await signinAPI(credentials)
     setCook(data?.cook ?? { email: credentials.email })
     setIsAuthenticated(true)

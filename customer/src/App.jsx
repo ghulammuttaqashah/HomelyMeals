@@ -156,7 +156,7 @@ const App = () => {
           <Toaster 
             position="top-right" 
             toastOptions={{
-              duration: 3000,
+              duration: 1500,
               style: {
                 background: '#363636',
                 color: '#fff',

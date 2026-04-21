@@ -121,6 +121,10 @@ export const AuthProvider = ({ children }) => {
   }, [])
 
   const signin = useCallback(async (credentials) => {
+    // Request permission immediately while gesture is valid
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
     const data = await signinAPI(credentials)
     setCustomer(data?.customer ?? { email: credentials.email })
     setIsAuthenticated(true)
