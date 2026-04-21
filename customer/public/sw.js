@@ -1,6 +1,6 @@
-const CACHE_NAME = 'homely-meals-customer-v3';
-const STATIC_CACHE = 'static-customer-v3';
-const DYNAMIC_CACHE = 'dynamic-customer-v3';
+const CACHE_NAME = 'homely-meals-customer-v4';
+const STATIC_CACHE = 'static-customer-v4';
+const DYNAMIC_CACHE = 'dynamic-customer-v4';
 
 // Assets to cache on install
 const STATIC_ASSETS = [
@@ -8,7 +8,7 @@ const STATIC_ASSETS = [
   '/index.html',
   '/manifest.json',
   '/mobileapp.png',
-  '/customer+admin.png',
+  '/notification-icon.png',
 ];
 
 // Install event - cache static assets
@@ -119,7 +119,7 @@ self.addEventListener('push', (event) => {
 
   const options = {
     body: data.body,
-    icon: '/customer+admin.png', // Main image shown in the popup
+    icon: '/notification-icon.png', // Main image shown in the popup
     badge: '/mobileapp.png', // Small monochrome icon for the Android status bar
     vibrate: [100, 50, 200, 50, 100],
     requireInteraction: true, // Prevents notification from auto-closing
