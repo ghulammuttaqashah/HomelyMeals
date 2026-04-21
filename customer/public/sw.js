@@ -1,6 +1,6 @@
-const CACHE_NAME = 'homely-meals-customer-v4';
-const STATIC_CACHE = 'static-customer-v4';
-const DYNAMIC_CACHE = 'dynamic-customer-v4';
+const CACHE_NAME = 'homely-meals-customer-v5';
+const STATIC_CACHE = 'static-customer-v5';
+const DYNAMIC_CACHE = 'dynamic-customer-v5';
 
 // Assets to cache on install
 const STATIC_ASSETS = [
@@ -105,14 +105,17 @@ self.addEventListener('fetch', (event) => {
 
 // Push notification event
 self.addEventListener('push', (event) => {
-  console.log('[Service Worker] Push received');
+  console.log('[Service Worker] Push event received!');
+  console.log('[Service Worker] Push event data:', event.data);
   
   let data = { title: 'Homely Meals', body: 'You have a new notification' };
   
   if (event.data) {
     try {
       data = event.data.json();
+      console.log('[Service Worker] Parsed push data:', data);
     } catch (e) {
+      console.log('[Service Worker] Failed to parse JSON, using text');
       data.body = event.data.text();
     }
   }
@@ -131,8 +134,12 @@ self.addEventListener('push', (event) => {
     actions: data.actions || [],
   };
 
+  console.log('[Service Worker] Showing notification with options:', options);
+
   event.waitUntil(
     self.registration.showNotification(data.title, options)
+      .then(() => console.log('[Service Worker] Notification shown successfully'))
+      .catch(err => console.error('[Service Worker] Error showing notification:', err))
   );
 });
 
