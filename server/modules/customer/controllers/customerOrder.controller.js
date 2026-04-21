@@ -4,6 +4,7 @@ import CookMeal from "../../cook/models/cookMeal.model.js";
 import { calculateDistance, isWithinDeliveryRange, calculateEstimatedDeliveryTime } from "../../../shared/utils/distance.js";
 import { calculateDeliveryCharges } from "../../../shared/utils/deliveryCharges.js";
 import { emitToCook, emitToCustomer, emitToAdmins } from "../../../shared/utils/socket.js";
+import { sendPushNotification } from "../../../shared/utils/push.js";
 import { hasActiveCookSubscription } from "../../../shared/utils/subscriptionAccess.js";
 
 /**
@@ -157,6 +158,14 @@ export const placeOrder = async (req, res) => {
       paymentMethod,
       message: "You have a new order!",
     });
+
+    if (cook && cook.pushSubscription) {
+      await sendPushNotification(cook.pushSubscription, {
+        title: "New Order Received!",
+        body: `Order #${order.orderNumber} for Rs. ${totalAmount}`,
+        url: `/orders/${order._id}`,
+      });
+    }
 
     return res.status(201).json({
       message: "Order placed successfully",
@@ -399,6 +408,15 @@ export const requestCancellation = async (req, res) => {
       message: `Customer requested to cancel order #${order.orderNumber}`,
     });
 
+    const cookForRequest = await Cook.findById(order.cookId);
+    if (cookForRequest && cookForRequest.pushSubscription) {
+      await sendPushNotification(cookForRequest.pushSubscription, {
+        title: "Cancellation Request",
+        body: `Customer requested to cancel order #${order.orderNumber}`,
+        url: `/orders/${order._id}`,
+      });
+    }
+
     return res.status(200).json({
       message: "Cancellation request sent to cook",
       order: {
@@ -462,6 +480,15 @@ export const uploadPaymentProof = async (req, res) => {
       orderNumber: order.orderNumber,
       message: "Customer has uploaded payment proof for verification",
     });
+
+    const cookForPayment = await Cook.findById(order.cookId);
+    if (cookForPayment && cookForPayment.pushSubscription) {
+      await sendPushNotification(cookForPayment.pushSubscription, {
+        title: "Payment Proof Uploaded",
+        body: `Payment proof uploaded for order #${order.orderNumber}`,
+        url: `/orders/${order._id}`,
+      });
+    }
 
     return res.status(200).json({
       message: "Payment proof uploaded successfully",

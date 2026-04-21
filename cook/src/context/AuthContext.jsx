@@ -10,6 +10,7 @@ import {
   getCurrentCook as getCurrentCookAPI,
 } from '../api/auth'
 import { initializeSocket, disconnectSocket } from '../utils/socket'
+import { subscribeUserToPush } from '../utils/push'
 
 const AuthContext = createContext(null)
 
@@ -34,8 +35,10 @@ export const AuthProvider = ({ children }) => {
         const data = await getCurrentCookAPI()
         setCook(data.cook)
         setIsAuthenticated(true)
-        // Initialize socket when authenticated
+        setIsAuthenticated(true)
+        // Initialize socket and push when authenticated
         initializeSocket()
+        subscribeUserToPush()
       } catch (error) {
         // Retry once after a short delay — handles browser session restore
         // where cookies may not be available on the very first request
@@ -99,8 +102,10 @@ export const AuthProvider = ({ children }) => {
     const data = await signinAPI(credentials)
     setCook(data?.cook ?? { email: credentials.email })
     setIsAuthenticated(true)
-    // Initialize socket after login
+    setIsAuthenticated(true)
+    // Initialize socket and push after login
     initializeSocket()
+    subscribeUserToPush()
     return data
   }, [])
 

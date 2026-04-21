@@ -1,6 +1,8 @@
 import { Order } from "../../../shared/models/order.model.js";
 import { calculateEstimatedDeliveryTime } from "../../../shared/utils/distance.js";
 import { emitToCustomer } from "../../../shared/utils/socket.js";
+import { sendPushNotification } from "../../../shared/utils/push.js";
+import { Customer } from "../../customer/models/customer.model.js";
 
 /**
  * Get cook's orders
@@ -212,6 +214,15 @@ export const updateOrderStatus = async (req, res) => {
       message: statusMessages[status],
     });
 
+    const customerForPush = await Customer.findById(order.customerId);
+    if (customerForPush && customerForPush.pushSubscription) {
+      await sendPushNotification(customerForPush.pushSubscription, {
+        title: "Order Update",
+        body: statusMessages[status],
+        url: `/orders/${order._id}`,
+      });
+    }
+
     return res.status(200).json({
       message: "Order status updated",
       order: {
@@ -261,6 +272,15 @@ export const verifyPayment = async (req, res) => {
         message: "Your payment has been verified!",
       });
 
+      const customerForPush = await Customer.findById(order.customerId);
+      if (customerForPush && customerForPush.pushSubscription) {
+        await sendPushNotification(customerForPush.pushSubscription, {
+          title: "Payment Verified",
+          body: `Payment for order #${order.orderNumber} successfully verified.`,
+          url: `/orders/${order._id}`,
+        });
+      }
+
       return res.status(200).json({
         message: "Payment verified successfully",
         order: {
@@ -288,6 +308,15 @@ export const verifyPayment = async (req, res) => {
         attemptsLeft: 3 - order.paymentRejectionCount,
         message: `Payment proof rejected: ${reason}. Please re-upload.`,
       });
+
+      const customerForPush = await Customer.findById(order.customerId);
+      if (customerForPush && customerForPush.pushSubscription) {
+        await sendPushNotification(customerForPush.pushSubscription, {
+          title: "Payment Rejected",
+          body: `Payment proof for order #${order.orderNumber} issue: ${reason}.`,
+          url: `/orders/${order._id}`,
+        });
+      }
 
       await order.save();
 

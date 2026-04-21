@@ -678,3 +678,28 @@ export const setDefaultAddress = async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
+
+/**
+ * Subscribe to Push Notifications
+ */
+export const subscribeToPush = async (req, res) => {
+  try {
+    const { subscription } = req.body;
+    if (!subscription) {
+      return res.status(400).json({ message: "Subscription object is required" });
+    }
+
+    const customer = await Customer.findById(req.user._id);
+    if (!customer) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+
+    customer.pushSubscription = subscription;
+    await customer.save();
+
+    return res.status(200).json({ message: "Subscribed successfully" });
+  } catch (error) {
+    console.error("Subscribe to push error:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};

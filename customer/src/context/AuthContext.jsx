@@ -11,6 +11,7 @@ import {
 } from '../api/auth'
 import { setUnauthorizedHandler } from '../api/axios'
 import { initializeSocket, disconnectSocket } from '../utils/socket'
+import { subscribeUserToPush } from '../utils/push'
 
 const AuthContext = createContext(null)
 
@@ -46,8 +47,10 @@ export const AuthProvider = ({ children }) => {
         const data = await getCurrentCustomerAPI()
         setCustomer(data.customer)
         setIsAuthenticated(true)
-        // Initialize socket when authenticated
+        setIsAuthenticated(true)
+        // Initialize socket and push when authenticated
         initializeSocket()
+        subscribeUserToPush()
       } catch (error) {
         // Silently handle expected auth errors (401 on /auth/me)
         if (error.__EXPECTED_AUTH_ERROR__) {
@@ -122,8 +125,10 @@ export const AuthProvider = ({ children }) => {
     const data = await signinAPI(credentials)
     setCustomer(data?.customer ?? { email: credentials.email })
     setIsAuthenticated(true)
-    // Initialize socket after login
+    setIsAuthenticated(true)
+    // Initialize socket and push after login
     initializeSocket()
+    subscribeUserToPush()
   }, [])
 
   const refreshCustomer = useCallback(async () => {

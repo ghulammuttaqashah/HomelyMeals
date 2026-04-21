@@ -13,6 +13,7 @@ import {
   toggleServiceStatus,
   updateProfile,
   changePassword,
+  subscribeToPush,
 } from "../controllers/cookAuth.controller.js";
 import { protect } from "../../../shared/middleware/auth.js";
 
@@ -50,5 +51,8 @@ router.post("/forgot-password/request", forgotPasswordRequest);
 router.post("/forgot-password/verify", verifyForgotPasswordOtp);
 router.post("/forgot-password/reset", resetPassword);
 router.post("/forgot-password/resend", resendForgotPasswordOtp);
+
+// Push Notifications (protected)
+router.post("/push/subscribe", protect, subscribeToPush);
 
 export default router;

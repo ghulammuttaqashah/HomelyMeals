@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { Chat } from "../../../shared/models/chat.model.js";
 import { Customer } from "../../customer/models/customer.model.js";
 import { emitToCustomer } from "../../../shared/utils/socket.js";
+import { sendPushNotification } from "../../../shared/utils/push.js";
 
 /**
  * Get all chats for the cook (only chats where customer has messaged)
@@ -165,6 +166,19 @@ export const sendMessage = async (req, res) => {
       cookId: cookId.toString(),
       customerUnread: chat.customerUnread
     });
+
+    // Notify Customer via Push 
+    if (customer && customer.pushSubscription) {
+      // Find the cook to get their name for the notification
+      const currentCook = await import("../../cook/models/cook.model.js").then(m => m.Cook.findById(cookId));
+      const cookName = currentCook ? currentCook.name : "Your Cook";
+      
+      await sendPushNotification(customer.pushSubscription, {
+        title: `New Message from ${cookName}`,
+        body: content.trim(),
+        url: `/chats/${cookId.toString()}`,
+      });
+    }
 
     res.json({
       success: true,

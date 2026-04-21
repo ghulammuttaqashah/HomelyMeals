@@ -85,6 +85,10 @@ const cookSchema = new mongoose.Schema(
       default: null,
     },
 
+    pushSubscription: {
+      type: Object,
+      default: null,
+    },
   },
   { timestamps: true }
 );

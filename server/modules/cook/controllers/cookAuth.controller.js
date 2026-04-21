@@ -737,3 +737,28 @@ export const changePassword = async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
+
+/**
+ * Subscribe to Push Notifications
+ */
+export const subscribeToPush = async (req, res) => {
+  try {
+    const { subscription } = req.body;
+    if (!subscription) {
+      return res.status(400).json({ message: "Subscription object is required" });
+    }
+
+    const cook = await Cook.findById(req.user._id);
+    if (!cook) {
+      return res.status(404).json({ message: "Cook not found" });
+    }
+
+    cook.pushSubscription = subscription;
+    await cook.save();
+
+    return res.status(200).json({ message: "Subscribed successfully" });
+  } catch (error) {
+    console.error("Subscribe to push error:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};

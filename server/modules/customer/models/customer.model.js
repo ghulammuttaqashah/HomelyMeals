@@ -26,6 +26,7 @@ const customerSchema = new mongoose.Schema({
   },
   statusReason: { type: String, default: "" },
   warningsCount: { type: Number, default: 0 },
+  pushSubscription: { type: Object, default: null },
 }, { timestamps: true });
 
 export const Customer = mongoose.model("Customer", customerSchema);

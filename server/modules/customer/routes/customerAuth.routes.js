@@ -15,6 +15,7 @@ import {
   updateAddress,
   deleteAddress,
   setDefaultAddress,
+  subscribeToPush,
 } from "../controllers/customerAuth.controller.js";
 import { protect } from "../../../shared/middleware/auth.js";
 
@@ -52,5 +53,8 @@ router.post("/addresses", protect, addAddress);
 router.put("/addresses/:addressId", protect, updateAddress);
 router.delete("/addresses/:addressId", protect, deleteAddress);
 router.patch("/addresses/:addressId/default", protect, setDefaultAddress);
+
+// Push Notifications (protected)
+router.post("/push/subscribe", protect, subscribeToPush);
 
 export default router;
