@@ -47,7 +47,6 @@ export const AuthProvider = ({ children }) => {
         const data = await getCurrentCustomerAPI()
         setCustomer(data.customer)
         setIsAuthenticated(true)
-        setIsAuthenticated(true)
         // Initialize socket and push when authenticated
         initializeSocket()
         subscribeUserToPush()
