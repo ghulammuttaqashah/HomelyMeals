@@ -1,16 +1,14 @@
 import { useState, useEffect } from 'react'
 import { FiBell, FiBellOff, FiX } from 'react-icons/fi'
-import { getPermissionState, requestNotificationPermission, subscribeUserToPush } from '../utils/push'
+import { getPermissionState, requestAndSubscribe } from '../utils/push'
 import { useAuth } from '../context/AuthContext'
 
 const BANNER_DISMISS_KEY = 'notification-banner-dismissed-until'
 
 /**
  * Shows a banner prompting users to enable push notifications.
- * Only shows when:
- *   - User is authenticated
- *   - Permission is 'default' (not yet decided) or 'denied'
- *   - Banner hasn't been recently dismissed
+ * Only shows when permission is 'denied' (modal handles 'default' state).
+ * Or if modal was skipped and permission is still 'default' after 3+ visits.
  */
 const NotificationBanner = () => {
   const { isAuthenticated } = useAuth()
@@ -39,24 +37,20 @@ const NotificationBanner = () => {
       return
     }
 
-    // Show the banner after a short delay
-    const timer = setTimeout(() => setVisible(true), 2000)
+    // Show the banner after a delay (let the modal have priority)
+    const timer = setTimeout(() => setVisible(true), 5000)
     return () => clearTimeout(timer)
   }, [isAuthenticated])
 
   const handleEnable = async () => {
-    // This is called from a button click — fresh user gesture
-    const result = await requestNotificationPermission()
-    if (result === 'granted') {
-      await subscribeUserToPush()
+    const success = await requestAndSubscribe()
+    if (success) {
       setVisible(false)
     }
-    // Refresh state regardless
     setPermState(getPermissionState())
   }
 
   const handleDismiss = () => {
-    // Dismiss for 3 days
     localStorage.setItem(BANNER_DISMISS_KEY, String(Date.now() + 3 * 24 * 60 * 60 * 1000))
     setVisible(false)
   }

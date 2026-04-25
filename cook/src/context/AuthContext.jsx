@@ -10,7 +10,7 @@ import {
   getCurrentCook as getCurrentCookAPI,
 } from '../api/auth'
 import { initializeSocket, disconnectSocket } from '../utils/socket'
-import { subscribeUserToPush, requestNotificationPermission } from '../utils/push'
+import { subscribeUserToPush } from '../utils/push'
 
 const AuthContext = createContext(null)
 
@@ -99,17 +99,13 @@ export const AuthProvider = ({ children }) => {
   }, [])
 
   const signin = useCallback(async (credentials) => {
-    // Fire permission request IMMEDIATELY while gesture is still valid
-    // This MUST happen before any await — mobile browsers expire gestures after async
-    const permissionPromise = requestNotificationPermission()
-
     const data = await signinAPI(credentials)
     setCook(data?.cook ?? { email: credentials.email })
     setIsAuthenticated(true)
     initializeSocket()
 
-    // Now await the permission result and subscribe
-    await permissionPromise
+    // Subscribe if permission already granted (from a previous session)
+    // First-time permission is handled by NotificationPermissionModal
     subscribeUserToPush()
     return data
   }, [])

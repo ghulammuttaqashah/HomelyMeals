@@ -7,6 +7,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import PWAInstallBanner from './components/PWAInstallBanner'
 import SocketListener from './components/SocketListener'
 import NotificationBanner from './components/NotificationBanner'
+import NotificationPermissionModal from './components/NotificationPermissionModal'
 import ChatbotFinal from './components/ChatbotFinal'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
@@ -165,6 +166,7 @@ const App = () => {
           />
           <PWAInstallBanner />
           <NotificationBanner />
+          <NotificationPermissionModal />
           
           {/* Final Chatbot - Guided Buttons + AI Search */}
           <ChatbotFinal />

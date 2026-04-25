@@ -6,6 +6,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import PWAInstallBanner from './components/PWAInstallBanner'
 import SocketListener from './components/SocketListener'
 import NotificationBanner from './components/NotificationBanner'
+import NotificationPermissionModal from './components/NotificationPermissionModal'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
 import VerifyOtp from './pages/VerifyOtp'
@@ -212,6 +213,7 @@ const App = () => {
         />
         <PWAInstallBanner />
         <NotificationBanner />
+        <NotificationPermissionModal />
       </AuthProvider>
     </BrowserRouter>
   )

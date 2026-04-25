@@ -1,16 +1,13 @@
 import { useState, useEffect } from 'react'
 import { FiBell, FiBellOff, FiX } from 'react-icons/fi'
-import { getPermissionState, requestNotificationPermission, subscribeUserToPush } from '../utils/push'
+import { getPermissionState, requestAndSubscribe } from '../utils/push'
 import { useAuth } from '../context/AuthContext'
 
 const BANNER_DISMISS_KEY = 'notification-banner-dismissed-until'
 
 /**
  * Shows a banner prompting cooks to enable push notifications.
- * Only shows when:
- *   - User is authenticated
- *   - Permission is 'default' (not yet decided) or 'denied'
- *   - Banner hasn't been recently dismissed
+ * Shows when permission is 'denied' or 'default' (after modal was skipped).
  */
 const NotificationBanner = () => {
   const { isAuthenticated } = useAuth()
@@ -26,37 +23,30 @@ const NotificationBanner = () => {
     const state = getPermissionState()
     setPermState(state)
 
-    // Already granted or unsupported — no banner needed
     if (state.permission === 'granted' || state.permission === 'unsupported') {
       setVisible(false)
       return
     }
 
-    // Check if dismissed recently
     const dismissedUntil = parseInt(localStorage.getItem(BANNER_DISMISS_KEY) || '0', 10)
     if (Date.now() < dismissedUntil) {
       setVisible(false)
       return
     }
 
-    // Show the banner after a short delay
-    const timer = setTimeout(() => setVisible(true), 2000)
+    const timer = setTimeout(() => setVisible(true), 5000)
     return () => clearTimeout(timer)
   }, [isAuthenticated])
 
   const handleEnable = async () => {
-    // This is called from a button click — fresh user gesture
-    const result = await requestNotificationPermission()
-    if (result === 'granted') {
-      await subscribeUserToPush()
+    const success = await requestAndSubscribe()
+    if (success) {
       setVisible(false)
     }
-    // Refresh state regardless
     setPermState(getPermissionState())
   }
 
   const handleDismiss = () => {
-    // Dismiss for 3 days
     localStorage.setItem(BANNER_DISMISS_KEY, String(Date.now() + 3 * 24 * 60 * 60 * 1000))
     setVisible(false)
   }

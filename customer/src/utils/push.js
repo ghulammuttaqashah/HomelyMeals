@@ -29,36 +29,42 @@ export const getPermissionState = () => {
 };
 
 /**
- * Request notification permission.
- * MUST be called synchronously from a user gesture (button click).
- * Returns the permission promise — caller can await it later or ignore it.
- *
- * Usage in signin handler:
- *   const permPromise = requestNotificationPermission();  // sync, fires prompt
- *   await signinAPI(credentials);                         // async work
- *   await permPromise;                                    // wait for user response
- *   subscribeUserToPush();                                // subscribe
+ * Request notification permission AND subscribe in one call.
+ * MUST be called directly from a button click handler (user gesture).
+ * Returns true if successfully subscribed, false otherwise.
  */
-export const requestNotificationPermission = () => {
-  if (!('Notification' in window)) return Promise.resolve('denied');
-  if (Notification.permission !== 'default') return Promise.resolve(Notification.permission);
+export const requestAndSubscribe = async () => {
+  if (!('Notification' in window)) return false;
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false;
 
-  console.log('[Push] Requesting notification permission...');
-  // This MUST be called synchronously during the click — NOT after an await
-  return Notification.requestPermission();
+  try {
+    // Request permission — this triggers the browser prompt
+    const result = await Notification.requestPermission();
+    console.log('[Push] Permission result:', result);
+    
+    if (result !== 'granted') {
+      console.log('[Push] Permission denied or dismissed');
+      return false;
+    }
+
+    // Permission granted — now subscribe
+    return await subscribeUserToPush();
+  } catch (error) {
+    console.error('[Push] Error requesting permission:', error);
+    return false;
+  }
 };
 
 /**
  * Subscribe the user to push notifications and save subscription to server.
- * Does NOT request permission — call requestNotificationPermission() first.
+ * Does NOT request permission — permission must already be 'granted'.
  * Safe to call anytime; will silently skip if permission is not granted.
+ * Returns true if successfully subscribed.
  */
 export const subscribeUserToPush = async () => {
-  console.log('[Push] Starting push subscription process...');
-  
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
     console.log('[Push] Push messaging is not supported.');
-    return;
+    return false;
   }
 
   try {
@@ -66,7 +72,7 @@ export const subscribeUserToPush = async () => {
     
     if (permission !== 'granted') {
       console.log('[Push] Notification permission not granted (' + permission + '), skipping.');
-      return;
+      return false;
     }
 
     console.log('[Push] Waiting for service worker to be ready...');
@@ -83,7 +89,7 @@ export const subscribeUserToPush = async () => {
       
       if (!publicVapidKey) {
         console.error('[Push] VITE_VAPID_PUBLIC_KEY is missing in .env file!');
-        return;
+        return false;
       }
       
       console.log('[Push] VAPID key found, subscribing...');
@@ -98,8 +104,10 @@ export const subscribeUserToPush = async () => {
     console.log('[Push] Sending subscription to server...');
     await api.post('/api/customer/auth/push/subscribe', { subscription });
     console.log('[Push] Successfully subscribed to push notifications!');
+    return true;
     
   } catch (error) {
     console.error('[Push] Error in push subscription:', error);
+    return false;
   }
 };

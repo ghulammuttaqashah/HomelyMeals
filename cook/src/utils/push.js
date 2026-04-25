@@ -29,29 +29,39 @@ export const getPermissionState = () => {
 };
 
 /**
- * Request notification permission.
- * MUST be called synchronously from a user gesture (button click).
- * Returns the permission promise — caller can await it later or ignore it.
+ * Request notification permission AND subscribe in one call.
+ * MUST be called directly from a button click handler (user gesture).
+ * Returns true if successfully subscribed, false otherwise.
  */
-export const requestNotificationPermission = () => {
-  if (!('Notification' in window)) return Promise.resolve('denied');
-  if (Notification.permission !== 'default') return Promise.resolve(Notification.permission);
+export const requestAndSubscribe = async () => {
+  if (!('Notification' in window)) return false;
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false;
 
-  console.log('[Push] Requesting notification permission...');
-  return Notification.requestPermission();
+  try {
+    const result = await Notification.requestPermission();
+    console.log('[Push] Permission result:', result);
+    
+    if (result !== 'granted') {
+      console.log('[Push] Permission denied or dismissed');
+      return false;
+    }
+
+    return await subscribeUserToPush();
+  } catch (error) {
+    console.error('[Push] Error requesting permission:', error);
+    return false;
+  }
 };
 
 /**
  * Subscribe the user to push notifications and save subscription to server.
- * Does NOT request permission — call requestNotificationPermission() first.
- * Safe to call anytime; will silently skip if permission is not granted.
+ * Does NOT request permission — permission must already be 'granted'.
+ * Returns true if successfully subscribed.
  */
 export const subscribeUserToPush = async () => {
-  console.log('[Push] Starting push subscription process...');
-  
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
     console.log('[Push] Push messaging is not supported.');
-    return;
+    return false;
   }
 
   try {
@@ -59,21 +69,19 @@ export const subscribeUserToPush = async () => {
     
     if (permission !== 'granted') {
       console.log('[Push] Notification permission not granted (' + permission + '), skipping.');
-      return;
+      return false;
     }
 
     const registration = await navigator.serviceWorker.ready;
     
-    // Check if already subscribed
     let subscription = await registration.pushManager.getSubscription();
     
-    // If not subscribed, create subscription
     if (!subscription) {
       const publicVapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
       
       if (!publicVapidKey) {
         console.error('[Push] VITE_VAPID_PUBLIC_KEY is missing in .env file!');
-        return;
+        return false;
       }
       
       subscription = await registration.pushManager.subscribe({
@@ -82,11 +90,12 @@ export const subscribeUserToPush = async () => {
       });
     }
 
-    // Send subscription to server
     await api.post('/api/cook/auth/push/subscribe', { subscription });
     console.log('[Push] Successfully subscribed to push notifications!');
+    return true;
     
   } catch (error) {
     console.error('[Push] Error in push subscription:', error);
+    return false;
   }
 };
