@@ -26,6 +26,9 @@ const App = () => {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
+          {/* Root redirect */}
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          
           <Route path="/login" element={<Login />} />
           <Route path="/otp" element={<Otp />} />
           <Route

@@ -36,6 +36,9 @@ const App = () => {
       <AuthProvider>
         <SocketListener />
         <Routes>
+          {/* Root redirect */}
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          
           <Route
             path="/login"
             element={
