@@ -10,7 +10,7 @@ import {
   getCurrentCook as getCurrentCookAPI,
 } from '../api/auth'
 import { initializeSocket, disconnectSocket } from '../utils/socket'
-import { subscribeUserToPush } from '../utils/push'
+import { subscribeUserToPush, requestNotificationPermission } from '../utils/push'
 
 const AuthContext = createContext(null)
 
@@ -37,8 +37,8 @@ export const AuthProvider = ({ children }) => {
         setIsAuthenticated(true)
         // Initialize socket and push when authenticated
         initializeSocket()
-        // No user gesture here — only subscribe if permission already granted
-        subscribeUserToPush(false)
+        // No gesture here — only subscribes if permission already granted
+        subscribeUserToPush()
       } catch (error) {
         // Retry once after a short delay — handles browser session restore
         // where cookies may not be available on the very first request
@@ -99,12 +99,18 @@ export const AuthProvider = ({ children }) => {
   }, [])
 
   const signin = useCallback(async (credentials) => {
+    // Fire permission request IMMEDIATELY while gesture is still valid
+    // This MUST happen before any await — mobile browsers expire gestures after async
+    const permissionPromise = requestNotificationPermission()
+
     const data = await signinAPI(credentials)
     setCook(data?.cook ?? { email: credentials.email })
     setIsAuthenticated(true)
-    // Initialize socket and push after login — has user gesture
     initializeSocket()
-    subscribeUserToPush(true)
+
+    // Now await the permission result and subscribe
+    await permissionPromise
+    subscribeUserToPush()
     return data
   }, [])
 

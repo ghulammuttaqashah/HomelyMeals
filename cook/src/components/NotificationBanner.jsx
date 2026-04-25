@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react'
 import { FiBell, FiBellOff, FiX } from 'react-icons/fi'
-import { getPermissionState, subscribeUserToPush } from '../utils/push'
+import { getPermissionState, requestNotificationPermission, subscribeUserToPush } from '../utils/push'
 import { useAuth } from '../context/AuthContext'
 
 const BANNER_DISMISS_KEY = 'notification-banner-dismissed-until'
 
 /**
- * Shows a gentle banner prompting cooks to enable push notifications.
+ * Shows a banner prompting cooks to enable push notifications.
  * Only shows when:
  *   - User is authenticated
- *   - Permission is 'default' (not yet decided) or 'denied' (need to go to settings)
+ *   - Permission is 'default' (not yet decided) or 'denied'
  *   - Banner hasn't been recently dismissed
  */
 const NotificationBanner = () => {
@@ -26,7 +26,7 @@ const NotificationBanner = () => {
     const state = getPermissionState()
     setPermState(state)
 
-    // Already granted — no banner needed
+    // Already granted or unsupported — no banner needed
     if (state.permission === 'granted' || state.permission === 'unsupported') {
       setVisible(false)
       return
@@ -39,21 +39,20 @@ const NotificationBanner = () => {
       return
     }
 
-    // Show the banner after a short delay so it doesn't feel intrusive on page load
-    const timer = setTimeout(() => setVisible(true), 3000)
+    // Show the banner after a short delay
+    const timer = setTimeout(() => setVisible(true), 2000)
     return () => clearTimeout(timer)
   }, [isAuthenticated])
 
   const handleEnable = async () => {
-    const granted = await subscribeUserToPush(true)
-    if (granted !== undefined) {
-      // Refresh state
-      const newState = getPermissionState()
-      setPermState(newState)
-      if (newState.permission === 'granted') {
-        setVisible(false)
-      }
+    // This is called from a button click — fresh user gesture
+    const result = await requestNotificationPermission()
+    if (result === 'granted') {
+      await subscribeUserToPush()
+      setVisible(false)
     }
+    // Refresh state regardless
+    setPermState(getPermissionState())
   }
 
   const handleDismiss = () => {
@@ -83,7 +82,7 @@ const NotificationBanner = () => {
             </p>
             <p className="mt-1 text-xs text-orange-100">
               {isDenied
-                ? 'Notifications are blocked. Open browser settings to enable them for new orders & messages.'
+                ? 'Notifications are blocked. Go to your browser/app settings → Site Settings → Notifications to enable them.'
                 : "Don't miss new orders and messages! Enable push notifications."}
             </p>
             {!isDenied && (

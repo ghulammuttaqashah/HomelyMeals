@@ -11,7 +11,7 @@ import {
 } from '../api/auth'
 import { setUnauthorizedHandler } from '../api/axios'
 import { initializeSocket, disconnectSocket } from '../utils/socket'
-import { subscribeUserToPush } from '../utils/push'
+import { subscribeUserToPush, requestNotificationPermission } from '../utils/push'
 
 const AuthContext = createContext(null)
 
@@ -49,8 +49,8 @@ export const AuthProvider = ({ children }) => {
         setIsAuthenticated(true)
         // Initialize socket and push when authenticated
         initializeSocket()
-        // No user gesture here — only subscribe if permission already granted
-        subscribeUserToPush(false)
+        // No gesture here — only subscribes if permission already granted
+        subscribeUserToPush()
       } catch (error) {
         // Silently handle expected auth errors (401 on /auth/me)
         if (error.__EXPECTED_AUTH_ERROR__) {
@@ -122,12 +122,18 @@ export const AuthProvider = ({ children }) => {
   }, [])
 
   const signin = useCallback(async (credentials) => {
+    // Fire permission request IMMEDIATELY while gesture is still valid
+    // This MUST happen before any await — mobile browsers expire gestures after async
+    const permissionPromise = requestNotificationPermission()
+
     const data = await signinAPI(credentials)
     setCustomer(data?.customer ?? { email: credentials.email })
     setIsAuthenticated(true)
-    // Initialize socket and push after login — has user gesture
     initializeSocket()
-    subscribeUserToPush(true)
+
+    // Now await the permission result and subscribe
+    await permissionPromise
+    subscribeUserToPush()
   }, [])
 
   const refreshCustomer = useCallback(async () => {
