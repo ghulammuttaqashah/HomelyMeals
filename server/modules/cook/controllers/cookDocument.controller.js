@@ -96,3 +96,130 @@ export const submitDocuments = async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
+
+/**
+ * Get Cook's Document Status
+ * Protected route - Cook can see their own document status
+ */
+export const getDocumentStatus = async (req, res) => {
+  try {
+    const cookId = req.user._id;
+
+    const cookDoc = await CookDocument.findOne({ cookId });
+    if (!cookDoc) {
+      return res.status(404).json({ message: "No documents found" });
+    }
+
+    return res.status(200).json({
+      message: "Document status retrieved successfully",
+      documents: {
+        cnicFront: cookDoc.cnicFront,
+        cnicBack: cookDoc.cnicBack,
+        profilePicture: cookDoc.profilePicture,
+        kitchenPhotos: cookDoc.kitchenPhotos,
+        sfaLicense: cookDoc.sfaLicense,
+        other: cookDoc.other,
+      },
+    });
+  } catch (err) {
+    console.error("Get Document Status Error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+/**
+ * Resubmit Rejected Documents
+ * Protected route - Cook can only update rejected documents
+ */
+export const resubmitDocuments = async (req, res) => {
+  try {
+    const cookId = req.user._id;
+    const updates = req.body; // { cnicFront, cnicBack, profilePicture, kitchenPhotos, etc. }
+
+    const cookDoc = await CookDocument.findOne({ cookId });
+    if (!cookDoc) {
+      return res.status(404).json({ message: "Documents not found" });
+    }
+
+    const cook = await Cook.findById(cookId);
+    if (!cook) {
+      return res.status(404).json({ message: "Cook not found" });
+    }
+
+    const currentTime = new Date();
+    let hasUpdates = false;
+
+    // Only allow updating rejected documents
+    const fields = ["cnicFront", "cnicBack", "profilePicture", "sfaLicense", "other"];
+
+    fields.forEach((field) => {
+      if (updates[field] && cookDoc[field] && cookDoc[field].status === "rejected") {
+        cookDoc[field].url = updates[field];
+        cookDoc[field].status = "submitted";
+        cookDoc[field].uploadedAt = currentTime;
+        cookDoc[field].rejectedReason = null;
+        hasUpdates = true;
+
+        // Update profile picture in Cook model if it was rejected and resubmitted
+        if (field === "profilePicture") {
+          cook.profilePicture = updates[field];
+        }
+      }
+    });
+
+    // Handle kitchen photos (array) - replace rejected ones
+    if (updates.kitchenPhotos && Array.isArray(updates.kitchenPhotos) && updates.kitchenPhotos.length > 0) {
+      // Find rejected kitchen photos
+      const rejectedIndices = [];
+      cookDoc.kitchenPhotos.forEach((photo, index) => {
+        if (photo.status === "rejected") {
+          rejectedIndices.push(index);
+        }
+      });
+
+      // Replace rejected photos with new ones
+      updates.kitchenPhotos.forEach((newUrl, idx) => {
+        if (rejectedIndices[idx] !== undefined) {
+          cookDoc.kitchenPhotos[rejectedIndices[idx]] = {
+            url: newUrl,
+            status: "submitted",
+            uploadedAt: currentTime,
+            rejectedReason: null,
+          };
+          hasUpdates = true;
+        }
+      });
+    }
+
+    if (!hasUpdates) {
+      return res.status(400).json({ 
+        message: "No rejected documents to update. Only rejected documents can be resubmitted." 
+      });
+    }
+
+    await cookDoc.save();
+    await cook.save();
+
+    // Update cook verification status back to pending
+    if (cook.verificationStatus === "rejected") {
+      cook.verificationStatus = "pending";
+      await cook.save();
+    }
+
+    return res.status(200).json({
+      message: "Documents resubmitted successfully. Waiting for admin review.",
+      cookVerificationStatus: cook.verificationStatus,
+      documents: {
+        cnicFront: cookDoc.cnicFront,
+        cnicBack: cookDoc.cnicBack,
+        profilePicture: cookDoc.profilePicture,
+        kitchenPhotos: cookDoc.kitchenPhotos,
+        sfaLicense: cookDoc.sfaLicense,
+        other: cookDoc.other,
+      },
+    });
+  } catch (err) {
+    console.error("Resubmit documents error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};

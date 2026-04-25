@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 import { submitReview } from '../api/review'
 import StarRating from './StarRating'
 import Button from './Button'
+import Loader from './Loader'
 
 const ReviewModal = ({ isOpen, onClose, orderId, cookId, cookName, mealId, mealName, reviewType, onReviewSubmitted }) => {
     const [rating, setRating] = useState(0)
@@ -156,8 +157,9 @@ const ReviewModal = ({ isOpen, onClose, orderId, cookId, cookName, mealId, mealN
                             <Button
                                 type="submit"
                                 disabled={submitting || rating === 0 || !reviewText || reviewText.trim().length < 10}
-                                className="flex-1"
+                                className="flex-1 flex items-center justify-center gap-2"
                             >
+                                {submitting && <Loader size="sm" className="text-white" />}
                                 {submitting ? 'Submitting...' : 'Submit Review'}
                             </Button>
                         </div>

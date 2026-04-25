@@ -1,4 +1,9 @@
-const StatusCard = ({ type = 'pending', onSignOut }) => {
+import { useNavigate } from 'react-router-dom'
+import Loader from './Loader'
+
+const StatusCard = ({ type = 'pending', onSignOut, signingOut = false }) => {
+  const navigate = useNavigate()
+  
   const statusConfig = {
     pending: {
       icon: (
@@ -24,13 +29,13 @@ const StatusCard = ({ type = 'pending', onSignOut }) => {
       ),
       iconBg: 'bg-red-100',
       title: 'Verification Rejected',
-      message: 'Your documents were rejected. Please contact us for more information.',
+      message: 'Some of your documents were rejected. Please review the rejection reasons and resubmit the corrected documents.',
       statusBoxBg: 'bg-red-50',
       statusBoxBorder: 'border-red-200',
       statusText: 'text-red-900',
       statusSubtext: 'text-red-800',
       statusLabel: 'Rejected',
-      statusDescription: 'Please contact us at the email below for assistance.',
+      statusDescription: 'Check your email for specific rejection reasons, then resubmit the rejected documents.',
     },
     approved: {
       icon: (
@@ -71,26 +76,42 @@ const StatusCard = ({ type = 'pending', onSignOut }) => {
       </div>
 
       {type === 'rejected' && (
-        <div className="mt-6 rounded-lg bg-gray-50 p-4 border border-gray-200">
-          <p className="text-sm text-gray-600">
-            <span className="font-medium">Contact us:</span>{' '}
-            <a 
-              href="mailto:homelymeals4@gmail.com" 
-              className="text-orange-600 hover:text-orange-700 hover:underline font-medium"
+        <>
+          <div className="mt-6 rounded-lg bg-orange-50 p-4 border border-orange-200">
+            <p className="text-sm text-orange-800 font-medium mb-3">
+              📧 Check your email for detailed rejection reasons
+            </p>
+            <button
+              onClick={() => navigate('/resubmit-documents')}
+              className="w-full sm:w-auto rounded-lg bg-orange-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-orange-700 transition-colors"
             >
-              homelymeals4@gmail.com
-            </a>
-          </p>
-        </div>
+              Resubmit Documents
+            </button>
+          </div>
+          
+          <div className="mt-4 rounded-lg bg-gray-50 p-4 border border-gray-200">
+            <p className="text-sm text-gray-600">
+              <span className="font-medium">Need help?</span>{' '}
+              <a 
+                href="mailto:homelymeals4@gmail.com" 
+                className="text-orange-600 hover:text-orange-700 hover:underline font-medium"
+              >
+                homelymeals4@gmail.com
+              </a>
+            </p>
+          </div>
+        </>
       )}
 
       {onSignOut && (
         <div className="mt-8 flex justify-center">
           <button
             onClick={onSignOut}
-            className="rounded-lg border border-gray-300 bg-white px-6 py-2.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition-colors"
+            disabled={signingOut}
+            className="rounded-lg border border-gray-300 bg-white px-6 py-2.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            Sign Out
+            {signingOut && <Loader size="sm" className="text-gray-700" />}
+            {signingOut ? 'Signing Out...' : 'Sign Out'}
           </button>
         </div>
       )}

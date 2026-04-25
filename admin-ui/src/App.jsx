@@ -16,6 +16,8 @@ import Subscriptions from './pages/subscriptions'
 import SubscriptionRevenue from './pages/subscriptions/revenue'
 import SubscriptionPlans from './pages/subscriptions/plans'
 import ActiveSubscriptions from './pages/subscriptions/active'
+import Settings from './pages/Settings'
+import NotFound from './pages/NotFound'
 import { AuthProvider } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 
@@ -138,7 +140,18 @@ const App = () => {
               </ProtectedRoute>
             }
           />
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <Settings />
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* 404 Not Found */}
+          <Route path="/404" element={<NotFound />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
         <Toaster position="top-right" />
       </AuthProvider>

@@ -311,10 +311,22 @@ const ViewDocuments = () => {
     return (
       <ProtectedLayout title="Document Viewer">
         <div className="rounded-2xl bg-white p-10 text-center shadow">
-          <p className="text-sm font-semibold text-slate-900">Cook not found.</p>
-          <div className="mt-6 flex justify-center">
-            <BackButton onClick={() => navigate('/cooks/verification')} label="Back to Submissions" />
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
+            <svg className="h-8 w-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
           </div>
+          <p className="text-lg font-semibold text-slate-900 mb-2">Cook not found</p>
+          <p className="text-sm text-slate-500 mb-6">The cook you're looking for doesn't exist or has been removed.</p>
+          <button
+            onClick={() => navigate('/cooks/verification')}
+            className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium text-white bg-orange-600 rounded-lg hover:bg-orange-700 transition-colors shadow-sm"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Verification List
+          </button>
         </div>
       </ProtectedLayout>
     )
@@ -323,6 +335,19 @@ const ViewDocuments = () => {
   return (
     <ProtectedLayout title="Cook Document Viewer">
       <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        {/* Back Button at Top */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate('/cooks/verification')}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-colors shadow-sm"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Verification List
+          </button>
+        </div>
+
         {/* Cook Info Card */}
         <div className="rounded-lg bg-white p-6 shadow-sm border border-gray-200">
           <div className="flex flex-wrap items-center justify-between gap-4">
@@ -373,20 +398,33 @@ const ViewDocuments = () => {
               </div>
             </div>
             <div className="flex flex-wrap gap-3">
-              <BackButton onClick={() => navigate('/cooks/verification')} />
+              <button
+                onClick={() => navigate('/cooks/verification')}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 hover:border-orange-500 transition-all"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Back
+              </button>
               <button
                 type="button"
                 onClick={handleApproveAll}
                 disabled={submitting || !documents.length}
-                className="rounded-lg bg-green-600 px-5 py-2 text-sm font-semibold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-lg bg-green-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50 transition-colors flex items-center gap-2"
               >
                 {submitting ? (
-                  <span className="flex items-center gap-2">
+                  <>
                     <Loader size="sm" className="text-white" />
                     Processing...
-                  </span>
+                  </>
                 ) : (
-                  '✓ Approve All'
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Approve All
+                  </>
                 )}
               </button>
             </div>
@@ -442,8 +480,38 @@ const ViewDocuments = () => {
                     className="w-full flex-shrink-0 relative"
                   >
                     {/* Document Label Overlay */}
-                    <div className="absolute left-6 top-6 z-20 rounded-xl bg-black/70 px-4 py-2 backdrop-blur-sm pointer-events-none">
-                      <p className="text-sm font-bold text-white">{doc.label || doc.field}</p>
+                    <div className="absolute left-6 top-6 z-20 flex flex-col gap-2 pointer-events-none">
+                      <div className="rounded-xl bg-black/70 px-4 py-2 backdrop-blur-sm">
+                        <p className="text-sm font-bold text-white">{doc.label || doc.field}</p>
+                      </div>
+                      {/* Required/Optional Badge */}
+                      {(() => {
+                        const requiredFields = ['cnicFront', 'cnicBack', 'profilePicture', 'kitchenPhotos'];
+                        const isRequired = requiredFields.includes(doc.field);
+                        return (
+                          <div className={`inline-flex self-start items-center gap-1 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide ${
+                            isRequired 
+                              ? 'bg-orange-500 text-white' 
+                              : 'bg-gray-500 text-white'
+                          }`}>
+                            {isRequired ? (
+                              <>
+                                <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
+                                </svg>
+                                Required
+                              </>
+                            ) : (
+                              <>
+                                <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                </svg>
+                                Optional
+                              </>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     {/* Status Badge */}
@@ -595,10 +663,19 @@ const ViewDocuments = () => {
                   disabled={submitting || currentDocument?.status === 'approved'}
                   className="group flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 px-8 py-4 text-base font-bold text-white shadow-lg shadow-emerald-500/30 transition-all hover:from-emerald-700 hover:to-emerald-800 hover:shadow-xl hover:scale-105 active:scale-100 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
                 >
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                  </svg>
-                  {currentDocument?.status === 'approved' ? 'Approved' : 'Approve Document'}
+                  {submitting && currentDocument?.status !== 'approved' ? (
+                    <>
+                      <Loader size="sm" className="text-white" />
+                      Approving...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                      </svg>
+                      {currentDocument?.status === 'approved' ? 'Approved' : 'Approve Document'}
+                    </>
+                  )}
                 </button>
                 <button
                   type="button"
@@ -650,7 +727,7 @@ const ViewDocuments = () => {
               <button
                 type="button"
                 onClick={() => setRejectModal({ open: false, doc: null, reason: '' })}
-                className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+                className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={submitting}
               >
                 Cancel
@@ -658,10 +735,17 @@ const ViewDocuments = () => {
               <button
                 type="button"
                 onClick={handleReject}
-                disabled={submitting}
-                className="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow transition hover:bg-red-700 disabled:opacity-50"
+                disabled={submitting || !rejectModal.reason.trim()}
+                className="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow transition hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {submitting ? 'Processing…' : 'Reject'}
+                {submitting ? (
+                  <span className="flex items-center gap-2">
+                    <Loader size="sm" className="text-white" />
+                    Processing...
+                  </span>
+                ) : (
+                  'Reject'
+                )}
               </button>
             </div>
           </div>

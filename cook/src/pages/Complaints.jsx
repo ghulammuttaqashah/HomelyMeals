@@ -155,23 +155,29 @@ const Complaints = () => {
       toast.error("Maximum 5 images allowed");
       return;
     }
-    const newImages = files
+    
+    const validFiles = files
       .filter((f) => ["image/jpeg", "image/png", "image/jpg"].includes(f.type))
-      .filter((f) => f.size <= 5 * 1024 * 1024)
-      .map((file) => ({ file, preview: URL.createObjectURL(file) }));
+      .filter((f) => f.size <= 5 * 1024 * 1024);
 
-    if (newImages.length < files.length) {
+    if (validFiles.length < files.length) {
       toast.error("Some files were skipped (only JPG/PNG under 5MB)");
     }
-    setReplyImages((prev) => [...prev, ...newImages]);
+
+    // Use FileReader instead of URL.createObjectURL to avoid browser extension conflicts
+    validFiles.forEach((file) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setReplyImages((prev) => [...prev, { file, preview: reader.result }]);
+      };
+      reader.readAsDataURL(file);
+    });
+
     e.target.value = "";
   };
 
   const removeReplyImage = (index) => {
-    setReplyImages((prev) => {
-      URL.revokeObjectURL(prev[index].preview);
-      return prev.filter((_, i) => i !== index);
-    });
+    setReplyImages((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmitReply = async () => {

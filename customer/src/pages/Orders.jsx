@@ -15,7 +15,10 @@ const STATUS_CONFIG = {
   out_for_delivery: { label: "Out for Delivery", color: "bg-indigo-100 text-indigo-800", icon: FiPackage },
   delivered: { label: "Delivered", color: "bg-green-100 text-green-800", icon: FiCheck },
   cancelled: { label: "Cancelled", color: "bg-red-100 text-red-800", icon: FiX },
+  cancelled_by_cook: { label: "Cancelled by Cook", color: "bg-red-100 text-red-800", icon: FiX },
   cancelled_by_customer: { label: "Cancelled by You", color: "bg-gray-100 text-gray-800", icon: FiX },
+  cancelled_by_system: { label: "Cancelled by System", color: "bg-orange-100 text-orange-800", icon: FiX },
+  cancelled_by_admin: { label: "Cancelled by Admin", color: "bg-red-100 text-red-900", icon: FiX },
 };
 
 const TABS = [
@@ -114,7 +117,15 @@ const Orders = () => {
     // Determine display status based on cancelledBy
     let displayStatus = order.status;
     if (order.status === "cancelled" && order.cancelledBy) {
-      displayStatus = order.cancelledBy === "cook" ? "cancelled_by_cook" : "cancelled_by_customer";
+      if (order.cancelledBy === "cook") {
+        displayStatus = "cancelled_by_cook";
+      } else if (order.cancelledBy === "customer") {
+        displayStatus = "cancelled_by_customer";
+      } else if (order.cancelledBy === "system") {
+        displayStatus = "cancelled_by_system";
+      } else if (order.cancelledBy === "admin") {
+        displayStatus = "cancelled_by_admin";
+      }
     }
     
     const statusConfig = STATUS_CONFIG[displayStatus] || STATUS_CONFIG.confirmed;

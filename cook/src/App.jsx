@@ -1,4 +1,3 @@
-import { useEffect } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from './context/AuthContext'
@@ -6,11 +5,13 @@ import PublicRoute from './components/PublicRoute'
 import ProtectedRoute from './components/ProtectedRoute'
 import PWAInstallBanner from './components/PWAInstallBanner'
 import SocketListener from './components/SocketListener'
+import NotificationBanner from './components/NotificationBanner'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
 import VerifyOtp from './pages/VerifyOtp'
 import ForgotPassword from './pages/ForgotPassword'
 import UploadDocuments from './pages/UploadDocuments'
+import ResubmitDocuments from './pages/ResubmitDocuments'
 import Status from './pages/Status'
 import Dashboard from './pages/Dashboard'
 import MenuManagement from './pages/MenuManagement'
@@ -25,13 +26,10 @@ import Complaints from './pages/Complaints'
 import FileComplaint from './pages/FileComplaint'
 import Subscription from './pages/Subscription'
 import PaymentSettings from './pages/PaymentSettings'
-import { askNotificationPermission } from './utils/push'
+import NotFound from './pages/NotFound'
+
 
 const App = () => {
-  useEffect(() => {
-    // Ask for permission when app opens (will not push to DB until logon)
-    askNotificationPermission();
-  }, []);
 
   return (
     <BrowserRouter>
@@ -64,6 +62,7 @@ const App = () => {
             }
           />
           <Route path="/upload-docs" element={<UploadDocuments />} />
+          <Route path="/resubmit-documents" element={<ResubmitDocuments />} />
           <Route path="/status" element={<Status />} />
           <Route
             path="/dashboard"
@@ -177,19 +176,24 @@ const App = () => {
               </ProtectedRoute>
             }
           />
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          
+          {/* 404 Not Found */}
+          <Route path="/404" element={<NotFound />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
         <Toaster
           position="top-right"
           toastOptions={{
-            duration: 3000,
+            duration: 1500,
             success: {
+              duration: 1500,
               style: {
                 background: '#363636',
                 color: '#fff',
               },
             },
             error: {
+              duration: 2000,
               style: {
                 background: '#363636',
                 color: '#fff',
@@ -204,6 +208,7 @@ const App = () => {
           }}
         />
         <PWAInstallBanner />
+        <NotificationBanner />
       </AuthProvider>
     </BrowserRouter>
   )

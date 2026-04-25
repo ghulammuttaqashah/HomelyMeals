@@ -3,7 +3,7 @@ import { Chat } from "../../../shared/models/chat.model.js";
 import { Cook } from "../../cook/models/cook.model.js";
 import { Customer } from "../models/customer.model.js";
 import { emitToCook } from "../../../shared/utils/socket.js";
-import { sendPushNotification } from "../../../shared/utils/push.js";
+import { sendPushToUser } from "../../../shared/utils/push.js";
 
 /**
  * Get all cooks the customer can chat with (all approved/active cooks)
@@ -200,13 +200,11 @@ export const sendMessage = async (req, res) => {
     });
 
     const cookForPush = await Cook.findById(cookId);
-    if (cookForPush && cookForPush.pushSubscription) {
-      await sendPushNotification(cookForPush.pushSubscription, {
-        title: `New Message from ${customer.name}`,
-        body: content.trim(),
-        url: `/chats/${customerId.toString()}`,
-      });
-    }
+    await sendPushToUser(cookForPush, {
+      title: `New Message from ${customer.name}`,
+      body: content.trim(),
+      url: `/chats/${customerId.toString()}`,
+    });
 
     res.json({
       success: true,

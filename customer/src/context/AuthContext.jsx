@@ -49,7 +49,8 @@ export const AuthProvider = ({ children }) => {
         setIsAuthenticated(true)
         // Initialize socket and push when authenticated
         initializeSocket()
-        subscribeUserToPush()
+        // No user gesture here — only subscribe if permission already granted
+        subscribeUserToPush(false)
       } catch (error) {
         // Silently handle expected auth errors (401 on /auth/me)
         if (error.__EXPECTED_AUTH_ERROR__) {
@@ -121,17 +122,12 @@ export const AuthProvider = ({ children }) => {
   }, [])
 
   const signin = useCallback(async (credentials) => {
-    // Request permission immediately while gesture is valid
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
     const data = await signinAPI(credentials)
     setCustomer(data?.customer ?? { email: credentials.email })
     setIsAuthenticated(true)
-    setIsAuthenticated(true)
-    // Initialize socket and push after login
+    // Initialize socket and push after login — has user gesture
     initializeSocket()
-    subscribeUserToPush()
+    subscribeUserToPush(true)
   }, [])
 
   const refreshCustomer = useCallback(async () => {

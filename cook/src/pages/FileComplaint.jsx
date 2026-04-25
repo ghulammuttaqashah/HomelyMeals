@@ -108,23 +108,29 @@ const FileComplaint = () => {
       toast.error("Maximum 5 images allowed");
       return;
     }
-    const newImages = files
+    
+    const validFiles = files
       .filter((f) => ["image/jpeg", "image/png", "image/jpg"].includes(f.type))
-      .filter((f) => f.size <= 5 * 1024 * 1024)
-      .map((file) => ({ file, preview: URL.createObjectURL(file) }));
+      .filter((f) => f.size <= 5 * 1024 * 1024);
 
-    if (newImages.length < files.length) {
+    if (validFiles.length < files.length) {
       toast.error("Some files were skipped (only JPG/PNG under 5MB)");
     }
-    setImages((prev) => [...prev, ...newImages]);
+
+    // Use FileReader instead of URL.createObjectURL to avoid browser extension conflicts
+    validFiles.forEach((file) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImages((prev) => [...prev, { file, preview: reader.result }]);
+      };
+      reader.readAsDataURL(file);
+    });
+
     e.target.value = "";
   };
 
   const removeImage = (index) => {
-    setImages((prev) => {
-      URL.revokeObjectURL(prev[index].preview);
-      return prev.filter((_, i) => i !== index);
-    });
+    setImages((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e) => {
@@ -522,18 +528,24 @@ const FileComplaint = () => {
                   )}
 
                   {images.length < 5 && (
-                    <label className="flex flex-col items-center justify-center gap-2 py-7 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-orange-400 hover:bg-orange-50/30 transition-colors">
-                      <FiUpload className="w-6 h-6 text-gray-400" />
-                      <span className="text-sm text-gray-500 font-medium">Click to upload</span>
-                      <span className="text-xs text-gray-400">{images.length}/5 uploaded</span>
+                    <>
+                      <label 
+                        htmlFor="complaint-file-upload"
+                        className="flex flex-col items-center justify-center gap-2 py-7 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-orange-400 hover:bg-orange-50/30 transition-colors"
+                      >
+                        <FiUpload className="w-6 h-6 text-gray-400" />
+                        <span className="text-sm text-gray-500 font-medium">Click to upload</span>
+                        <span className="text-xs text-gray-400">{images.length}/5 uploaded</span>
+                      </label>
                       <input
+                        id="complaint-file-upload"
                         type="file"
                         accept="image/jpeg,image/png,image/jpg"
                         multiple
                         onChange={handleImageAdd}
                         className="hidden"
                       />
-                    </label>
+                    </>
                   )}
                   {images.length === 5 && (
                     <p className="text-xs text-center text-orange-500 font-medium mt-1">Maximum 5 images reached</p>

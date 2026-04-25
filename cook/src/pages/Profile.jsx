@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
+import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
 import { updateProfile } from '../api/auth'
 import { uploadToCloudinary } from '../utils/cloudinary'
@@ -46,6 +47,10 @@ const Profile = () => {
   const navigate = useNavigate()
   const { cook, isAuthenticated, refreshCook } = useAuth()
 
+  // Default image state
+  const [defaultImageUrl, setDefaultImageUrl] = useState(null)
+  const [loadingDefaultImage, setLoadingDefaultImage] = useState(true)
+
   // Profile form state
   const [profileData, setProfileData] = useState({
     name: '',
@@ -60,6 +65,23 @@ const Profile = () => {
   const [profileLoading, setProfileLoading] = useState(false)
   const [locationLoading, setLocationLoading] = useState(false)
   const [coordinates, setCoordinates] = useState(null)
+
+  // Fetch default profile image from admin settings
+  useEffect(() => {
+    const fetchDefaultImage = async () => {
+      try {
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+        const response = await axios.get(`${API_URL}/admin/settings/default-profile-image`)
+        setDefaultImageUrl(response.data.defaultImageUrl)
+      } catch (error) {
+        console.log('No default image set by admin')
+        setDefaultImageUrl(null)
+      } finally {
+        setLoadingDefaultImage(false)
+      }
+    }
+    fetchDefaultImage()
+  }, [])
 
   // Reverse geocode - get address from coordinates
   const reverseGeocode = async (lat, lng) => {
@@ -243,7 +265,7 @@ const Profile = () => {
     }
 
     if (!coordinates) {
-      toast.error('📍 GPS location is required! Please use "Use My Location" or click on the map to pin your kitchen location.', { duration: 5000 })
+      toast.error('📍 GPS location is required! Please use "Use My Location" or click on the map to pin your kitchen location.', { duration: 2000 })
       return
     }
 
@@ -334,11 +356,11 @@ const Profile = () => {
                               className="h-full w-full object-cover"
                             />
                           ) : (
-                            <img
-                              src="/default-profile.jpg"
-                              alt="Default Profile"
-                              className="h-full w-full object-cover"
-                            />
+                            <div className="h-full w-full flex items-center justify-center bg-gray-100">
+                              <svg className="h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                              </svg>
+                            </div>
                           )}
                         </div>
                       </div>
@@ -383,12 +405,17 @@ const Profile = () => {
                             <button
                               type="button"
                               onClick={() => {
-                                setProfileData(prev => ({ ...prev, profilePicture: '' }))
+                                if (!defaultImageUrl) {
+                                  toast.error('Default image not available from admin')
+                                  return
+                                }
+                                setProfileData(prev => ({ ...prev, profilePicture: defaultImageUrl }))
                                 toast.success('Switched to default image. Click "Save Changes" to apply.')
                               }}
-                              className="text-sm font-medium text-red-600 hover:text-red-700"
+                              disabled={loadingDefaultImage || !defaultImageUrl}
+                              className="text-sm font-medium text-orange-600 hover:text-orange-700 disabled:text-gray-400 disabled:cursor-not-allowed"
                             >
-                              Use Default
+                              {loadingDefaultImage ? 'Loading...' : !defaultImageUrl ? 'No Default' : 'Use Default'}
                             </button>
                           )}
                         </div>

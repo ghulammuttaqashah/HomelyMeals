@@ -16,9 +16,9 @@ const Loader = ({ size = 'md', className = '', variant = 'spinner', text = '' })
   // Spinner variant (default)
   if (variant === 'spinner') {
     return (
-      <div className={`inline-flex items-center justify-center ${className}`}>
+      <div className={`inline-flex items-center justify-center text-orange-600 ${className}`}>
         <div
-          className={`${sizeClasses[size]} animate-spin rounded-full border-orange-600 border-t-transparent`}
+          className={`${sizeClasses[size]} animate-spin rounded-full border-current border-t-transparent`}
           role="status"
           aria-label="Loading"
         >
@@ -31,10 +31,10 @@ const Loader = ({ size = 'md', className = '', variant = 'spinner', text = '' })
   // Dots variant
   if (variant === 'dots') {
     return (
-      <div className={`inline-flex items-center justify-center gap-1 ${className}`}>
-        <div className="w-2 h-2 rounded-full bg-orange-600 animate-bounce" style={{ animationDelay: '0ms' }} />
-        <div className="w-2 h-2 rounded-full bg-orange-600 animate-bounce" style={{ animationDelay: '150ms' }} />
-        <div className="w-2 h-2 rounded-full bg-orange-600 animate-bounce" style={{ animationDelay: '300ms' }} />
+      <div className={`inline-flex items-center justify-center gap-1 text-orange-600 ${className}`}>
+        <div className="w-2 h-2 rounded-full bg-current animate-bounce" style={{ animationDelay: '0ms' }} />
+        <div className="w-2 h-2 rounded-full bg-current animate-bounce" style={{ animationDelay: '150ms' }} />
+        <div className="w-2 h-2 rounded-full bg-current animate-bounce" style={{ animationDelay: '300ms' }} />
       </div>
     )
   }
@@ -42,8 +42,8 @@ const Loader = ({ size = 'md', className = '', variant = 'spinner', text = '' })
   // Pulse variant
   if (variant === 'pulse') {
     return (
-      <div className={`inline-flex items-center justify-center ${className}`}>
-        <div className={`${sizeClasses[size]} rounded-full bg-orange-600 animate-pulse`} />
+      <div className={`inline-flex items-center justify-center text-orange-600 ${className}`}>
+        <div className={`${sizeClasses[size]} rounded-full bg-current animate-pulse`} />
       </div>
     )
   }
@@ -71,9 +71,9 @@ const Loader = ({ size = 'md', className = '', variant = 'spinner', text = '' })
 
   // Default fallback to spinner
   return (
-    <div className={`inline-flex items-center justify-center ${className}`}>
+    <div className={`inline-flex items-center justify-center text-orange-600 ${className}`}>
       <div
-        className={`${sizeClasses[size]} animate-spin rounded-full border-orange-600 border-t-transparent`}
+        className={`${sizeClasses[size]} animate-spin rounded-full border-current border-t-transparent`}
         role="status"
         aria-label="Loading"
       >

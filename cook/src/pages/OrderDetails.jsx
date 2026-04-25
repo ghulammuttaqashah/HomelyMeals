@@ -435,6 +435,34 @@ const OrderDetails = () => {
                 </div>
               </div>
             )}
+            {/* Cancellation Information - Show for cancelled orders */}
+            {order.status === "cancelled" && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-5">
+                <div className="flex items-start gap-3">
+                  <FiAlertCircle className="w-6 h-6 text-red-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h2 className="text-lg font-semibold text-red-800">Order Cancelled</h2>
+                    <p className="text-sm text-red-600 mt-1">
+                      {order.cancelledBy === "cook"
+                        ? "You cancelled this order"
+                        : order.cancelledBy === "customer"
+                        ? "Cancelled by customer"
+                        : order.cancelledBy === "system"
+                        ? "Cancelled by system"
+                        : order.cancelledBy === "admin"
+                        ? "Cancelled by admin"
+                        : "This order was cancelled"}
+                    </p>
+                    {(order.cancellationReason || order.rejectionReason) && (
+                      <p className="text-sm text-gray-700 mt-2">
+                        <span className="font-medium">Reason:</span> {order.cancellationReason || order.rejectionReason}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Cancellation Request — always above Cancel Order */}
             {order.cancellationRequest?.status === "pending" && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-5">

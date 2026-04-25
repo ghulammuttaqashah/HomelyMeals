@@ -55,7 +55,7 @@ initializeSocket(server);
 // Start cron jobs
 startOrderJobs();
 
-app.get("/", (req, res) => {
+app.get("/", (_req, res) => {
   res.send("Homely Meals API is working!");
 });
 
@@ -67,5 +67,5 @@ app.use("/api/cook", cookRoutes);
 
 // Start Server
 server.listen(PORT, () => {
-  console.log(`🚀 Server unning on http://localhost:${PORT}`);
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
 });

@@ -669,6 +669,7 @@ export const updateProfile = async (req, res) => {
       }
       if (address.city !== undefined) cook.address.city = address.city.trim();
       if (address.postalCode !== undefined) cook.address.postalCode = address.postalCode.trim();
+      if (address.landmark !== undefined) cook.address.landmark = address.landmark.trim();
     }
 
     await cook.save();

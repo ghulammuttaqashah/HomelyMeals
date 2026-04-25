@@ -1,7 +1,7 @@
 import { Order } from "../../../shared/models/order.model.js";
 import { calculateEstimatedDeliveryTime } from "../../../shared/utils/distance.js";
 import { emitToCustomer } from "../../../shared/utils/socket.js";
-import { sendPushNotification } from "../../../shared/utils/push.js";
+import { sendPushToUser } from "../../../shared/utils/push.js";
 import { Customer } from "../../customer/models/customer.model.js";
 
 /**
@@ -215,13 +215,11 @@ export const updateOrderStatus = async (req, res) => {
     });
 
     const customerForPush = await Customer.findById(order.customerId);
-    if (customerForPush && customerForPush.pushSubscription) {
-      await sendPushNotification(customerForPush.pushSubscription, {
-        title: "Order Update",
-        body: statusMessages[status],
-        url: `/orders/${order._id}`,
-      });
-    }
+    await sendPushToUser(customerForPush, {
+      title: "Order Update",
+      body: statusMessages[status],
+      url: `/orders/${order._id}`,
+    });
 
     return res.status(200).json({
       message: "Order status updated",
@@ -273,13 +271,11 @@ export const verifyPayment = async (req, res) => {
       });
 
       const customerForPush = await Customer.findById(order.customerId);
-      if (customerForPush && customerForPush.pushSubscription) {
-        await sendPushNotification(customerForPush.pushSubscription, {
-          title: "Payment Verified",
-          body: `Payment for order #${order.orderNumber} successfully verified.`,
-          url: `/orders/${order._id}`,
-        });
-      }
+      await sendPushToUser(customerForPush, {
+        title: "Payment Verified",
+        body: `Payment for order #${order.orderNumber} successfully verified.`,
+        url: `/orders/${order._id}`,
+      });
 
       return res.status(200).json({
         message: "Payment verified successfully",
@@ -310,13 +306,11 @@ export const verifyPayment = async (req, res) => {
       });
 
       const customerForPush = await Customer.findById(order.customerId);
-      if (customerForPush && customerForPush.pushSubscription) {
-        await sendPushNotification(customerForPush.pushSubscription, {
-          title: "Payment Rejected",
-          body: `Payment proof for order #${order.orderNumber} issue: ${reason}.`,
-          url: `/orders/${order._id}`,
-        });
-      }
+      await sendPushToUser(customerForPush, {
+        title: "Payment Rejected",
+        body: `Payment proof for order #${order.orderNumber} issue: ${reason}.`,
+        url: `/orders/${order._id}`,
+      });
 
       await order.save();
 

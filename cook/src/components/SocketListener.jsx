@@ -58,7 +58,7 @@ const SocketListener = () => {
           </div>
         ),
         {
-          duration: 10000,
+          duration: 2000,
           style: {
             background: "#fff",
             color: "#333",
@@ -110,7 +110,7 @@ const SocketListener = () => {
             </div>
           ),
           {
-            duration: 15000,
+            duration: 2000,
             style: {
               background: "#fff",
               color: "#333",
@@ -146,7 +146,7 @@ const SocketListener = () => {
             </div>
           ),
           {
-            duration: 10000,
+            duration: 2000,
             style: {
               background: "#fff",
               color: "#333",

@@ -63,6 +63,7 @@ const Header = ({ showNav = true }) => {
     { label: 'Delivery Charges', path: '/delivery-charges' },
     { label: 'Complaints', path: '/complaints' },
     { label: 'Subscriptions', path: '/subscriptions' },
+    { label: 'Settings', path: '/settings' },
   ]
 
   return (
