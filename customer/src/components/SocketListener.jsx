@@ -43,7 +43,7 @@ const SocketListener = () => {
             </div>
           ),
           {
-            duration: 8000,
+            duration: 1500,
             style: { background: "#fff", color: "#333", border: "2px solid #22c55e", padding: "12px", maxWidth: "400px" },
             id: `cancel-accepted-${data.orderId || Date.now()}`,
           }
@@ -72,7 +72,7 @@ const SocketListener = () => {
             </div>
           ),
           {
-            duration: 8000,
+            duration: 1500,
             style: { background: "#fff", color: "#333", border: "2px solid #ef4444", padding: "12px", maxWidth: "400px" },
             id: `cancel-rejected-${data.orderId || Date.now()}`,
           }
@@ -98,7 +98,7 @@ const SocketListener = () => {
             </div>
           ),
           {
-            duration: 6000,
+            duration: 1500,
             style: { background: "#fff", color: "#333", border: "2px solid #f97316", padding: "12px", maxWidth: "400px" },
             id: `order-update-${data.orderId || Date.now()}`,
           }
@@ -124,7 +124,7 @@ const SocketListener = () => {
             </div>
           ),
           {
-            duration: 6000,
+            duration: 1500,
             style: { background: "#fff", color: "#333", border: "2px solid #22c55e", padding: "12px", maxWidth: "400px" },
             id: `payment-verified-${data.orderId || Date.now()}`,
           }
@@ -150,7 +150,7 @@ const SocketListener = () => {
             </div>
           ),
           {
-            duration: 8000,
+            duration: 1500,
             style: { background: "#fff", color: "#333", border: "2px solid #ef4444", padding: "12px", maxWidth: "400px" },
             id: `payment-rejected-${data.orderId || Date.now()}`,
           }
@@ -176,7 +176,7 @@ const SocketListener = () => {
             </div>
           ),
           {
-            duration: 6000,
+            duration: 1500,
             style: { background: "#fff", color: "#333", border: "2px solid #22c55e", padding: "12px", maxWidth: "400px" },
             id: `order-delivered-${data.orderId || Date.now()}`,
           }
@@ -202,7 +202,7 @@ const SocketListener = () => {
             </div>
           ),
           {
-            duration: 10000,
+            duration: 1500,
             style: { background: "#fff", color: "#333", border: "2px solid #ef4444", padding: "12px", maxWidth: "400px" },
             id: `order-auto-cancel-${data.orderId || Date.now()}`,
           }
@@ -228,7 +228,7 @@ const SocketListener = () => {
             </div>
           ),
           {
-            duration: 8000,
+            duration: 1500,
             style: { background: "#fff", color: "#333", border: "2px solid #ef4444", padding: "12px", maxWidth: "400px" },
             id: `order-cancel-${data.orderId || Date.now()}`,
           }
@@ -253,7 +253,7 @@ const SocketListener = () => {
             </div>
           ),
           {
-            duration: 6000,
+            duration: 1500,
             style: {
               background: "#fff",
               color: "#333",

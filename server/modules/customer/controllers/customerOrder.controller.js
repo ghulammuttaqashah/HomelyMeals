@@ -1,5 +1,6 @@
 import { Order } from "../../../shared/models/order.model.js";
 import { Cook } from "../../cook/models/cook.model.js";
+import { Customer } from "../models/customer.model.js";
 import CookMeal from "../../cook/models/cookMeal.model.js";
 import { calculateDistance, isWithinDeliveryRange, calculateEstimatedDeliveryTime } from "../../../shared/utils/distance.js";
 import { calculateDeliveryCharges } from "../../../shared/utils/deliveryCharges.js";
@@ -15,6 +16,15 @@ export const placeOrder = async (req, res) => {
   try {
     const customerId = req.user._id;
     const { cookId, items, deliveryAddress, paymentMethod } = req.body;
+
+    // Check if customer is suspended
+    const customer = await Customer.findById(customerId);
+    if (!customer) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+    if (customer.status === "suspended") {
+      return res.status(403).json({ message: "Your account has been suspended. You cannot place orders." });
+    }
 
     // Validate required fields
     if (!cookId || !items || !items.length || !deliveryAddress || !paymentMethod) {

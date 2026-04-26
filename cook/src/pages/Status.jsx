@@ -44,13 +44,27 @@ const Status = () => {
   const handleSignOut = async () => {
     if (signingOut) return
     setSigningOut(true)
-    const loadingToast = toast.loading('Signing out...', { duration: Infinity })
+    const loadingToast = toast(
+      (t) => (
+        <div className="flex items-center gap-3">
+          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900"></div>
+          <span>Signing out...</span>
+          <button
+            onClick={() => toast.dismiss(t.id)}
+            className="ml-2 text-gray-400 hover:text-gray-600"
+          >
+            ✕
+          </button>
+        </div>
+      ),
+      { duration: Infinity }
+    )
     try {
       await signout()
-      toast.success('Signed out successfully', { id: loadingToast })
+      toast.success('Signed out successfully', { id: loadingToast, duration: 1500 })
       navigate('/login', { replace: true })
     } catch (error) {
-      toast.error('Failed to sign out', { id: loadingToast })
+      toast.error('Failed to sign out', { id: loadingToast, duration: 1500 })
       setSigningOut(false)
     }
   }

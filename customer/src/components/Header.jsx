@@ -92,9 +92,21 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
 
   const handleInstallApp = async () => {
     // Show loading toast while waiting for user action
-    const loadingToast = toast.loading('Opening installation prompt...', {
-      duration: Infinity,
-    })
+    const loadingToast = toast(
+      (t) => (
+        <div className="flex items-center gap-3">
+          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900"></div>
+          <span>Opening installation prompt...</span>
+          <button
+            onClick={() => toast.dismiss(t.id)}
+            className="ml-2 text-gray-400 hover:text-gray-600"
+          >
+            ✕
+          </button>
+        </div>
+      ),
+      { duration: Infinity }
+    )
     
     const success = await installApp()
     
@@ -103,13 +115,13 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
     
     if (success) {
       toast.success('HomelyMeals installed! Open it from your home screen 📱', {
-        duration: 2000,
+        duration: 1500,
         icon: '🎉',
       })
     } else {
       // User cancelled or installation failed
       toast('Installation cancelled', {
-        duration: 2000,
+        duration: 1500,
         icon: 'ℹ️',
       })
     }
@@ -309,7 +321,7 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
                 type="button" 
                 onClick={() => { 
                   if (isInstalled) {
-                    toast.error('Please use the Cook app to manage your kitchen', { duration: 2000 })
+                    toast.error('Please use the Cook app to manage your kitchen', { duration: 1500 })
                     return
                   }
                   window.location.href = import.meta.env.VITE_COOK_URL || 'http://localhost:5174' 
@@ -500,7 +512,7 @@ const Header = ({ showButtons = true, showPortalText = true, onAddressChange }) 
                   <button 
                     onClick={() => { 
                       if (isInstalled) {
-                        toast.error('Please use the Cook app to manage your kitchen', { duration: 2000 })
+                        toast.error('Please use the Cook app to manage your kitchen', { duration: 1500 })
                         setShowMobileMenu(false)
                         return
                       }

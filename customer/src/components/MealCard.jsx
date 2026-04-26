@@ -101,7 +101,7 @@ const MealCard = ({ meal, cook, cookServesArea = true }) => {
         </div>
       ),
       {
-        duration: 5000,
+        duration: 1500,
         style: { 
           padding: '12px 16px', 
           maxWidth: '380px',

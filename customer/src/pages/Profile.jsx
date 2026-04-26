@@ -263,7 +263,7 @@ const Profile = () => {
         setAddressForm(prev => ({ ...prev, latitude: null, longitude: null }))
         toast.error('❌ Address not found. Please:\n1. Check spelling\n2. Click on map manually\n3. Or use "Use My Location"', { 
           id: 'geocode',
-          duration: 5000 
+          duration: 1500 
         })
       }
     } catch (error) {

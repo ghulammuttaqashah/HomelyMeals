@@ -145,7 +145,7 @@ const OrderDetails = () => {
     if (order.paymentMethod !== "cod") {
       toast.error(
         "Online payment orders cannot be cancelled. Please contact support at homelymeals4@gmail.com for refund requests.",
-        { duration: 6000, icon: "🚫" }
+        { duration: 1500, icon: "🚫" }
       );
       setShowCancelModal(false);
       return;
@@ -593,7 +593,7 @@ const OrderDetails = () => {
                   if (order.paymentMethod !== "cod") {
                     toast.error(
                       "Online payment orders cannot be cancelled. Please contact support at homelymeals4@gmail.com for refund requests.",
-                      { duration: 6000, icon: "🚫" }
+                      { duration: 1500, icon: "🚫" }
                     );
                     return;
                   }

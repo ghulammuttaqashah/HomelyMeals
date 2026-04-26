@@ -197,7 +197,7 @@ const App = () => {
               },
             },
             error: {
-              duration: 2000,
+              duration: 1500,
               style: {
                 background: '#363636',
                 color: '#fff',

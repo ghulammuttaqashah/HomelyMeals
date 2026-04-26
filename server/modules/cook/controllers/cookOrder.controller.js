@@ -415,6 +415,13 @@ export const respondToCancellationRequest = async (req, res) => {
         message: `Your cancellation request for order #${order.orderNumber} has been accepted`,
       });
 
+      const customerForPush = await Customer.findById(order.customerId);
+      await sendPushToUser(customerForPush, {
+        title: "Cancellation Accepted",
+        body: `Your cancellation request for order #${order.orderNumber} has been accepted`,
+        url: `/orders/${order._id}`,
+      });
+
       return res.status(200).json({
         message: "Cancellation request accepted. Order has been cancelled.",
         order: {
@@ -436,6 +443,13 @@ export const respondToCancellationRequest = async (req, res) => {
         orderNumber: order.orderNumber,
         reason: cookResponse,
         message: `Your cancellation request for order #${order.orderNumber} was declined by the cook`,
+      });
+
+      const customerForPush = await Customer.findById(order.customerId);
+      await sendPushToUser(customerForPush, {
+        title: "Cancellation Declined",
+        body: `Your cancellation request for order #${order.orderNumber} was declined`,
+        url: `/orders/${order._id}`,
       });
 
       return res.status(200).json({
@@ -505,6 +519,13 @@ export const cancelOrderByCook = async (req, res) => {
       reason: reason.trim(),
       cancelledBy: "cook",
       message: `Your order #${order.orderNumber} was cancelled by the cook: ${reason.trim()}`,
+    });
+
+    const customerForPush = await Customer.findById(order.customerId);
+    await sendPushToUser(customerForPush, {
+      title: "Order Cancelled",
+      body: `Your order #${order.orderNumber} was cancelled by the cook: ${reason.trim()}`,
+      url: `/orders/${order._id}`,
     });
 
     return res.status(200).json({

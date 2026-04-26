@@ -1,15 +1,14 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { FiPackage, FiClock, FiTruck, FiCheckCircle, FiXCircle, FiSearch, FiChevronRight, FiRefreshCw } from 'react-icons/fi'
+import { FiPackage, FiClock, FiTruck, FiCheckCircle, FiXCircle, FiSearch, FiChevronRight, FiRefreshCw, FiX, FiUser, FiMapPin, FiDollarSign, FiAlertTriangle } from 'react-icons/fi'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import Loader from '../components/Loader'
 import BackButton from '../components/BackButton'
-import { getOrders } from '../api/orders'
+import { getOrders, getOrder } from '../api/orders'
 import { initializeSocket, subscribeToOrderUpdates, disconnectSocket } from '../utils/socket'
+import toast from 'react-hot-toast'
 
 const Orders = () => {
-  const navigate = useNavigate()
   const [orders, setOrders] = useState([])
   const [initialLoading, setInitialLoading] = useState(true)
   const [sectionLoading, setSectionLoading] = useState(false)
@@ -19,6 +18,10 @@ const Orders = () => {
   const [dateFilter, setDateFilter] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [pagination, setPagination] = useState({ page: 1, totalPages: 1 })
+  
+  // Modal state
+  const [selectedOrder, setSelectedOrder] = useState(null)
+  const [detailLoading, setDetailLoading] = useState(false)
 
   const statusOptions = [
     { value: 'all', label: 'All Statuses' },
@@ -200,12 +203,29 @@ const Orders = () => {
   }
 
   const formatDate = (dateString) => {
+    if (!dateString) return 'N/A'
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
     })
+  }
+
+  const openDetail = async (orderId) => {
+    setDetailLoading(true)
+    try {
+      const response = await getOrder(orderId)
+      setSelectedOrder(response.data?.order)
+    } catch (error) {
+      toast.error('Failed to load order details')
+    } finally {
+      setDetailLoading(false)
+    }
+  }
+
+  const closeDetail = () => {
+    setSelectedOrder(null)
   }
 
   const filteredOrders = orders.filter(order => {
@@ -231,7 +251,7 @@ const Orders = () => {
                 Monitor and manage all orders across the platform
               </p>
               <div className="mt-3">
-                <BackButton onClick={() => navigate('/dashboard')} label="Back to Dashboard" />
+                <BackButton to="/dashboard" label="Back to Dashboard" />
               </div>
             </div>
             <button
@@ -353,7 +373,7 @@ const Orders = () => {
                 {filteredOrders.map((order) => (
                   <div
                     key={order._id}
-                    onClick={() => navigate(`/orders/${order._id}`)}
+                    onClick={() => openDetail(order._id)}
                     className="p-4 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors"
                   >
                     <div className="flex items-start justify-between gap-3 mb-2">
@@ -394,7 +414,7 @@ const Orders = () => {
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {filteredOrders.map((order) => (
-                      <tr key={order._id} onClick={() => navigate(`/orders/${order._id}`)} className="hover:bg-gray-50 cursor-pointer">
+                      <tr key={order._id} onClick={() => openDetail(order._id)} className="hover:bg-gray-50 cursor-pointer">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center gap-2">
                             {getStatusIcon(order.status)}
@@ -453,6 +473,236 @@ const Orders = () => {
       </main>
 
       <Footer />
+
+      {/* Loading overlay for detail */}
+      {detailLoading && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm">
+          <Loader size="lg" label="Loading Order Details" />
+        </div>
+      )}
+
+      {/* Order Detail Modal */}
+      {selectedOrder && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-xl w-full max-w-5xl max-h-[90vh] overflow-y-auto my-8">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white rounded-t-xl z-10">
+              <div>
+                <h2 className="text-lg font-bold text-gray-800">Order #{selectedOrder._id.slice(-8)}</h2>
+                <p className="text-sm text-gray-500">Placed on {formatDate(selectedOrder.createdAt)}</p>
+              </div>
+              <div className="flex items-center gap-3">
+                {getStatusBadge(selectedOrder.status, selectedOrder.cancelledBy)}
+                <button
+                  onClick={closeDetail}
+                  className="p-1 hover:bg-gray-100 rounded-full"
+                >
+                  <FiX className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Left Column */}
+                <div className="space-y-6">
+                  {/* Customer Info */}
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <h3 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                      <FiUser className="h-4 w-4 text-blue-500" />
+                      Customer Details
+                    </h3>
+                    <div className="space-y-2 text-sm">
+                      <div>
+                        <p className="text-gray-500">Name</p>
+                        <p className="font-medium text-gray-900">{selectedOrder.customer?.name || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500">Phone</p>
+                        <p className="font-medium text-gray-900">{selectedOrder.customer?.contact || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500">Email</p>
+                        <p className="font-medium text-gray-900">{selectedOrder.customer?.email || 'N/A'}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Cook Info */}
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <h3 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                      <FiPackage className="h-4 w-4 text-orange-500" />
+                      Cook Details
+                    </h3>
+                    <div className="space-y-2 text-sm">
+                      <div>
+                        <p className="text-gray-500">Name</p>
+                        <p className="font-medium text-gray-900">{selectedOrder.cook?.name || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500">Phone</p>
+                        <p className="font-medium text-gray-900">{selectedOrder.cook?.contact || 'N/A'}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Delivery Info */}
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <h3 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                      <FiMapPin className="h-4 w-4 text-green-500" />
+                      Delivery Details
+                    </h3>
+                    <div className="space-y-2 text-sm">
+                      <div>
+                        <p className="text-gray-500">Delivery Address</p>
+                        <p className="font-medium text-gray-900">
+                          {selectedOrder.deliveryAddress ? (
+                            <>
+                              {selectedOrder.deliveryAddress.houseNo && `${selectedOrder.deliveryAddress.houseNo}, `}
+                              {selectedOrder.deliveryAddress.street}
+                              {selectedOrder.deliveryAddress.city && `, ${selectedOrder.deliveryAddress.city}`}
+                              {selectedOrder.deliveryAddress.postalCode && ` - ${selectedOrder.deliveryAddress.postalCode}`}
+                            </>
+                          ) : 'N/A'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500">Distance</p>
+                        <p className="font-medium text-gray-900">{selectedOrder.distance?.toFixed(2) || 'N/A'} km</p>
+                      </div>
+                      {selectedOrder.deliveryNote && (
+                        <div>
+                          <p className="text-gray-500">Delivery Notes</p>
+                          <p className="font-medium text-gray-900">{selectedOrder.deliveryNote}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column */}
+                <div className="space-y-6">
+                  {/* Order Items */}
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <h3 className="text-base font-semibold text-gray-900 mb-3">Order Items</h3>
+                    <div className="space-y-3">
+                      {selectedOrder.items?.map((item, index) => (
+                        <div key={index} className="flex items-center justify-between py-2 border-b border-gray-200 last:border-0">
+                          <div className="flex items-center gap-3">
+                            {item.itemImage ? (
+                              <img
+                                src={item.itemImage}
+                                alt={item.name}
+                                className="h-10 w-10 rounded-lg object-cover"
+                              />
+                            ) : (
+                              <div className="h-10 w-10 rounded-lg bg-gray-200 flex items-center justify-center">
+                                <FiPackage className="h-5 w-5 text-gray-400" />
+                              </div>
+                            )}
+                            <div>
+                              <p className="font-medium text-gray-900 text-sm">{item.name || 'Unknown Item'}</p>
+                              <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
+                            </div>
+                          </div>
+                          <p className="font-medium text-gray-900 text-sm">Rs. {item.price * item.quantity}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="mt-4 pt-4 border-t border-gray-300 space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Subtotal</span>
+                        <span className="text-gray-900">Rs. {selectedOrder.subtotal}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Delivery Fee</span>
+                        <span className="text-gray-900">Rs. {Math.round(selectedOrder.deliveryCharges || 0)}</span>
+                      </div>
+                      <div className="flex justify-between text-base font-semibold pt-2 border-t border-gray-300">
+                        <span className="text-gray-900">Total</span>
+                        <span className="text-orange-600">Rs. {selectedOrder.totalAmount}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Payment Info */}
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <h3 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                      <FiDollarSign className="h-4 w-4 text-green-500" />
+                      Payment Details
+                    </h3>
+                    <div className="space-y-2 text-sm">
+                      <div>
+                        <p className="text-gray-500">Payment Method</p>
+                        <p className="font-medium text-gray-900 uppercase">
+                          {selectedOrder.paymentMethod === 'cod' ? 'Cash on Delivery' : selectedOrder.paymentMethod || 'N/A'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500">Payment Status</p>
+                        {getPaymentBadge(selectedOrder)}
+                      </div>
+                      {selectedOrder.paymentMethod === 'cod' && (
+                        <div className="bg-yellow-50 p-3 rounded-lg mt-2">
+                          <p className="text-xs text-yellow-800">
+                            <strong>Cash on Delivery:</strong> Payment of Rs. {selectedOrder.totalAmount} to be collected upon delivery.
+                            {selectedOrder.status === 'delivered' && ' (Marked as received)'}
+                          </p>
+                        </div>
+                      )}
+                      {selectedOrder.paymentProofUrl && (
+                        <div className="mt-2">
+                          <p className="text-gray-500 mb-2">Payment Proof</p>
+                          <a
+                            href={selectedOrder.paymentProofUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-block"
+                          >
+                            <img
+                              src={selectedOrder.paymentProofUrl}
+                              alt="Payment proof"
+                              className="h-24 rounded-lg border border-gray-200 hover:opacity-80 transition-opacity"
+                            />
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Cancellation Info */}
+                  {selectedOrder.status === 'cancelled' && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                      <h3 className="text-base font-semibold text-red-900 mb-2 flex items-center gap-2">
+                        <FiAlertTriangle className="h-4 w-4" />
+                        Cancellation Details
+                      </h3>
+                      <div className="space-y-2 text-sm">
+                        {selectedOrder.cancelledBy && (
+                          <div>
+                            <p className="text-red-700">Cancelled by: <span className="font-medium capitalize">{selectedOrder.cancelledBy}</span></p>
+                          </div>
+                        )}
+                        {selectedOrder.cancellationReason && (
+                          <div>
+                            <p className="text-red-700">Reason: <span className="font-medium">{selectedOrder.cancellationReason}</span></p>
+                          </div>
+                        )}
+                        {selectedOrder.cancelledAt && (
+                          <div>
+                            <p className="text-red-600 text-xs">{formatDate(selectedOrder.cancelledAt)}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

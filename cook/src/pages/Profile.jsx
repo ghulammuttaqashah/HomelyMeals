@@ -265,7 +265,7 @@ const Profile = () => {
     }
 
     if (!coordinates) {
-      toast.error('📍 GPS location is required! Please use "Use My Location" or click on the map to pin your kitchen location.', { duration: 2000 })
+      toast.error('📍 GPS location is required! Please use "Use My Location" or click on the map to pin your kitchen location.', { duration: 1500 })
       return
     }
 

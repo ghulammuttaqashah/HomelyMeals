@@ -87,7 +87,7 @@ const Header = ({ showSignOut = false }) => {
     } else {
       // Don't redirect to customer app if in PWA mode
       if (isInstalled) {
-        toast.error('Please use the Customer app to browse meals', { duration: 2000 })
+        toast.error('Please use the Customer app to browse meals', { duration: 1500 })
         return
       }
       const customerUrl = import.meta.env.VITE_CUSTOMER_URL || 'http://localhost:5173'
@@ -117,9 +117,21 @@ const Header = ({ showSignOut = false }) => {
 
   const handleInstallApp = async () => {
     // Show loading toast while waiting for user action
-    const loadingToast = toast.loading('Opening installation prompt...', {
-      duration: Infinity,
-    })
+    const loadingToast = toast(
+      (t) => (
+        <div className="flex items-center gap-3">
+          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900"></div>
+          <span>Opening installation prompt...</span>
+          <button
+            onClick={() => toast.dismiss(t.id)}
+            className="ml-2 text-gray-400 hover:text-gray-600"
+          >
+            ✕
+          </button>
+        </div>
+      ),
+      { duration: Infinity }
+    )
     
     const success = await installApp()
     
@@ -128,13 +140,13 @@ const Header = ({ showSignOut = false }) => {
     
     if (success) {
       toast.success('HomelyMeals installed! Open it from your home screen 📱', {
-        duration: 2000,
+        duration: 1500,
         icon: '🎉',
       })
     } else {
       // User cancelled or installation failed
       toast('Installation cancelled', {
-        duration: 2000,
+        duration: 1500,
         icon: 'ℹ️',
       })
     }
@@ -143,12 +155,26 @@ const Header = ({ showSignOut = false }) => {
   const handleSignOut = async () => {
     if (signingOut) return
     setSigningOut(true)
-    const loadingToast = toast.loading('Signing out...', { duration: Infinity })
+    const loadingToast = toast(
+      (t) => (
+        <div className="flex items-center gap-3">
+          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900"></div>
+          <span>Signing out...</span>
+          <button
+            onClick={() => toast.dismiss(t.id)}
+            className="ml-2 text-gray-400 hover:text-gray-600"
+          >
+            ✕
+          </button>
+        </div>
+      ),
+      { duration: Infinity }
+    )
     try {
       await signout()
-      toast.success('Signed out successfully', { id: loadingToast })
+      toast.success('Signed out successfully', { id: loadingToast, duration: 1500 })
     } catch (error) {
-      toast.error('Failed to sign out', { id: loadingToast })
+      toast.error('Failed to sign out', { id: loadingToast, duration: 1500 })
     } finally {
       setSigningOut(false)
     }

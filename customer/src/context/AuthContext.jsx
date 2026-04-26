@@ -191,7 +191,7 @@ export const AuthProvider = ({ children }) => {
       resetState()
       navigate('/', { replace: true })
       if (wasAuthenticated) {
-        toast.success('Signed out')
+        toast.success('Signed out', { duration: 1500 })
       }
       isLoggingOut.current = false
     }
