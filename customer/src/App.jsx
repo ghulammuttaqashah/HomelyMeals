@@ -25,6 +25,7 @@ import Chats from './pages/Chats'
 import Complaints from './pages/Complaints'
 import FileComplaint from './pages/FileComplaint'
 import NotFound from './pages/NotFound'
+import PushTest from './pages/PushTest'
 
 
 const App = () => {
@@ -146,6 +147,14 @@ const App = () => {
               element={
                 <ProtectedRoute>
                   <FileComplaint />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/push-test"
+              element={
+                <ProtectedRoute>
+                  <PushTest />
                 </ProtectedRoute>
               }
             />
