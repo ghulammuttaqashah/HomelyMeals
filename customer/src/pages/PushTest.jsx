@@ -51,11 +51,18 @@ const PushTest = () => {
         toast.success('Push notifications enabled!')
         await checkStatus()
       } else {
-        toast.error('Failed to enable push notifications')
+        toast.error('Failed to enable push notifications. Check console for details.')
+        // Log to help debug
+        console.error('[PushTest] requestAndSubscribe returned false')
       }
     } catch (error) {
-      console.error('Error requesting permission:', error)
-      toast.error('Error: ' + error.message)
+      console.error('[PushTest] Error requesting permission:', error)
+      toast.error('Error: ' + (error.message || 'Unknown error'))
+      // Show detailed error in alert for mobile debugging
+      alert('Push Subscription Error:\n\n' + 
+            'Name: ' + error.name + '\n' +
+            'Message: ' + error.message + '\n\n' +
+            'Check browser console for more details.')
     } finally {
       setLoading(false)
     }

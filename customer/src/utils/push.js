@@ -93,12 +93,25 @@ export const subscribeUserToPush = async () => {
         return false;
       }
       
-      console.log('[Push] VAPID key found, subscribing...');
-      subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
-      });
-      console.log('[Push] New subscription created');
+      console.log('[Push] VAPID key found, length:', publicVapidKey.length);
+      console.log('[Push] VAPID key (first 20 chars):', publicVapidKey.substring(0, 20));
+      
+      try {
+        const applicationServerKey = urlBase64ToUint8Array(publicVapidKey);
+        console.log('[Push] VAPID key converted to Uint8Array, length:', applicationServerKey.length);
+        
+        console.log('[Push] Attempting to subscribe...');
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: applicationServerKey
+        });
+        console.log('[Push] New subscription created successfully!');
+      } catch (subscribeError) {
+        console.error('[Push] Failed to create subscription:', subscribeError);
+        console.error('[Push] Error name:', subscribeError.name);
+        console.error('[Push] Error message:', subscribeError.message);
+        throw subscribeError;
+      }
     }
 
     // ALWAYS send subscription to server to ensure DB is in sync
@@ -110,6 +123,11 @@ export const subscribeUserToPush = async () => {
     
   } catch (error) {
     console.error('[Push] Error in push subscription:', error);
+    console.error('[Push] Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack
+    });
     return false;
   }
 };
