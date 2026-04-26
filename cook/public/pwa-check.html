@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWA Diagnostic Check - Cook</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .check {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #ccc;
+        }
+        .check.pass {
+            border-left-color: #22c55e;
+        }
+        .check.fail {
+            border-left-color: #ef4444;
+        }
+        .check.warn {
+            border-left-color: #f59e0b;
+        }
+        h1 {
+            color: #ea580c;
+        }
+        button {
+            background: #ea580c;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #c2410c;
+        }
+        pre {
+            background: #f1f5f9;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 PWA Diagnostic Check - Cook</h1>
+    <div id="results"></div>
+    <div>
+        <button onclick="runChecks()">Run Checks</button>
+        <button onclick="unregisterAll()">Unregister All SW</button>
+        <button onclick="clearAll()">Clear All Data</button>
+    </div>
+
+    <script>
+        async function runChecks() {
+            const results = document.getElementById('results');
+            results.innerHTML = '';
+
+            // Check 1: Service Worker Support
+            addCheck(
+                'Service Worker Support',
+                'serviceWorker' in navigator,
+                'Service Workers are supported',
+                'Service Workers are NOT supported'
+            );
+
+            // Check 2: Push Support
+            addCheck(
+                'Push Notification Support',
+                'PushManager' in window,
+                'Push notifications are supported',
+                'Push notifications are NOT supported'
+            );
+
+            // Check 3: Notification Permission
+            if ('Notification' in window) {
+                const perm = Notification.permission;
+                addCheck(
+                    'Notification Permission',
+                    perm === 'granted',
+                    `Permission: ${perm}`,
+                    `Permission: ${perm} (need to grant)`,
+                    perm === 'default' ? 'warn' : 'fail'
+                );
+            }
+
+            // Check 4: Service Worker Registration
+            if ('serviceWorker' in navigator) {
+                const regs = await navigator.serviceWorker.getRegistrations();
+                addCheck(
+                    'Service Worker Registered',
+                    regs.length > 0,
+                    `${regs.length} service worker(s) registered`,
+                    'No service workers registered'
+                );
+
+                if (regs.length > 0) {
+                    regs.forEach((reg, i) => {
+                        const state = reg.active ? reg.active.state : 'none';
+                        addInfo(`SW ${i + 1}: ${reg.scope} - State: ${state}`);
+                    });
+                }
+            }
+
+            // Check 5: Install Prompt
+            addCheck(
+                'Install Prompt Available',
+                !!window.__pwaInstallPrompt,
+                'Install prompt is available',
+                'Install prompt is NOT available (may already be installed)'
+            );
+
+            // Check 6: Standalone Mode
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                                window.navigator.standalone === true;
+            addCheck(
+                'Standalone Mode',
+                isStandalone,
+                'App is running in standalone mode (installed)',
+                'App is running in browser (not installed)',
+                isStandalone ? 'pass' : 'warn'
+            );
+
+            // Check 7: Manifest
+            try {
+                const manifestResp = await fetch('/manifest.json');
+                const manifest = await manifestResp.json();
+                addCheck(
+                    'Manifest File',
+                    true,
+                    'Manifest loaded successfully',
+                    ''
+                );
+                addInfo(`<pre>${JSON.stringify(manifest, null, 2)}</pre>`);
+            } catch (e) {
+                addCheck(
+                    'Manifest File',
+                    false,
+                    '',
+                    'Failed to load manifest: ' + e.message
+                );
+            }
+
+            // Check 8: Icons
+            try {
+                const manifestResp = await fetch('/manifest.json');
+                const manifest = await manifestResp.json();
+                
+                for (const icon of manifest.icons) {
+                    const iconResp = await fetch(icon.src);
+                    addCheck(
+                        `Icon: ${icon.src}`,
+                        iconResp.ok,
+                        `Icon loads (${icon.sizes})`,
+                        `Icon failed to load`
+                    );
+                }
+            } catch (e) {
+                addCheck(
+                    'Icons Check',
+                    false,
+                    '',
+                    'Failed to check icons: ' + e.message
+                );
+            }
+
+            // Check 9: HTTPS
+            addCheck(
+                'HTTPS',
+                location.protocol === 'https:' || location.hostname === 'localhost',
+                `Protocol: ${location.protocol}`,
+                'HTTPS required for mobile PWA',
+                location.protocol === 'https:' || location.hostname === 'localhost' ? 'pass' : 'warn'
+            );
+        }
+
+        function addCheck(title, pass, passMsg, failMsg, type = null) {
+            const div = document.createElement('div');
+            const status = type || (pass ? 'pass' : 'fail');
+            div.className = `check ${status}`;
+            div.innerHTML = `
+                <strong>${pass ? '✅' : '❌'} ${title}</strong><br>
+                ${pass ? passMsg : failMsg}
+            `;
+            document.getElementById('results').appendChild(div);
+        }
+
+        function addInfo(html) {
+            const div = document.createElement('div');
+            div.className = 'check';
+            div.innerHTML = html;
+            document.getElementById('results').appendChild(div);
+        }
+
+        async function unregisterAll() {
+            if ('serviceWorker' in navigator) {
+                const regs = await navigator.serviceWorker.getRegistrations();
+                for (const reg of regs) {
+                    await reg.unregister();
+                }
+                alert(`Unregistered ${regs.length} service worker(s). Reload the page.`);
+            }
+        }
+
+        function clearAll() {
+            if (confirm('This will clear all site data and reload. Continue?')) {
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.getRegistrations().then(regs => {
+                        regs.forEach(reg => reg.unregister());
+                    });
+                }
+                
+                // Clear caches
+                if ('caches' in window) {
+                    caches.keys().then(names => {
+                        names.forEach(name => caches.delete(name));
+                    });
+                }
+                
+                // Clear storage
+                localStorage.clear();
+                sessionStorage.clear();
+                
+                alert('All data cleared. Page will reload.');
+                location.reload();
+            }
+        }
+
+        // Auto-run on load
+        window.addEventListener('load', runChecks);
+    </script>
+</body>
+</html>
