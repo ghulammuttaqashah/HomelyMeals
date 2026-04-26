@@ -46,9 +46,23 @@ export const sendPushNotification = async (subscription, payload) => {
  * @param {Object} payload - { title, body, url, actions }
  */
 export const sendPushToUser = async (userDoc, payload) => {
-  if (!userDoc || !userDoc.pushSubscription) return;
+  if (!userDoc) {
+    console.log("🔕 [Push] sendPushToUser: userDoc is null/undefined");
+    return;
+  }
+  
+  if (!userDoc.pushSubscription) {
+    console.log(`🔕 [Push] sendPushToUser: No pushSubscription for user ${userDoc._id} (${userDoc.name || 'unknown'})`);
+    return;
+  }
+  
+  console.log(`📨 [Push] Sending notification to ${userDoc.name || userDoc._id}: "${payload.title}"`);
   
   const result = await sendPushNotification(userDoc.pushSubscription, payload);
+  
+  if (result.sent) {
+    console.log(`✅ [Push] Notification sent successfully to ${userDoc.name || userDoc._id}`);
+  }
   
   // Auto-clean expired subscriptions from DB
   if (result.expired) {

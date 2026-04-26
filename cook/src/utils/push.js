@@ -56,6 +56,7 @@ export const requestAndSubscribe = async () => {
 /**
  * Subscribe the user to push notifications and save subscription to server.
  * Does NOT request permission — permission must already be 'granted'.
+ * ALWAYS sends the subscription to the server to ensure DB is in sync.
  * Returns true if successfully subscribed.
  */
 export const subscribeUserToPush = async () => {
@@ -90,6 +91,7 @@ export const subscribeUserToPush = async () => {
       });
     }
 
+    // ALWAYS send subscription to server to ensure DB is in sync
     await api.post('/api/cook/auth/push/subscribe', { subscription });
     console.log('[Push] Successfully subscribed to push notifications!');
     return true;

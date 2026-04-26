@@ -58,7 +58,8 @@ export const requestAndSubscribe = async () => {
 /**
  * Subscribe the user to push notifications and save subscription to server.
  * Does NOT request permission — permission must already be 'granted'.
- * Safe to call anytime; will silently skip if permission is not granted.
+ * ALWAYS sends the subscription to the server (even if locally cached)
+ * to ensure the server DB has the latest subscription.
  * Returns true if successfully subscribed.
  */
 export const subscribeUserToPush = async () => {
@@ -79,7 +80,7 @@ export const subscribeUserToPush = async () => {
     const registration = await navigator.serviceWorker.ready;
     console.log('[Push] Service worker ready');
     
-    // Check if already subscribed
+    // Get existing subscription or create a new one
     let subscription = await registration.pushManager.getSubscription();
     console.log('[Push] Existing subscription:', subscription ? 'Found' : 'None');
     
@@ -100,7 +101,8 @@ export const subscribeUserToPush = async () => {
       console.log('[Push] New subscription created');
     }
 
-    // Send subscription to server
+    // ALWAYS send subscription to server to ensure DB is in sync
+    // (previous sends may have failed, or subscription may have been cleared server-side)
     console.log('[Push] Sending subscription to server...');
     await api.post('/api/customer/auth/push/subscribe', { subscription });
     console.log('[Push] Successfully subscribed to push notifications!');

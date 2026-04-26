@@ -158,9 +158,25 @@ const App = () => {
             position="top-right" 
             toastOptions={{
               duration: 1500,
-              style: {
-                background: '#363636',
-                color: '#fff',
+              success: {
+                duration: 1500,
+                style: {
+                  background: '#363636',
+                  color: '#fff',
+                },
+              },
+              error: {
+                duration: 2000,
+                style: {
+                  background: '#363636',
+                  color: '#fff',
+                },
+              },
+              loading: {
+                style: {
+                  background: '#363636',
+                  color: '#fff',
+                },
               },
             }}
           />
