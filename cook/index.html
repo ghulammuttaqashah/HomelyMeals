@@ -32,8 +32,15 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="HM Cook" />
     
-    <!-- PWA Splash Screens -->
+    <!-- PWA Splash Screens for iOS -->
     <link rel="apple-touch-startup-image" href="/cook.png" />
+    <link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" href="/cook.png" />
+    <link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" href="/cook.png" />
+    <link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)" href="/cook.png" />
+    
+    <!-- Android splash screen color -->
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: dark)" />
     
     <link rel="manifest" href="/manifest.json" />
     <title>Homely Meals - Cook</title>

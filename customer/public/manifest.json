@@ -12,18 +12,18 @@
   "icons": [
     {
       "src": "/customer+admin.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/customer+admin.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
       "src": "/customer+admin.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/mobileapp.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

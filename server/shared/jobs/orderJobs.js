@@ -1,6 +1,8 @@
 import cron from "node-cron";
 import { Order } from "../models/order.model.js";
 import { emitToCustomer, emitToCook } from "../utils/socket.js";
+import { sendPushToUser } from "../utils/push.js";
+import { Customer } from "../../modules/customer/models/customer.model.js";
 
 /**
  * Start all order-related cron jobs
@@ -10,6 +12,7 @@ export const startOrderJobs = () => {
   cron.schedule("* * * * *", async () => {
     await cancelUnpaidOrders();
     await autoCancelUnresponsiveOrders();
+    await autoCompleteDeliveredOrders();
   });
 
   console.log("📅 Order cron jobs started");
@@ -112,5 +115,72 @@ const autoCancelUnresponsiveOrders = async () => {
     }
   } catch (error) {
     console.error("❌ Auto-cancel unresponsive orders job error:", error);
+  }
+};
+
+/**
+ * Auto-complete orders that have been 'out_for_delivery' for more than 30 mins
+ * beyond their estimated delivery time.
+ */
+const autoCompleteDeliveredOrders = async () => {
+  try {
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+
+    // Find orders that are:
+    // 1. Stuck in "out_for_delivery"
+    // 2. estimatedDeliveryAt is 30+ minutes in the past
+    // Note: If estimatedDeliveryAt is null/undefined, this logic skips them
+    // to be safe, but usually it's set when status changes to 'out_for_delivery'.
+    const stuckOrders = await Order.find({
+      status: "out_for_delivery",
+      estimatedDeliveryAt: { $lte: thirtyMinutesAgo },
+    });
+
+    if (stuckOrders.length === 0) {
+      return;
+    }
+
+    console.log(`🚚 Found ${stuckOrders.length} order(s) stuck in delivery to auto-complete`);
+
+    for (const order of stuckOrders) {
+      try {
+        order.status = "delivered";
+        order.deliveredAt = new Date();
+        await order.save();
+
+        console.log(`✅ Auto-completed order #${order.orderNumber}`);
+
+        // Notify customer via socket
+        emitToCustomer(order.customerId.toString(), "order_status_updated", {
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          status: "delivered",
+          message: "Your order has been marked as delivered by the system.",
+        });
+
+        // Notify customer via push
+        const customerForPush = await Customer.findById(order.customerId);
+        if (customerForPush) {
+          await sendPushToUser(customerForPush, {
+            title: "Order Delivered",
+            body: `Order #${order.orderNumber} has been automatically marked as delivered. Enjoy your meal!`,
+            url: `/orders/${order._id}`,
+          });
+        }
+
+        // Notify cook via socket
+        emitToCook(order.cookId.toString(), "order_status_updated", {
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          status: "delivered",
+          message: `Order #${order.orderNumber} was auto-completed by system (30m after ETA).`,
+        });
+
+      } catch (error) {
+        console.error(`❌ Error auto-completing order #${order.orderNumber}:`, error);
+      }
+    }
+  } catch (error) {
+    console.error("❌ Auto-complete delivered orders job error:", error);
   }
 };
