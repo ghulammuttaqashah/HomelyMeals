@@ -2,18 +2,15 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { getMealsByCookId, getTopSellingMeals } from '../api/meals'
-import { getCookReviews, checkCanReviewCook } from '../api/review'
 import { useCart } from '../context/CartContext'
 import { useAuth } from '../context/AuthContext'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import Container from '../components/Container'
 import MealCard from '../components/MealCard'
-import StarRating from '../components/StarRating'
-import ReviewsList from '../components/ReviewsList'
-import ReviewModal from '../components/ReviewModal'
 import { SkeletonCard } from '../components/Loader'
 import CookAnalytics from '../components/CookAnalytics'
+import { getCookReviews } from '../api/review'
 
 const CookMeals = () => {
   const { cookId } = useParams()
@@ -30,17 +27,18 @@ const CookMeals = () => {
   const [cookServesArea, setCookServesArea] = useState(true)
   const [customerCity, setCustomerCity] = useState(null)
 
-  // Review states
-  const [cookReviews, setCookReviews] = useState([])
-  const [cookRating, setCookRating] = useState(0)
-  const [showReviewsModal, setShowReviewsModal] = useState(false)
-  const [showCookReviewModal, setShowCookReviewModal] = useState(false)
-  const [cookReviewEligibility, setCookReviewEligibility] = useState(null)
-  const [checkingCookEligibility, setCheckingCookEligibility] = useState(false)
-
   // Top selling state
   const [topMeals, setTopMeals] = useState([])
   const [loadingTopMeals, setLoadingTopMeals] = useState(true)
+
+  // Reviews state
+  const [reviews, setReviews] = useState([])
+  const [reviewsLoading, setReviewsLoading] = useState(false)
+  const [showReviewsModal, setShowReviewsModal] = useState(false)
+  const [averageRating, setAverageRating] = useState(0)
+  const [totalReviews, setTotalReviews] = useState(0)
+  const [reviewSearchQuery, setReviewSearchQuery] = useState('')
+  const [filteredReviews, setFilteredReviews] = useState([])
 
   const categories = ['All Categories', 'Main Course', 'Beverages', 'Starter', 'Other']
 
@@ -49,13 +47,17 @@ const CookMeals = () => {
 
   useEffect(() => {
     fetchCookMeals()
-    fetchCookReviews()
     fetchTopSellingMeals()
+    fetchCookReviews()
   }, [cookId, selectedAddress?._id])
 
   useEffect(() => {
     filterAndSortMeals()
   }, [meals, searchQuery, selectedCategory, sortBy])
+
+  useEffect(() => {
+    filterReviews()
+  }, [reviews, reviewSearchQuery])
 
   const fetchCookMeals = async () => {
     try {
@@ -99,17 +101,6 @@ const CookMeals = () => {
     }
   }
 
-  const fetchCookReviews = async () => {
-    try {
-      const data = await getCookReviews(cookId)
-      setCookReviews(data.reviews || [])
-      setCookRating(data.averageRating || 0)
-    } catch (error) {
-      console.error('Error fetching cook reviews:', error)
-      // Don't show error toast for reviews, just fail silently
-    }
-  }
-
   const fetchTopSellingMeals = async () => {
     try {
       setLoadingTopMeals(true)
@@ -122,33 +113,39 @@ const CookMeals = () => {
     }
   }
 
-  const handleCookReviewClick = async () => {
+  const fetchCookReviews = async () => {
     try {
-      setCheckingCookEligibility(true)
-      const eligibility = await checkCanReviewCook(cookId)
-
-      if (!eligibility.canReview) {
-        toast.error(eligibility.message || 'Cannot review this cook')
-        return
-      }
-
-      // Backend already selected the oldest unreviewed order
-      setCookReviewEligibility(eligibility)
-      setShowCookReviewModal(true)
+      setReviewsLoading(true)
+      const response = await getCookReviews(cookId)
+      setReviews(response.reviews || [])
+      setFilteredReviews(response.reviews || [])
+      setAverageRating(response.averageRating || 0)
+      setTotalReviews(response.totalReviews || 0)
     } catch (error) {
-      console.error('Error checking cook review eligibility:', error)
-      toast.error('Failed to check review eligibility')
+      console.error('Error fetching cook reviews:', error)
     } finally {
-      setCheckingCookEligibility(false)
+      setReviewsLoading(false)
     }
   }
 
-  const handleCookReviewSubmitted = () => {
-    fetchCookReviews()
-    // Re-check eligibility so button reflects remaining unreviewed orders
-    checkCanReviewCook(cookId).then(eligibility => {
-      if (!eligibility.canReview) setCookReviewEligibility(null)
-    }).catch(() => {})
+  const filterReviews = () => {
+    if (!reviewSearchQuery.trim()) {
+      setFilteredReviews(reviews)
+      return
+    }
+
+    const query = reviewSearchQuery.toLowerCase()
+    const filtered = reviews.filter(review => {
+      const customerName = review.customerId?.name?.toLowerCase() || ''
+      const reviewText = review.reviewText?.toLowerCase() || ''
+      const orderNumber = review.orderId?.orderNumber?.toLowerCase() || ''
+      
+      return customerName.includes(query) || 
+             reviewText.includes(query) || 
+             orderNumber.includes(query)
+    })
+    
+    setFilteredReviews(filtered)
   }
 
   const filterAndSortMeals = () => {
@@ -287,41 +284,11 @@ const CookMeals = () => {
                     </svg>
                   )}
                 </div>
-                <div className="text-center sm:text-left">
+                <div className="text-center sm:text-left flex-1">
                   <h1 className="text-3xl font-bold text-gray-900">{cook?.name}</h1>
                   {cook.bio && <p className="text-gray-600 mt-2 max-w-2xl">{cook.bio}</p>}
 
-                  {/* Cook Rating */}
-                  {cookRating > 0 && (
-                    <div className="flex items-center justify-center sm:justify-start gap-3 mb-4 mt-4">
-                      <StarRating rating={cookRating} size="md" />
-                      <span className="text-sm font-medium text-gray-700">
-                        {cookRating.toFixed(1)}
-                      </span>
-                      <button
-                        onClick={() => setShowReviewsModal(true)}
-                        className="text-sm text-orange-600 hover:text-orange-700 font-medium"
-                      >
-                        ({cookReviews.length} {cookReviews.length === 1 ? 'review' : 'reviews'})
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Write Review Button for Cook */}
-                  {customer && (
-                    <button
-                      onClick={handleCookReviewClick}
-                      disabled={checkingCookEligibility}
-                      className="mx-auto sm:mx-0 mb-4 py-2.5 px-5 text-sm font-semibold text-orange-600 hover:text-white hover:bg-orange-600 border-2 border-orange-600 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                      </svg>
-                      {checkingCookEligibility ? 'Checking...' : 'Write Review for Cook'}
-                    </button>
-                  )}
-
-                  <div className="flex items-center justify-center sm:justify-start gap-4 text-sm text-gray-600">
+                  <div className="flex items-center justify-center sm:justify-start gap-4 text-sm text-gray-600 mt-3">
                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
                         strokeLinecap="round"
@@ -337,6 +304,41 @@ const CookMeals = () => {
                       />
                     </svg>
                     <span>{cook?.city}</span>
+                  </div>
+
+                  {/* Rating and Reviews */}
+                  <div className="mt-4 flex items-center justify-center sm:justify-start gap-3">
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <svg
+                            key={star}
+                            className={`h-5 w-5 ${
+                              star <= Math.round(averageRating)
+                                ? 'text-yellow-400 fill-current'
+                                : 'text-gray-300'
+                            }`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
+                            />
+                          </svg>
+                        ))}
+                      </div>
+                      <span className="text-lg font-bold text-gray-900">{averageRating.toFixed(1)}</span>
+                    </div>
+                    <button
+                      onClick={() => setShowReviewsModal(true)}
+                      className="text-sm text-orange-600 hover:text-orange-700 font-medium underline"
+                    >
+                      {totalReviews} {totalReviews === 1 ? 'review' : 'reviews'}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -535,25 +537,195 @@ const CookMeals = () => {
         </Container>
       </main>
 
-      {/* Reviews Modal */}
-      <ReviewsList
-        reviews={cookReviews}
-        isOpen={showReviewsModal}
-        onClose={() => setShowReviewsModal(false)}
-        title={`Reviews for ${cook?.name || 'Cook'}`}
-      />
+      {/* Write Review - navigates to order details */}
+      {/* Review is now done from the Order Details page */}
 
-      {/* Write Review Modal for Cook */}
-      {cookReviewEligibility && (
-        <ReviewModal
-          isOpen={showCookReviewModal}
-          onClose={() => setShowCookReviewModal(false)}
-          orderId={cookReviewEligibility.eligibleOrderId}
-          cookId={cookReviewEligibility.cookId}
-          cookName={cook?.name}
-          reviewType="cook"
-          onReviewSubmitted={handleCookReviewSubmitted}
-        />
+      {/* Reviews Modal */}
+      {showReviewsModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full my-4 max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-100 sticky top-0 bg-white z-10 rounded-t-2xl">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Customer Reviews</h2>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-xl font-bold text-yellow-500">{averageRating.toFixed(1)}</span>
+                  <div className="flex items-center">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <svg
+                        key={star}
+                        className={`h-4 w-4 ${
+                          star <= Math.round(averageRating)
+                            ? 'text-yellow-400 fill-current'
+                            : 'text-gray-300'
+                        }`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
+                        />
+                      </svg>
+                    ))}
+                  </div>
+                  <span className="text-sm text-gray-500">
+                    · {totalReviews} {totalReviews === 1 ? 'review' : 'reviews'}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setShowReviewsModal(false)
+                  setReviewSearchQuery('')
+                }}
+                className="text-gray-400 hover:text-gray-600 transition-colors p-1"
+                aria-label="Close"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Search Bar */}
+            <div className="px-6 pt-4 pb-2 bg-white sticky top-[88px] z-10">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search reviews by customer name, review text, or order number..."
+                  value={reviewSearchQuery}
+                  onChange={(e) => setReviewSearchQuery(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 pl-10 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+                <svg
+                  className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+                {reviewSearchQuery && (
+                  <button
+                    onClick={() => setReviewSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+              {reviewSearchQuery && (
+                <p className="text-xs text-gray-500 mt-2">
+                  Found {filteredReviews.length} {filteredReviews.length === 1 ? 'review' : 'reviews'}
+                </p>
+              )}
+            </div>
+
+            {/* Reviews List */}
+            <div className="p-6">
+              {reviewsLoading ? (
+                <div className="flex justify-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+                </div>
+              ) : filteredReviews.length > 0 ? (
+                <div className="space-y-4">
+                  {filteredReviews.map((review) => (
+                    <div key={review._id} className="bg-gray-50 rounded-xl p-5 border border-gray-200">
+                      {/* Customer Info */}
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center">
+                            <span className="text-orange-600 font-semibold text-sm">
+                              {review.customerId?.name?.charAt(0).toUpperCase() || 'C'}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="font-semibold text-gray-900">
+                              {review.customerId?.name || 'Anonymous'}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {new Date(review.createdAt).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric'
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <svg
+                              key={star}
+                              className={`h-4 w-4 ${
+                                star <= review.rating
+                                  ? 'text-yellow-400 fill-current'
+                                  : 'text-gray-300'
+                              }`}
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
+                              />
+                            </svg>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Review Text */}
+                      {review.reviewText && (
+                        <p className="text-gray-700 text-sm leading-relaxed mb-3">
+                          {review.reviewText}
+                        </p>
+                      )}
+
+                      {/* Order Info */}
+                      {review.orderId && (
+                        <div className="flex items-center gap-2 text-xs text-gray-500 mt-2 pt-2 border-t border-gray-200">
+                          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                          </svg>
+                          <span>Order #{review.orderId.orderNumber || review.orderId._id?.slice(-6)}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : reviewSearchQuery ? (
+                <div className="text-center py-12">
+                  <svg className="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <p className="mt-4 text-gray-500">No reviews found</p>
+                  <p className="text-sm text-gray-400 mt-1">Try adjusting your search query</p>
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <svg className="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                  </svg>
+                  <p className="mt-4 text-gray-500">No reviews yet</p>
+                  <p className="text-sm text-gray-400 mt-1">Be the first to review this cook!</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       <Footer />

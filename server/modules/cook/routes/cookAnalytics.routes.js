@@ -6,27 +6,23 @@ import { calculateAnalytics } from '../../../shared/services/absa.service.js';
 
 const router = express.Router();
 
-// Get analytics for cook's own reviews
+// Get analytics for cook's own reviews (cook-target aspects only)
 router.get('/cook', protect, async (req, res) => {
     try {
         const cookId = req.user._id;
         const { days } = req.query;
 
-        // Build query
-        const query = { cookId, reviewType: 'cook' };
+        const query = { cookId, reviewType: { $in: ['order', 'cook'] } };
 
-        // Apply time filter if specified
         if (days) {
             const daysAgo = new Date();
             daysAgo.setDate(daysAgo.getDate() - parseInt(days));
             query.createdAt = { $gte: daysAgo };
         }
 
-        // Fetch reviews
         const reviews = await Review.find(query);
-
-        // Calculate analytics
-        const analytics = calculateAnalytics(reviews);
+        // Filter analytics to cook-target aspects only
+        const analytics = calculateAnalytics(reviews, 'cook');
 
         res.json(analytics);
     } catch (error) {
@@ -35,28 +31,30 @@ router.get('/cook', protect, async (req, res) => {
     }
 });
 
-// Get analytics for a specific meal
+// Get analytics for a specific meal (meal-target aspects only)
 router.get('/meal/:mealId', protect, async (req, res) => {
     try {
         const { mealId } = req.params;
         const cookId = req.user._id;
         const { days } = req.query;
 
-        // Build query
-        const query = { mealId, cookId, reviewType: 'meal' };
+        // For new unified reviews, filter by cookId; for legacy, filter by mealId
+        const query = {
+            cookId,
+            $or: [
+                { reviewType: 'order' },
+                { reviewType: 'meal', mealId }
+            ]
+        };
 
-        // Apply time filter if specified
         if (days) {
             const daysAgo = new Date();
             daysAgo.setDate(daysAgo.getDate() - parseInt(days));
             query.createdAt = { $gte: daysAgo };
         }
 
-        // Fetch reviews
         const reviews = await Review.find(query);
-
-        // Calculate analytics
-        const analytics = calculateAnalytics(reviews);
+        const analytics = calculateAnalytics(reviews, 'meal');
 
         res.json(analytics);
     } catch (error) {
@@ -65,27 +63,22 @@ router.get('/meal/:mealId', protect, async (req, res) => {
     }
 });
 
-// Get analytics for all meals
+// Get analytics for all meals (meal-target aspects only)
 router.get('/meals', protect, async (req, res) => {
     try {
         const cookId = req.user._id;
         const { days } = req.query;
 
-        // Build query
-        const query = { cookId, reviewType: 'meal' };
+        const query = { cookId, reviewType: { $in: ['order', 'meal'] } };
 
-        // Apply time filter if specified
         if (days) {
             const daysAgo = new Date();
             daysAgo.setDate(daysAgo.getDate() - parseInt(days));
             query.createdAt = { $gte: daysAgo };
         }
 
-        // Fetch reviews
         const reviews = await Review.find(query);
-
-        // Calculate analytics
-        const analytics = calculateAnalytics(reviews);
+        const analytics = calculateAnalytics(reviews, 'meal');
 
         res.json(analytics);
     } catch (error) {

@@ -221,6 +221,8 @@ const AspectBreakdown = ({ analytics, sentiment, type, entityId, onBack, onClose
                                                 type="number" 
                                                 tick={{ fill: '#6b7280', fontSize: 11 }}
                                                 axisLine={{ stroke: '#e5e7eb' }}
+                                                tickFormatter={(value) => Math.floor(value)}
+                                                allowDecimals={false}
                                             />
                                             <YAxis 
                                                 dataKey="name" 

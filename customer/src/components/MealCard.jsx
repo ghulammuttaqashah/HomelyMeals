@@ -7,7 +7,6 @@ import { useAuth } from '../context/AuthContext'
 import { getMealReviews, checkCanReviewMeal } from '../api/review'
 import StarRating from './StarRating'
 import ReviewsList from './ReviewsList'
-import ReviewModal from './ReviewModal'
 import { FiShoppingCart, FiPlus, FiMinus, FiCheck, FiStar, FiArrowRight } from 'react-icons/fi'
 import DishAnalytics from './DishAnalytics'
 
@@ -23,8 +22,6 @@ const MealCard = ({ meal, cook, cookServesArea = true }) => {
   const [mealReviews, setMealReviews] = useState([])
   const [mealRating, setMealRating] = useState(0)
   const [showReviewsModal, setShowReviewsModal] = useState(false)
-  const [showReviewModal, setShowReviewModal] = useState(false)
-  const [reviewEligibility, setReviewEligibility] = useState(null)
   const [checkingEligibility, setCheckingEligibility] = useState(false)
 
   const { addToCart, canAddFromCook, cart } = useCart()
@@ -130,9 +127,8 @@ const MealCard = ({ meal, cook, cookServesArea = true }) => {
         return
       }
 
-      // Backend already selected the oldest unreviewed order
-      setReviewEligibility(eligibility)
-      setShowReviewModal(true)
+      // Navigate to the order details page to write the unified review
+      navigate(`/orders/${eligibility.eligibleOrderId}`)
     } catch (error) {
       console.error('Error checking review eligibility:', error)
       toast.error('Failed to check review eligibility')
@@ -149,14 +145,6 @@ const MealCard = ({ meal, cook, cookServesArea = true }) => {
           const data = await getMealReviews(mealId)
           setMealReviews(data.reviews || [])
           setMealRating(data.averageRating || 0)
-
-          // Re-check eligibility to update eligible orders
-          const eligibility = await checkCanReviewMeal(mealId)
-          if (eligibility.canReview) {
-            setReviewEligibility(eligibility)
-          } else {
-            setReviewEligibility(null)
-          }
         }
       } catch (error) {
         console.error('Error refreshing reviews:', error)
@@ -222,12 +210,10 @@ const MealCard = ({ meal, cook, cookServesArea = true }) => {
           </div>
         )}
 
-        {/* Dish Analytics Button - Show BEFORE ordering */}
-        {mealRating > 0 && (
-          <div className="mt-3">
-            <DishAnalytics mealId={meal.id || meal.mealId} />
-          </div>
-        )}
+        {/* Dish Analytics — always shown, handles its own empty state */}
+        <div className="mt-3">
+          <DishAnalytics mealId={meal.id || meal.mealId} />
+        </div>
 
         {/* Write Review Button */}
         {isAuthenticated && (
@@ -323,20 +309,8 @@ const MealCard = ({ meal, cook, cookServesArea = true }) => {
         title={`Reviews for ${meal.name}`}
       />
 
-      {/* Write Review Modal */}
-      {reviewEligibility && (
-        <ReviewModal
-          isOpen={showReviewModal}
-          onClose={() => setShowReviewModal(false)}
-          orderId={reviewEligibility.eligibleOrderId}
-          cookId={reviewEligibility.cookId}
-          cookName={cook?.name}
-          mealId={reviewEligibility.mealId}
-          mealName={meal.name}
-          reviewType="meal"
-          onReviewSubmitted={handleReviewSubmitted}
-        />
-      )}
+      {/* Write Review - navigates to order details page */}
+      {/* Review is now done from the Order Details page (unified per-order review) */}
     </Card>
   )
 }

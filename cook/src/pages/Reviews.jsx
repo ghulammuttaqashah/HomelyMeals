@@ -129,9 +129,7 @@ const Reviews = () => {
                                     <option value="meal">Meal Reviews</option>
                                 </select>
                             </div>
-                        </div>
-
-                        {/* Reviews List */}
+                        </div>                        {/* Reviews List */}
                         {reviews.length > 0 ? (
                             <div className="space-y-4">
                                 {reviews.map((review) => (
@@ -148,8 +146,29 @@ const Reviews = () => {
                                             <p className="text-gray-700 mb-3">{review.reviewText}</p>
                                     )}
 
+                                    {/* Show ABSA aspects if available */}
+                                    {review.aspects && review.aspects.length > 0 && (
+                                        <div className="flex flex-wrap gap-1.5 mt-2">
+                                            {review.aspects.slice(0, 5).map((aspect, ai) => (
+                                                <span
+                                                    key={ai}
+                                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                                                        aspect.sentiment === 'positive' || aspect.sentiment === 'Positive'
+                                                            ? 'bg-green-100 text-green-700'
+                                                            : 'bg-red-100 text-red-700'
+                                                    }`}
+                                                >
+                                                    {aspect.sentiment === 'positive' || aspect.sentiment === 'Positive' ? '✓' : '✗'} {aspect.aspect || aspect.category}
+                                                </span>
+                                            ))}
+                                            {review.aspects.length > 5 && (
+                                                <span className="text-xs text-gray-400">+{review.aspects.length - 5} more</span>
+                                            )}
+                                        </div>
+                                    )}
+
                                     {review.reviewType === 'meal' && review.mealId && (
-                                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-orange-50 rounded-full text-xs font-medium text-orange-700">
+                                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-orange-50 rounded-full text-xs font-medium text-orange-700 mt-2">
                                             <FiStar className="w-3 h-3" />
                                             {review.mealId.name}
                                         </div>

@@ -88,10 +88,9 @@ const OrderDetails = () => {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
 
-  // Review states
+  // Review states - unified single review per order
   const [showReviewModal, setShowReviewModal] = useState(false);
-  const [reviewTarget, setReviewTarget] = useState(null); // { type: 'cook' | 'meal', id, name }
-  const [canReview, setCanReview] = useState(null);
+  const [canReview, setCanReview] = useState(null); // { canReview: bool, alreadyReviewed: bool }
 
   const fetchOrder = async () => {
     try {
@@ -222,8 +221,7 @@ const OrderDetails = () => {
     navigate("/checkout");
   };
 
-  const handleOpenReview = (type, id, name) => {
-    setReviewTarget({ type, id, name });
+  const handleOpenReview = () => {
     setShowReviewModal(true);
   };
 
@@ -351,8 +349,6 @@ const OrderDetails = () => {
           <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Order Items</h2>
           <div className="space-y-3">
             {order.items.map((item, index) => {
-              const mealReviewInfo = canReview?.canReviewMeals?.find(m => m.mealId.toString() === item.mealId.toString());
-
               return (
                 <div key={index} className="border-b border-gray-100 last:border-0 pb-3 last:pb-0">
                   <div className="flex items-center gap-3 sm:gap-4">
@@ -374,25 +370,7 @@ const OrderDetails = () => {
                     <p className="font-semibold text-sm sm:text-base whitespace-nowrap">Rs. {item.price * item.quantity}</p>
                   </div>
 
-                  {/* Review button for delivered orders */}
-                  {order.status === 'delivered' && mealReviewInfo && (
-                    <div className="mt-2 ml-20">
-                      {mealReviewInfo.alreadyReviewed ? (
-                        <span className="text-xs text-green-600 flex items-center gap-1">
-                          <FiCheck className="w-3 h-3" />
-                          Reviewed
-                        </span>
-                      ) : (
-                        <button
-                          onClick={() => handleOpenReview('meal', item.mealId, item.name)}
-                          className="text-xs text-orange-600 hover:text-orange-700 font-medium flex items-center gap-1"
-                        >
-                          <FiStar className="w-3 h-3" />
-                          Write Review
-                        </button>
-                      )}
-                    </div>
-                  )}
+                  {/* No per-meal review buttons - single review per order */}
                 </div>
               )
             })}
@@ -446,21 +424,21 @@ const OrderDetails = () => {
                 Message Cook
               </Button>
 
-              {/* Review Cook Button */}
+              {/* Single Review Order Button */}
               {order.status === 'delivered' && canReview && (
-                canReview.canReviewCook ? (
+                canReview.canReview ? (
                   <Button
-                    onClick={() => handleOpenReview('cook', order.cook._id, order.cook.name)}
+                    onClick={handleOpenReview}
                     variant="outline"
-                    className="w-full flex items-center justify-center gap-2 border-green-600 text-green-600 hover:bg-green-50"
+                    className="w-full flex items-center justify-center gap-2 border-orange-500 text-orange-600 hover:bg-orange-50"
                   >
                     <FiStar className="w-4 h-4" />
-                    Review Cook
+                    Review This Order
                   </Button>
                 ) : (
                   <div className="w-full flex items-center justify-center gap-2 py-2 text-sm text-green-600">
                     <FiCheck className="w-4 h-4" />
-                    Cook Reviewed
+                    Order Reviewed
                   </div>
                 )
               )}
@@ -649,20 +627,14 @@ const OrderDetails = () => {
         )}
       </main>
 
-      {/* Review Modal */}
-      {showReviewModal && reviewTarget && (
+      {/* Review Modal - unified single review per order */}
+      {showReviewModal && (
         <ReviewModal
           isOpen={showReviewModal}
-          onClose={() => {
-            setShowReviewModal(false);
-            setReviewTarget(null);
-          }}
+          onClose={() => setShowReviewModal(false)}
           orderId={id}
-          cookId={reviewTarget.type === 'cook' ? reviewTarget.id : order.cook?._id}
-          cookName={reviewTarget.type === 'cook' ? reviewTarget.name : order.cook?.name}
-          mealId={reviewTarget.type === 'meal' ? reviewTarget.id : null}
-          mealName={reviewTarget.type === 'meal' ? reviewTarget.name : null}
-          reviewType={reviewTarget.type}
+          cookId={order.cook?._id}
+          cookName={order.cook?.name}
           onReviewSubmitted={handleReviewSubmitted}
         />
       )}

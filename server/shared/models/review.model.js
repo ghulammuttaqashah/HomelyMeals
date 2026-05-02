@@ -17,10 +17,11 @@ const reviewSchema = new mongoose.Schema(
             ref: 'Order',
             required: true,
         },
+        // mealId kept for backward compatibility with old meal-specific reviews
         mealId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'CookMeal',
-            default: null, // null for cook reviews, set for meal reviews
+            default: null,
         },
         rating: {
             type: Number,
@@ -30,21 +31,42 @@ const reviewSchema = new mongoose.Schema(
         },
         reviewText: {
             type: String,
-            maxlength: 500,
+            maxlength: 1000,
             default: '',
         },
+        // reviewType: 'order' for new unified reviews; 'cook'/'meal' for legacy
         reviewType: {
             type: String,
-            enum: ['cook', 'meal'],
+            enum: ['cook', 'meal', 'order'],
             required: true,
+            default: 'order',
         },
+        // New ABSA aspects schema: each aspect has target, category, aspect, sentiment, text
         aspects: {
             type: [{
-                aspect: String,
+                target: {
+                    type: String,
+                    enum: ['meal', 'cook'],
+                    required: true
+                },
+                category: {
+                    type: String,
+                    required: true
+                },
+                aspect: {
+                    type: String,
+                    required: true
+                },
                 sentiment: {
                     type: String,
-                    enum: ['Positive', 'Negative', 'Neutral']
+                    enum: ['positive', 'negative', 'Positive', 'Negative', 'Neutral', 'neutral'],
+                    required: true
                 },
+                text: {
+                    type: String,
+                    default: ''
+                },
+                // Legacy fields kept for backward compatibility
                 keywords: [String],
                 reason: String
             }],
@@ -67,16 +89,24 @@ reviewSchema.index({ customerId: 1, cookId: 1, mealId: 1 });
 reviewSchema.index({ customerId: 1, orderId: 1 });
 reviewSchema.index({ orderId: 1, reviewType: 1 });
 
-// IMPORTANT: Allow multiple reviews per meal/cook (one per order)
-// Ensure one review per ORDER per meal (not per meal globally)
-reviewSchema.index(
-    { customerId: 1, orderId: 1, mealId: 1 },
-    { unique: true, sparse: true, partialFilterExpression: { mealId: { $ne: null } } }
-);
-
-// Ensure one cook review per ORDER (not per cook globally)
+// ONE review per order (for new unified 'order' type reviews)
 reviewSchema.index(
     { customerId: 1, orderId: 1, reviewType: 1 },
+    {
+        unique: true,
+        partialFilterExpression: { reviewType: 'order' }
+    }
+);
+
+// Legacy: one meal review per order
+reviewSchema.index(
+    { customerId: 1, orderId: 1, mealId: 1 },
+    { unique: true, sparse: true, partialFilterExpression: { mealId: { $ne: null }, reviewType: 'meal' } }
+);
+
+// Legacy: one cook review per order
+reviewSchema.index(
+    { customerId: 1, orderId: 1 },
     { unique: true, partialFilterExpression: { reviewType: 'cook' } }
 );
 

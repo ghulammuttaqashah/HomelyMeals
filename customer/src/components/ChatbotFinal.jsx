@@ -17,6 +17,7 @@ import {
   getHealthTags
 } from '../api/chatbotMeals'
 import { getOrders } from '../api/orders'
+import { getAllMeals } from '../api/meals'
 
 const ChatbotFinal = () => {
   const navigate = useNavigate()
@@ -47,6 +48,7 @@ const ChatbotFinal = () => {
   const [mealsForComparison, setMealsForComparison] = useState([])
   const [selectedMealsToCompare, setSelectedMealsToCompare] = useState([])
   const [comparisonResult, setComparisonResult] = useState(null)
+  const [mealSearchQuery, setMealSearchQuery] = useState('') // Search for meal comparison
 
   // Auto-scroll
   const scrollToBottom = () => {
@@ -744,13 +746,14 @@ const ChatbotFinal = () => {
     setChatEnabled(true)
     setSelectedMealsToCompare([])
     setComparisonResult(null)
+    setMealSearchQuery('') // Clear search when opening
     addChatMessage('user', '⚖️ Compare Meals')
-    addChatMessage('bot', 'First, let me show you available meals. Select 2-3 meals to compare:')
+    addChatMessage('bot', 'Select at least 2 meals from available options to compare:')
     setIsLoading(true)
     
     try {
-      // Get top rated meals for comparison
-      const result = await getPersonalizedRecommendations(15)
+      // Get all available meals for comparison
+      const result = await getAllMeals()
       
       if (!result.success || !result.meals || result.meals.length === 0) {
         addChatMessage('bot', 'No meals available for comparison.')
@@ -790,10 +793,7 @@ const ChatbotFinal = () => {
       if (prev.includes(mealId)) {
         return prev.filter(id => id !== mealId)
       } else {
-        if (prev.length >= 3) {
-          addChatMessage('bot', 'You can only compare up to 3 meals.')
-          return prev
-        }
+        // No maximum limit - customer can select as many meals as they want
         return [...prev, mealId]
       }
     })
@@ -1790,11 +1790,70 @@ const ChatbotFinal = () => {
                   <div className="mb-3 space-y-3">
                     <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-2">
                       <p className="text-xs text-orange-800 font-medium">
-                        Selected: {selectedMealsToCompare.length}/3 meals
+                        Selected: {selectedMealsToCompare.length} {selectedMealsToCompare.length === 1 ? 'meal' : 'meals'}
+                        {selectedMealsToCompare.length < 2 && (
+                          <span className="text-red-600 ml-1">(minimum 2 required)</span>
+                        )}
                       </p>
                     </div>
+
+                    {/* Search Bar */}
+                    <div className="relative mb-2">
+                      <input
+                        type="text"
+                        placeholder="Search meals by name..."
+                        value={mealSearchQuery}
+                        onChange={(e) => setMealSearchQuery(e.target.value)}
+                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 pl-9 pr-9 text-xs focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      />
+                      <svg
+                        className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                        />
+                      </svg>
+                      {mealSearchQuery && (
+                        <button
+                          onClick={() => setMealSearchQuery('')}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        >
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+
                     <div className="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
-                      {activeMenu.meals.map((meal) => (
+                      {(() => {
+                        const filteredMeals = activeMenu.meals.filter(meal => {
+                          if (!mealSearchQuery.trim()) return true
+                          const searchLower = mealSearchQuery.toLowerCase()
+                          const mealName = (meal.mealName || meal.name || '').toLowerCase()
+                          const cookName = (meal.cookName || '').toLowerCase()
+                          return mealName.includes(searchLower) || cookName.includes(searchLower)
+                        })
+
+                        if (filteredMeals.length === 0) {
+                          return (
+                            <div className="text-center py-8">
+                              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                              </svg>
+                              <p className="mt-2 text-xs text-gray-500">No meals found</p>
+                              <p className="text-xs text-gray-400">Try a different search term</p>
+                            </div>
+                          )
+                        }
+
+                        return filteredMeals.map((meal) => (
                         <div
                           key={meal.mealId}
                           onClick={() => handleMealSelectionToggle(meal.mealId)}
@@ -1809,7 +1868,7 @@ const ChatbotFinal = () => {
                               {meal.itemImage ? (
                                 <img 
                                   src={meal.itemImage} 
-                                  alt={meal.mealName}
+                                  alt={meal.mealName || meal.name}
                                   className="w-12 h-12 object-cover rounded-lg"
                                 />
                               ) : (
@@ -1820,7 +1879,7 @@ const ChatbotFinal = () => {
                             </div>
                             <div className="flex-1 min-w-0">
                               <h4 className="font-semibold text-gray-800 text-xs truncate">
-                                {meal.mealName}
+                                {meal.mealName || meal.name}
                               </h4>
                               <div className="flex items-center gap-2 mt-1 text-xs">
                                 <span className="text-orange-600 font-bold">Rs {meal.price}</span>
@@ -1836,7 +1895,7 @@ const ChatbotFinal = () => {
                             </div>
                           </div>
                         </div>
-                      ))}
+                      ))})()}
                     </div>
                     <button
                       onClick={handleCompareMealsSubmit}

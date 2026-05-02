@@ -10,36 +10,36 @@ router.get('/', protect, async (req, res) => {
         const cookId = req.user._id;
         const { type, mealId } = req.query;
 
-        // Build query
+        // Build query - include both new 'order' type and legacy types
         let query = { cookId };
 
         if (type && type !== 'all') {
-            query.reviewType = type;
+            if (type === 'cook') {
+                query.reviewType = { $in: ['order', 'cook'] };
+            } else if (type === 'meal') {
+                query.reviewType = { $in: ['order', 'meal'] };
+            } else {
+                query.reviewType = type;
+            }
         }
 
         if (mealId) {
             query.mealId = mealId;
         }
 
-        // Mark all unread reviews as read since the cook is currently viewing them
-        await Review.updateMany(
-            { cookId, isRead: false },
-            { $set: { isRead: true } }
-        );
+        // Mark all unread reviews as read
+        await Review.updateMany({ cookId, isRead: false }, { $set: { isRead: true } });
 
-        // Fetch reviews
         const reviews = await Review.find(query)
             .populate('customerId', 'name')
             .populate('mealId', 'name')
             .sort({ createdAt: -1 });
 
-        // Calculate stats
         const totalReviews = reviews.length;
         const averageRating = totalReviews > 0
-            ? reviews.reduce((sum, review) => sum + review.rating, 0) / totalReviews
+            ? reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews
             : 0;
 
-        // Rating distribution
         const ratingDistribution = {
             5: reviews.filter(r => r.rating === 5).length,
             4: reviews.filter(r => r.rating === 4).length,
@@ -70,10 +70,9 @@ router.get('/stats', protect, async (req, res) => {
         const reviews = await Review.find({ cookId });
         const totalReviews = reviews.length;
         const averageRating = totalReviews > 0
-            ? reviews.reduce((sum, review) => sum + review.rating, 0) / totalReviews
+            ? reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews
             : 0;
 
-        // Get recent reviews count (last 7 days)
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
         const recentReviews = reviews.filter(r => r.createdAt >= sevenDaysAgo).length;

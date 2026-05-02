@@ -1,11 +1,16 @@
 import { useState } from 'react'
-import { FiX } from 'react-icons/fi'
+import { FiX, FiStar, FiLoader } from 'react-icons/fi'
 import toast from 'react-hot-toast'
 import { submitReview } from '../api/review'
 import StarRating from './StarRating'
 import Button from './Button'
 
-const ReviewModal = ({ isOpen, onClose, orderId, cookId, cookName, mealId, mealName, reviewType, onReviewSubmitted }) => {
+/**
+ * Unified order review modal.
+ * Customer writes ONE free-text review per order.
+ * AI (Groq ABSA) automatically classifies aspects for meal and cook.
+ */
+const ReviewModal = ({ isOpen, onClose, orderId, cookId, cookName, onReviewSubmitted }) => {
     const [rating, setRating] = useState(0)
     const [reviewText, setReviewText] = useState('')
     const [submitting, setSubmitting] = useState(false)
@@ -20,12 +25,7 @@ const ReviewModal = ({ isOpen, onClose, orderId, cookId, cookName, mealId, mealN
             return
         }
 
-        if (!reviewText || reviewText.trim().length === 0) {
-            toast.error('Please write a review')
-            return
-        }
-
-        if (reviewText.trim().length < 10) {
+        if (!reviewText || reviewText.trim().length < 10) {
             toast.error('Review must be at least 10 characters')
             return
         }
@@ -36,13 +36,11 @@ const ReviewModal = ({ isOpen, onClose, orderId, cookId, cookName, mealId, mealN
             await submitReview({
                 orderId,
                 cookId,
-                mealId: reviewType === 'meal' ? mealId : undefined,
                 rating,
-                reviewText,
-                reviewType,
+                reviewText: reviewText.trim(),
             })
 
-            toast.success('Review submitted successfully!')
+            toast.success('Review submitted! Our AI is analyzing your feedback.')
             setRating(0)
             setReviewText('')
             onClose()
@@ -66,45 +64,56 @@ const ReviewModal = ({ isOpen, onClose, orderId, cookId, cookName, mealId, mealN
         }
     }
 
+    const ratingLabels = {
+        1: '😞 Poor',
+        2: '😐 Fair',
+        3: '😊 Good',
+        4: '👍 Very Good',
+        5: '⭐ Excellent!'
+    }
+
     return (
         <>
             {/* Backdrop */}
-            <div className="fixed inset-0 bg-black bg-opacity-50" style={{ zIndex: 10001 }} onClick={handleClose} />
+            <div
+                className="fixed inset-0 bg-black bg-opacity-50"
+                style={{ zIndex: 10001 }}
+                onClick={handleClose}
+            />
 
             {/* Modal */}
             <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 10001 }}>
-                <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+                <div className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
                     {/* Header */}
-                    <div className="flex items-center justify-between p-6 border-b border-gray-200">
-                        <h2 className="text-xl font-bold text-gray-900">
-                            Write a Review
-                        </h2>
+                    <div className="flex items-center justify-between p-5 border-b border-gray-100">
+                        <div>
+                            <h2 className="text-xl font-bold text-gray-900">Review Your Order</h2>
+                            <p className="text-sm text-gray-500 mt-0.5">from {cookName}</p>
+                        </div>
                         <button
                             onClick={handleClose}
                             disabled={submitting}
-                            className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
+                            className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50 p-1"
                         >
                             <FiX className="w-6 h-6" />
                         </button>
                     </div>
 
-                    {/* Content */}
-                    <form onSubmit={handleSubmit} className="p-6">
-                        {/* Review Target */}
-                        <div className="mb-6">
-                            <p className="text-sm text-gray-600 mb-1">You're reviewing:</p>
-                            <p className="text-lg font-semibold text-gray-900">
-                                {reviewType === 'meal' ? mealName : cookName}
+                    {/* Form */}
+                    <form onSubmit={handleSubmit} className="p-5 space-y-5">
+                        {/* AI badge */}
+                        <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 rounded-lg border border-blue-100">
+                            <span className="text-blue-600 text-lg">🤖</span>
+                            <p className="text-xs text-blue-700">
+                                <span className="font-semibold">AI-powered analysis</span> — just write naturally.
+                                Our AI will automatically identify what you liked or disliked about the food, packaging, cook behavior, and more.
                             </p>
-                            {reviewType === 'cook' && (
-                                <p className="text-xs text-gray-500 mt-1">Overall experience with this cook</p>
-                            )}
                         </div>
 
                         {/* Rating */}
-                        <div className="mb-6">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Rating <span className="text-red-500">*</span>
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                Overall Rating <span className="text-red-500">*</span>
                             </label>
                             <StarRating
                                 rating={rating}
@@ -113,37 +122,32 @@ const ReviewModal = ({ isOpen, onClose, orderId, cookId, cookName, mealId, mealN
                                 interactive={true}
                             />
                             {rating > 0 && (
-                                <p className="mt-2 text-sm text-gray-600">
-                                    {rating === 5 && '⭐ Excellent!'}
-                                    {rating === 4 && '👍 Very Good'}
-                                    {rating === 3 && '😊 Good'}
-                                    {rating === 2 && '😐 Fair'}
-                                    {rating === 1 && '😞 Poor'}
-                                </p>
+                                <p className="mt-2 text-sm text-gray-600">{ratingLabels[rating]}</p>
                             )}
                         </div>
 
                         {/* Review Text */}
-                        <div className="mb-6">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
                                 Your Review <span className="text-red-500">*</span>
                             </label>
                             <textarea
                                 value={reviewText}
                                 onChange={(e) => setReviewText(e.target.value)}
-                                maxLength={500}
-                                rows={4}
-                                placeholder="Share your experience... (minimum 10 characters)"
-                                className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
+                                maxLength={1000}
+                                rows={5}
+                                placeholder={`Share your experience with this order...\n\nExamples:\n• "Food was tasty but packaging was bad"\n• "Cook was very polite and delivery was on time"\n• "Portion was small but the taste was amazing"`}
+                                className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200 resize-none transition-colors"
                                 required
                             />
-                            <p className="mt-1 text-xs text-gray-500 text-right">
-                                {reviewText.length}/500 characters
-                            </p>
+                            <div className="flex justify-between mt-1">
+                                <p className="text-xs text-gray-400">Minimum 10 characters</p>
+                                <p className="text-xs text-gray-400">{reviewText.length}/1000</p>
+                            </div>
                         </div>
 
                         {/* Actions */}
-                        <div className="flex gap-3">
+                        <div className="flex gap-3 pt-1">
                             <Button
                                 type="button"
                                 onClick={handleClose}
@@ -155,10 +159,17 @@ const ReviewModal = ({ isOpen, onClose, orderId, cookId, cookName, mealId, mealN
                             </Button>
                             <Button
                                 type="submit"
-                                disabled={submitting || rating === 0 || !reviewText || reviewText.trim().length < 10}
-                                className="flex-1"
+                                disabled={submitting || rating === 0 || reviewText.trim().length < 10}
+                                className="flex-1 flex items-center justify-center gap-2"
                             >
-                                {submitting ? 'Submitting...' : 'Submit Review'}
+                                {submitting ? (
+                                    <>
+                                        <FiLoader className="w-4 h-4 animate-spin" />
+                                        Analyzing...
+                                    </>
+                                ) : (
+                                    'Submit Review'
+                                )}
                             </Button>
                         </div>
                     </form>
