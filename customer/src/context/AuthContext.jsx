@@ -42,15 +42,34 @@ export const AuthProvider = ({ children }) => {
 
   // Check authentication on mount
   useEffect(() => {
+    let mounted = true
+    
     const checkAuth = async (retries = 1) => {
       try {
         const data = await getCurrentCustomerAPI()
+        if (!mounted) return
+        
         setCustomer(data.customer)
         setIsAuthenticated(true)
         // Initialize socket and push when authenticated
         initializeSocket()
-        subscribeUserToPush()
+        
+        // No gesture here — only subscribes if permission already granted
+        // Small delay to ensure state is set before subscribing
+        setTimeout(() => {
+          if (mounted) {
+            subscribeUserToPush()
+          }
+        }, 500)
+        
+        // Development helper: log push test page URL
+        if (import.meta.env.DEV) {
+          console.log('%c🔔 Push Notification Test Page', 'background: #ea580c; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;')
+          console.log('%cNavigate to /push-test to debug push notifications', 'color: #ea580c; font-weight: bold;')
+        }
       } catch (error) {
+        if (!mounted) return
+        
         // Silently handle expected auth errors (401 on /auth/me)
         if (error.__EXPECTED_AUTH_ERROR__) {
           setCustomer(null)
@@ -74,10 +93,17 @@ export const AuthProvider = ({ children }) => {
         setCustomer(null)
         setIsAuthenticated(false)
       } finally {
-        setIsLoading(false)
+        if (mounted) {
+          setIsLoading(false)
+        }
       }
     }
+    
     checkAuth()
+    
+    return () => {
+      mounted = false
+    }
   }, [])
 
   const resetState = useCallback(() => {
@@ -121,17 +147,16 @@ export const AuthProvider = ({ children }) => {
   }, [])
 
   const signin = useCallback(async (credentials) => {
-    // Request permission immediately while gesture is valid
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
     const data = await signinAPI(credentials)
     setCustomer(data?.customer ?? { email: credentials.email })
     setIsAuthenticated(true)
-    setIsAuthenticated(true)
-    // Initialize socket and push after login
     initializeSocket()
-    subscribeUserToPush()
+    // Subscribe if permission already granted (from a previous session)
+    // First-time permission is handled by NotificationPermissionModal
+    // Small delay to avoid race conditions
+    setTimeout(() => {
+      subscribeUserToPush()
+    }, 500)
   }, [])
 
   const refreshCustomer = useCallback(async () => {
@@ -166,7 +191,7 @@ export const AuthProvider = ({ children }) => {
       resetState()
       navigate('/', { replace: true })
       if (wasAuthenticated) {
-        toast.success('Signed out')
+        toast.success('Signed out', { duration: 1500 })
       }
       isLoggingOut.current = false
     }

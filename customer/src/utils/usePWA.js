@@ -39,6 +39,7 @@ export const usePWA = () => {
     // This catches the event if it fires AFTER React mounted
     // (the index.html inline script catches it if it fires BEFORE)
     const handleBeforeInstallPrompt = (e) => {
+      console.log('[PWA] beforeinstallprompt event fired')
       e.preventDefault()
       window.__pwaInstallPrompt = e // keep global ref in sync
       setDeferredPrompt(e)
@@ -49,6 +50,7 @@ export const usePWA = () => {
 
     // Handle app installed
     const handleAppInstalled = () => {
+      console.log('[PWA] App installed')
       setIsInstalled(true)
       setIsInstallable(false)
       setDeferredPrompt(null)
@@ -62,6 +64,7 @@ export const usePWA = () => {
     // Check for service worker updates
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.ready.then((registration) => {
+        console.log('[PWA] Service worker ready')
         registration.addEventListener('updatefound', () => {
           const newWorker = registration.installing
           newWorker.addEventListener('statechange', () => {
@@ -83,7 +86,7 @@ export const usePWA = () => {
 
   const installApp = useCallback(async () => {
     if (!deferredPrompt) {
-      console.log('No install prompt available')
+      console.log('[PWA] No install prompt available')
       return false
     }
 
@@ -93,19 +96,20 @@ export const usePWA = () => {
       
       // Wait for the user to respond to the prompt
       const { outcome } = await deferredPrompt.userChoice
+      console.log('[PWA] Install outcome:', outcome)
       
       if (outcome === 'accepted') {
-        console.log('User accepted the install prompt')
+        console.log('[PWA] User accepted the install prompt')
         setIsInstallable(false)
         setDeferredPrompt(null)
         window.__pwaInstallPrompt = null
         return true
       } else {
-        console.log('User dismissed the install prompt')
+        console.log('[PWA] User dismissed the install prompt')
         return false
       }
     } catch (error) {
-      console.error('Install error:', error)
+      console.error('[PWA] Install error:', error)
       return false
     }
   }, [deferredPrompt])

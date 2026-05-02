@@ -71,7 +71,21 @@ const ForgotPassword = () => {
     }
 
     setLoading(true)
-    const loadingToast = toast.loading('Sending OTP...', { duration: Infinity })
+    const loadingToast = toast(
+      (t) => (
+        <div className="flex items-center gap-3">
+          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900"></div>
+          <span>Sending OTP...</span>
+          <button
+            onClick={() => toast.dismiss(t.id)}
+            className="ml-2 text-gray-400 hover:text-gray-600"
+          >
+            ✕
+          </button>
+        </div>
+      ),
+      { duration: Infinity }
+    )
     try {
       await forgotPasswordRequest({ email })
       toast.dismiss(loadingToast)
@@ -98,7 +112,21 @@ const ForgotPassword = () => {
     }
 
     setLoading(true)
-    const loadingToast = toast.loading('Verifying OTP...', { duration: Infinity })
+    const loadingToast = toast(
+      (t) => (
+        <div className="flex items-center gap-3">
+          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900"></div>
+          <span>Verifying OTP...</span>
+          <button
+            onClick={() => toast.dismiss(t.id)}
+            className="ml-2 text-gray-400 hover:text-gray-600"
+          >
+            ✕
+          </button>
+        </div>
+      ),
+      { duration: Infinity }
+    )
     try {
       await verifyForgotPasswordOtp({ email, otpCode })
       toast.dismiss(loadingToast)
@@ -133,7 +161,21 @@ const ForgotPassword = () => {
     }
 
     setLoading(true)
-    const loadingToast = toast.loading('Resetting password...', { duration: Infinity })
+    const loadingToast = toast(
+      (t) => (
+        <div className="flex items-center gap-3">
+          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900"></div>
+          <span>Resetting password...</span>
+          <button
+            onClick={() => toast.dismiss(t.id)}
+            className="ml-2 text-gray-400 hover:text-gray-600"
+          >
+            ✕
+          </button>
+        </div>
+      ),
+      { duration: Infinity }
+    )
     try {
       await resetPassword({ email, newPassword })
       toast.dismiss(loadingToast)
@@ -151,7 +193,21 @@ const ForgotPassword = () => {
   // Resend OTP
   const handleResendOtp = async () => {
     setLoading(true)
-    const loadingToast = toast.loading('Resending OTP...', { duration: Infinity })
+    const loadingToast = toast(
+      (t) => (
+        <div className="flex items-center gap-3">
+          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900"></div>
+          <span>Resending OTP...</span>
+          <button
+            onClick={() => toast.dismiss(t.id)}
+            className="ml-2 text-gray-400 hover:text-gray-600"
+          >
+            ✕
+          </button>
+        </div>
+      ),
+      { duration: Infinity }
+    )
     try {
       await resendForgotPasswordOtp({ email })
       toast.dismiss(loadingToast)

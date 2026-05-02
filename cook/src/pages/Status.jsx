@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
@@ -8,6 +10,7 @@ import Loader from '../components/Loader'
 const Status = () => {
   const navigate = useNavigate()
   const { cook, isAuthenticated, isLoading, signout } = useAuth()
+  const [signingOut, setSigningOut] = useState(false)
 
   // Show loader while checking authentication
   if (isLoading) {
@@ -39,8 +42,31 @@ const Status = () => {
   const statusType = cook?.verificationStatus === 'rejected' ? 'rejected' : 'pending'
 
   const handleSignOut = async () => {
-    await signout()
-    navigate('/login', { replace: true })
+    if (signingOut) return
+    setSigningOut(true)
+    const loadingToast = toast(
+      (t) => (
+        <div className="flex items-center gap-3">
+          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900"></div>
+          <span>Signing out...</span>
+          <button
+            onClick={() => toast.dismiss(t.id)}
+            className="ml-2 text-gray-400 hover:text-gray-600"
+          >
+            ✕
+          </button>
+        </div>
+      ),
+      { duration: Infinity }
+    )
+    try {
+      await signout()
+      toast.success('Signed out successfully', { id: loadingToast, duration: 1500 })
+      navigate('/login', { replace: true })
+    } catch (error) {
+      toast.error('Failed to sign out', { id: loadingToast, duration: 1500 })
+      setSigningOut(false)
+    }
   }
 
   const handleResubmit = () => {
@@ -56,6 +82,7 @@ const Status = () => {
           <StatusCard 
             type={statusType}
             onSignOut={handleSignOut}
+            signingOut={signingOut}
           />
         </div>
       </main>

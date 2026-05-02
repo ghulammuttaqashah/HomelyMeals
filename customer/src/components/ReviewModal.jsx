@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 import { submitReview } from '../api/review'
 import StarRating from './StarRating'
 import Button from './Button'
+import Loader from './Loader'
 
 /**
  * Unified order review modal.
@@ -159,6 +160,7 @@ const ReviewModal = ({ isOpen, onClose, orderId, cookId, cookName, onReviewSubmi
                             </Button>
                             <Button
                                 type="submit"
+<<<<<<< HEAD
                                 disabled={submitting || rating === 0 || reviewText.trim().length < 10}
                                 className="flex-1 flex items-center justify-center gap-2"
                             >
@@ -170,6 +172,13 @@ const ReviewModal = ({ isOpen, onClose, orderId, cookId, cookName, onReviewSubmi
                                 ) : (
                                     'Submit Review'
                                 )}
+=======
+                                disabled={submitting || rating === 0 || !reviewText || reviewText.trim().length < 10}
+                                className="flex-1 flex items-center justify-center gap-2"
+                            >
+                                {submitting && <Loader size="sm" className="text-white" />}
+                                {submitting ? 'Submitting...' : 'Submit Review'}
+>>>>>>> 58d3cb01200fe4c28f4d5177cbe66809b574078d
                             </Button>
                         </div>
                     </form>

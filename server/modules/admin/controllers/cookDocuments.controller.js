@@ -316,13 +316,14 @@ const updateCookVerificationStatus = async (cookId) => {
   }
 
   // Check if ANY REQUIRED document is rejected
+  // NOTE: Optional documents (sfaLicense, other) being rejected should NOT block approval
   const anyRequiredRejected = requiredDocs.some((d) => d && d.status === "rejected");
   const anyKitchenPhotoRejected = kitchenPhotos.some((p) => p.status === "rejected");
 
   if (anyRequiredRejected || anyKitchenPhotoRejected) {
     await Cook.findByIdAndUpdate(cookId, { verificationStatus: "rejected" });
     
-    // Send rejection email if status changed
+    // Send rejection email if status changed (includes both required and optional rejected docs)
     if (previousStatus !== "rejected") {
       await sendRejectionEmail(cook, doc);
     }
@@ -341,6 +342,7 @@ const updateCookVerificationStatus = async (cookId) => {
   }
 
   // Check if ALL REQUIRED documents are approved
+  // NOTE: Optional documents (sfaLicense, other) status doesn't affect approval
   const allRequiredApproved = requiredDocs.every(
     (d) => d && d.status === "approved"
   );
@@ -349,6 +351,7 @@ const updateCookVerificationStatus = async (cookId) => {
     kitchenPhotos.some((p) => p.status === "approved");
 
   // ✅ APPROVED: All required docs + at least one kitchen photo approved
+  // Optional documents can be rejected, approved, or not submitted - doesn't matter
   if (allRequiredApproved && hasApprovedKitchenPhoto) {
     await Cook.findByIdAndUpdate(cookId, { verificationStatus: "approved" });
     
@@ -398,53 +401,55 @@ Homely Meals Team`;
 const sendRejectionEmail = async (cook, doc) => {
   try {
     // Collect rejection reasons
-    const rejectionReasons = [];
+    const rejectedDocuments = [];
 
     if (doc.cnicFront?.status === "rejected") {
-      rejectionReasons.push(`- CNIC Front: ${doc.cnicFront.rejectedReason || "Not specified"}`);
+      rejectedDocuments.push(`- CNIC Front: ${doc.cnicFront.rejectedReason || "Not specified"}`);
     }
 
     if (doc.cnicBack?.status === "rejected") {
-      rejectionReasons.push(`- CNIC Back: ${doc.cnicBack.rejectedReason || "Not specified"}`);
+      rejectedDocuments.push(`- CNIC Back: ${doc.cnicBack.rejectedReason || "Not specified"}`);
     }
 
     if (doc.profilePicture?.status === "rejected") {
-      rejectionReasons.push(`- Profile Picture / Logo: ${doc.profilePicture.rejectedReason || "Not specified"}`);
+      rejectedDocuments.push(`- Profile Picture / Logo: ${doc.profilePicture.rejectedReason || "Not specified"}`);
     }
 
     if (doc.sfaLicense?.status === "rejected") {
-      rejectionReasons.push(`- SFA License: ${doc.sfaLicense.rejectedReason || "Not specified"}`);
+      rejectedDocuments.push(`- SFA License: ${doc.sfaLicense.rejectedReason || "Not specified"}`);
     }
 
     if (doc.other?.status === "rejected") {
-      rejectionReasons.push(`- Other Document: ${doc.other.rejectedReason || "Not specified"}`);
+      rejectedDocuments.push(`- Other Document: ${doc.other.rejectedReason || "Not specified"}`);
     }
 
     doc.kitchenPhotos?.forEach((photo, index) => {
       if (photo.status === "rejected") {
-        rejectionReasons.push(`- Kitchen Photo ${index + 1}: ${photo.rejectedReason || "Not specified"}`);
+        rejectedDocuments.push(`- Kitchen Photo ${index + 1}: ${photo.rejectedReason || "Not specified"}`);
       }
     });
 
-    const reasonsText = rejectionReasons.length > 0 
-      ? rejectionReasons.join("\n") 
+    const rejectedList = rejectedDocuments.length > 0 
+      ? rejectedDocuments.join("\n") 
       : "Please check your documents and resubmit.";
 
-    const subject = "Document Verification - Action Required";
+    const subject = "Document Verification - Resubmission Required";
     const text = `Dear ${cook.name},
 
-We regret to inform you that some of your verification documents have been rejected by our admin team.
+We regret to inform you that some of your verification documents have been rejected by our admin team and require resubmission.
 
-Rejection Reasons:
-${reasonsText}
+The following documents were rejected:
+${rejectedList}
 
 What to do next:
 - Log in to your cook account
+- Go to the document resubmission page
 - Review the rejection reasons carefully
-- Upload corrected documents
-- Wait for admin review
+- Upload corrected versions of the rejected documents only
+- Your approved documents will remain unchanged
+- Submit for review again
 
-If you have any questions, please contact our support team.
+If you have any questions, please contact our support team at homelymeals4@gmail.com
 
 Best regards,
 Homely Meals Team`;
@@ -453,5 +458,68 @@ Homely Meals Team`;
     console.log(`Rejection email sent to ${cook.email}`);
   } catch (error) {
     console.error(`Failed to send rejection email to ${cook.email}:`, error.message);
+  }
+};
+
+/**
+ * Resubmit rejected documents (Cook can only update rejected ones)
+ */
+export const resubmitDocuments = async (req, res) => {
+  try {
+    const cookId = req.user._id;
+    const updates = req.body; // { cnicFront, cnicBack, profilePicture, kitchenPhotos, etc. }
+
+    const doc = await CookDocument.findOne({ cookId });
+    if (!doc) {
+      return res.status(404).json({ message: "Documents not found" });
+    }
+
+    // Only allow updating rejected documents
+    const fields = ["cnicFront", "cnicBack", "profilePicture", "sfaLicense", "other"];
+
+    fields.forEach((field) => {
+      if (updates[field] && doc[field] && doc[field].status === "rejected") {
+        doc[field].url = updates[field];
+        doc[field].status = "submitted";
+        doc[field].uploadedAt = new Date();
+        doc[field].rejectedReason = null;
+      }
+    });
+
+    // Handle kitchen photos (array)
+    if (updates.kitchenPhotos && Array.isArray(updates.kitchenPhotos)) {
+      // Find rejected kitchen photos and replace them
+      const rejectedIndices = [];
+      doc.kitchenPhotos.forEach((photo, index) => {
+        if (photo.status === "rejected") {
+          rejectedIndices.push(index);
+        }
+      });
+
+      // Replace rejected photos with new ones
+      updates.kitchenPhotos.forEach((newUrl, idx) => {
+        if (rejectedIndices[idx] !== undefined) {
+          doc.kitchenPhotos[rejectedIndices[idx]] = {
+            url: newUrl,
+            status: "submitted",
+            uploadedAt: new Date(),
+            rejectedReason: null,
+          };
+        }
+      });
+    }
+
+    await doc.save();
+
+    // Update cook verification status
+    await updateCookVerificationStatus(cookId);
+
+    return res.status(200).json({
+      message: "Documents resubmitted successfully",
+      document: doc,
+    });
+  } catch (error) {
+    console.error("Resubmit documents error:", error);
+    return res.status(500).json({ message: error.message });
   }
 };

@@ -3,6 +3,7 @@
   "short_name": "HM Cook",
   "description": "Manage your home kitchen business with Homely Meals",
   "start_url": "/",
+  "id": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#ea580c",
@@ -23,21 +24,21 @@
     }
   ],
   "categories": ["food", "business", "lifestyle"],
-  "screenshots": [],
+  "prefer_related_applications": false,
   "shortcuts": [
     {
       "name": "Orders",
       "short_name": "Orders",
       "description": "View your orders",
       "url": "/orders",
-      "icons": [{ "src": "/cook.png", "sizes": "96x96", "type": "image/png" }]
+      "icons": [{ "src": "/cook.png", "sizes": "192x192", "type": "image/png" }]
     },
     {
       "name": "Menu",
       "short_name": "Menu",
       "description": "Manage your menu",
       "url": "/menu",
-      "icons": [{ "src": "/cook.png", "sizes": "96x96", "type": "image/png" }]
+      "icons": [{ "src": "/cook.png", "sizes": "192x192", "type": "image/png" }]
     }
   ]
 }

@@ -92,7 +92,21 @@ const VerifyOtp = () => {
     }
 
     setLoading(true)
-    const loadingToast = toast.loading('Verifying OTP...', { duration: Infinity })
+    const loadingToast = toast(
+      (t) => (
+        <div className="flex items-center gap-3">
+          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900"></div>
+          <span>Verifying OTP...</span>
+          <button
+            onClick={() => toast.dismiss(t.id)}
+            className="ml-2 text-gray-400 hover:text-gray-600"
+          >
+            ✕
+          </button>
+        </div>
+      ),
+      { duration: Infinity }
+    )
     try {
       await verifySignupOtp({ email: pendingEmail, otp: otpCode })
       toast.dismiss(loadingToast)
@@ -112,7 +126,21 @@ const VerifyOtp = () => {
   const handleResend = async () => {
     if (!pendingEmail) return
     setResending(true)
-    const resendToast = toast.loading('Resending OTP...', { duration: Infinity })
+    const resendToast = toast(
+      (t) => (
+        <div className="flex items-center gap-3">
+          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900"></div>
+          <span>Resending OTP...</span>
+          <button
+            onClick={() => toast.dismiss(t.id)}
+            className="ml-2 text-gray-400 hover:text-gray-600"
+          >
+            ✕
+          </button>
+        </div>
+      ),
+      { duration: Infinity }
+    )
     try {
       await resendOtp(pendingEmail)
       toast.dismiss(resendToast)

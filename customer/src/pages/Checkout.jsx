@@ -297,7 +297,7 @@ const CheckoutForm = ({ cookInfo, deliveryInfo, deliveryAddress, cart, subtotal,
       >
         {submitting ? (
           <span className="flex items-center justify-center gap-2">
-            <div className="animate-spin w-4 h-4 sm:w-5 sm:h-5 border-2 border-white border-t-transparent rounded-full" />
+            <Loader size="sm" className="text-white" />
             {paymentMethod === "card" ? "Processing Payment..." : "Placing Order..."}
           </span>
         ) : (
@@ -385,7 +385,7 @@ const CheckoutForm = ({ cookInfo, deliveryInfo, deliveryAddress, cart, subtotal,
 const Checkout = () => {
   const navigate = useNavigate();
   const { cart, clearCart, getCartTotals } = useCart();
-  const { customer } = useAuth();
+  const { customer, refreshCustomer } = useAuth();
   const { subtotal } = getCartTotals();
 
   const defaultAddress = customer?.addresses?.find((a) => a.isDefault) || customer?.addresses?.[0];
@@ -433,6 +433,28 @@ const Checkout = () => {
     latitude: defaultAddress?.latitude || null,
     longitude: defaultAddress?.longitude || null,
   });
+
+  // Track when address changes from Header to update delivery address
+  const [shouldUpdateFromCustomer, setShouldUpdateFromCustomer] = useState(false);
+
+  // Update delivery address when customer's default address changes
+  useEffect(() => {
+    if (shouldUpdateFromCustomer && customer) {
+      const newDefaultAddress = customer.addresses?.find((a) => a.isDefault) || customer.addresses?.[0];
+      
+      if (newDefaultAddress && !usingCustomLocation) {
+        setDeliveryAddress({
+          houseNo: newDefaultAddress.houseNo || "",
+          street: newDefaultAddress.street || "",
+          city: newDefaultAddress.city || "",
+          postalCode: newDefaultAddress.postalCode || "",
+          latitude: newDefaultAddress.latitude || null,
+          longitude: newDefaultAddress.longitude || null,
+        });
+      }
+      setShouldUpdateFromCustomer(false);
+    }
+  }, [customer, shouldUpdateFromCustomer, usingCustomLocation]);
 
   useEffect(() => {
     if (cart.items.length === 0) navigate("/cart");
@@ -765,11 +787,21 @@ const Checkout = () => {
     }, 100);
   };
 
+  // Handle address change from Header dropdown
+  const handleAddressChangeFromHeader = async () => {
+    // Refresh customer data to get the new default address
+    if (refreshCustomer) {
+      await refreshCustomer();
+    }
+    // Trigger the useEffect to update delivery address
+    setShouldUpdateFromCustomer(true);
+  };
+
   const totalAmount = subtotal + (deliveryInfo?.deliveryCharges || 0);
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
-      <Header />
+      <Header onAddressChange={handleAddressChangeFromHeader} />
       <main className="flex-grow container mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 max-w-6xl">
         <button 
           onClick={() => navigate("/cart")} 

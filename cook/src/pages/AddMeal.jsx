@@ -90,7 +90,21 @@ const AddMeal = () => {
     }
 
     setLoading(true)
-    const loadingToast = toast.loading('Adding meal...', { duration: Infinity })
+    const loadingToast = toast(
+      (t) => (
+        <div className="flex items-center gap-3">
+          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900"></div>
+          <span>Adding meal...</span>
+          <button
+            onClick={() => toast.dismiss(t.id)}
+            className="ml-2 text-gray-400 hover:text-gray-600"
+          >
+            ✕
+          </button>
+        </div>
+      ),
+      { duration: Infinity }
+    )
 
     try {
       // Upload image to Cloudinary

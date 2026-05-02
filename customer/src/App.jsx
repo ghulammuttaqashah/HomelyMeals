@@ -1,4 +1,3 @@
-import { useEffect } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from './context/AuthContext'
@@ -7,6 +6,8 @@ import PublicRoute from './components/PublicRoute'
 import ProtectedRoute from './components/ProtectedRoute'
 import PWAInstallBanner from './components/PWAInstallBanner'
 import SocketListener from './components/SocketListener'
+import NotificationBanner from './components/NotificationBanner'
+import NotificationPermissionModal from './components/NotificationPermissionModal'
 import ChatbotFinal from './components/ChatbotFinal'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
@@ -23,13 +24,11 @@ import OrderDetails from './pages/OrderDetails'
 import Chats from './pages/Chats'
 import Complaints from './pages/Complaints'
 import FileComplaint from './pages/FileComplaint'
-import { askNotificationPermission } from './utils/push'
+import NotFound from './pages/NotFound'
+import PushTest from './pages/PushTest'
+
 
 const App = () => {
-  useEffect(() => {
-    // Ask for permission when app opens (will not push to DB until logon)
-    askNotificationPermission();
-  }, []);
 
   return (
     <BrowserRouter>
@@ -151,19 +150,48 @@ const App = () => {
                 </ProtectedRoute>
               }
             />
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route
+              path="/push-test"
+              element={
+                <ProtectedRoute>
+                  <PushTest />
+                </ProtectedRoute>
+              }
+            />
+            
+            {/* 404 Not Found */}
+            <Route path="/404" element={<NotFound />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
           <Toaster 
             position="top-right" 
             toastOptions={{
               duration: 1500,
-              style: {
-                background: '#363636',
-                color: '#fff',
+              success: {
+                duration: 1500,
+                style: {
+                  background: '#363636',
+                  color: '#fff',
+                },
+              },
+              error: {
+                duration: 1500,
+                style: {
+                  background: '#363636',
+                  color: '#fff',
+                },
+              },
+              loading: {
+                style: {
+                  background: '#363636',
+                  color: '#fff',
+                },
               },
             }}
           />
           <PWAInstallBanner />
+          <NotificationBanner />
+          <NotificationPermissionModal />
           
           {/* Final Chatbot - Guided Buttons + AI Search */}
           <ChatbotFinal />

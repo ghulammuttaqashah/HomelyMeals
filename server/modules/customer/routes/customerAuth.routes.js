@@ -57,4 +57,39 @@ router.patch("/addresses/:addressId/default", protect, setDefaultAddress);
 // Push Notifications (protected)
 router.post("/push/subscribe", protect, subscribeToPush);
 
+// Test push notification endpoint (protected) - for debugging
+router.post("/push/test", protect, async (req, res) => {
+  try {
+    const customer = await import("../models/customer.model.js").then(m => m.Customer.findById(req.user._id));
+    if (!customer) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+    
+    console.log('[Test Push] Sending test notification to customer:', customer.name, customer._id);
+    console.log('[Test Push] Customer has pushSubscription:', !!customer.pushSubscription);
+    
+    if (!customer.pushSubscription) {
+      return res.status(400).json({ 
+        message: "No push subscription found. Please enable notifications first.",
+        hasPushSubscription: false
+      });
+    }
+    
+    const { sendPushToUser } = await import("../../../shared/utils/push.js");
+    await sendPushToUser(customer, {
+      title: "Test Notification",
+      body: "This is a test push notification from Homely Meals!",
+      url: "/dashboard",
+    });
+    
+    return res.status(200).json({ 
+      message: "Test notification sent successfully",
+      hasPushSubscription: true
+    });
+  } catch (error) {
+    console.error("[Test Push] Error:", error);
+    return res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
+
 export default router;

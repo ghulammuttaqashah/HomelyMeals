@@ -5,7 +5,11 @@ export const uploadToCloudinary = async (file, folder = "general") => {
   const formData = new FormData();
   formData.append("file", file);
   formData.append("upload_preset", uploadPreset);
-  formData.append("folder", folder);
+  
+  // Only add folder if preset allows it
+  if (folder) {
+    formData.append("folder", folder);
+  }
 
   try {
     const response = await fetch(
@@ -17,7 +21,9 @@ export const uploadToCloudinary = async (file, folder = "general") => {
     );
 
     if (!response.ok) {
-      throw new Error("Upload failed");
+      const errorData = await response.json();
+      console.error("Cloudinary error response:", errorData);
+      throw new Error(errorData.error?.message || "Upload failed");
     }
 
     const data = await response.json();

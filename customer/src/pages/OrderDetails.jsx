@@ -37,6 +37,8 @@ const STATUS_CONFIG = {
   cancelled: { label: "Cancelled", color: "bg-red-500", step: 0 },
   cancelled_by_cook: { label: "Cancelled by Cook", color: "bg-red-500", step: 0 },
   cancelled_by_customer: { label: "Cancelled by You", color: "bg-gray-500", step: 0 },
+  cancelled_by_system: { label: "Cancelled by System", color: "bg-orange-500", step: 0 },
+  cancelled_by_admin: { label: "Cancelled by Admin", color: "bg-red-600", step: 0 },
 };
 
 
@@ -142,7 +144,7 @@ const OrderDetails = () => {
     if (order.paymentMethod !== "cod") {
       toast.error(
         "Online payment orders cannot be cancelled. Please contact support at homelymeals4@gmail.com for refund requests.",
-        { duration: 6000, icon: "🚫" }
+        { duration: 1500, icon: "🚫" }
       );
       setShowCancelModal(false);
       return;
@@ -194,7 +196,15 @@ const OrderDetails = () => {
   // Determine display status based on cancelledBy
   let displayStatus = order.status;
   if (order.status === "cancelled" && order.cancelledBy) {
-    displayStatus = order.cancelledBy === "cook" ? "cancelled_by_cook" : "cancelled_by_customer";
+    if (order.cancelledBy === "cook") {
+      displayStatus = "cancelled_by_cook";
+    } else if (order.cancelledBy === "customer") {
+      displayStatus = "cancelled_by_customer";
+    } else if (order.cancelledBy === "system") {
+      displayStatus = "cancelled_by_system";
+    } else if (order.cancelledBy === "admin") {
+      displayStatus = "cancelled_by_admin";
+    }
   }
 
   const statusConfig = STATUS_CONFIG[displayStatus] || STATUS_CONFIG.confirmed;
@@ -561,7 +571,7 @@ const OrderDetails = () => {
                   if (order.paymentMethod !== "cod") {
                     toast.error(
                       "Online payment orders cannot be cancelled. Please contact support at homelymeals4@gmail.com for refund requests.",
-                      { duration: 6000, icon: "🚫" }
+                      { duration: 1500, icon: "🚫" }
                     );
                     return;
                   }

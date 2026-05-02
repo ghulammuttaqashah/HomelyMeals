@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { usePWA } from '../utils/usePWA'
 import { getUnreadCount } from '../api/chat'
 import { getSocket } from '../utils/socket'
+import Loader from './Loader'
 import { FiMenu, FiX, FiChevronRight, FiBell } from 'react-icons/fi'
 
 const Header = ({ showSignOut = false }) => {
@@ -15,6 +16,7 @@ const Header = ({ showSignOut = false }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [unreadChats, setUnreadChats] = useState(0)
   const [scrolled, setScrolled] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
   const hasActiveSubscription = Boolean(cook?.hasActiveSubscription)
   const subscriptionInfo = cook?.subscriptionInfo
   const showExpiryWarning = subscriptionInfo?.isExpiringSoon || subscriptionInfo?.isExpiredToday
@@ -85,7 +87,7 @@ const Header = ({ showSignOut = false }) => {
     } else {
       // Don't redirect to customer app if in PWA mode
       if (isInstalled) {
-        toast.error('Please use the Customer app to browse meals', { duration: 2000 })
+        toast.error('Please use the Customer app to browse meals', { duration: 1500 })
         return
       }
       const customerUrl = import.meta.env.VITE_CUSTOMER_URL || 'http://localhost:5173'
@@ -115,9 +117,21 @@ const Header = ({ showSignOut = false }) => {
 
   const handleInstallApp = async () => {
     // Show loading toast while waiting for user action
-    const loadingToast = toast.loading('Opening installation prompt...', {
-      duration: Infinity,
-    })
+    const loadingToast = toast(
+      (t) => (
+        <div className="flex items-center gap-3">
+          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900"></div>
+          <span>Opening installation prompt...</span>
+          <button
+            onClick={() => toast.dismiss(t.id)}
+            className="ml-2 text-gray-400 hover:text-gray-600"
+          >
+            ✕
+          </button>
+        </div>
+      ),
+      { duration: Infinity }
+    )
     
     const success = await installApp()
     
@@ -126,15 +140,43 @@ const Header = ({ showSignOut = false }) => {
     
     if (success) {
       toast.success('HomelyMeals installed! Open it from your home screen 📱', {
-        duration: 2000,
+        duration: 1500,
         icon: '🎉',
       })
     } else {
       // User cancelled or installation failed
       toast('Installation cancelled', {
-        duration: 2000,
+        duration: 1500,
         icon: 'ℹ️',
       })
+    }
+  }
+
+  const handleSignOut = async () => {
+    if (signingOut) return
+    setSigningOut(true)
+    const loadingToast = toast(
+      (t) => (
+        <div className="flex items-center gap-3">
+          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900"></div>
+          <span>Signing out...</span>
+          <button
+            onClick={() => toast.dismiss(t.id)}
+            className="ml-2 text-gray-400 hover:text-gray-600"
+          >
+            ✕
+          </button>
+        </div>
+      ),
+      { duration: Infinity }
+    )
+    try {
+      await signout()
+      toast.success('Signed out successfully', { id: loadingToast, duration: 1500 })
+    } catch (error) {
+      toast.error('Failed to sign out', { id: loadingToast, duration: 1500 })
+    } finally {
+      setSigningOut(false)
     }
   }
 
@@ -209,25 +251,34 @@ const Header = ({ showSignOut = false }) => {
 
                 <button
                   type="button"
-                  onClick={signout}
-                  className="hidden lg:inline-flex items-center gap-2 rounded-lg bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
+                  onClick={handleSignOut}
+                  disabled={signingOut}
+                  className="hidden lg:inline-flex items-center gap-2 rounded-lg bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
-                  <span>Sign Out</span>
+                  {signingOut ? (
+                    <Loader size="sm" className="text-gray-700" />
+                  ) : (
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                  )}
+                  <span>{signingOut ? 'Signing Out...' : 'Sign Out'}</span>
                 </button>
                 
                 {/* Mobile Sign Out Icon */}
                 <button
                   type="button"
-                  onClick={signout}
-                  className="lg:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100"
+                  onClick={handleSignOut}
+                  disabled={signingOut}
+                  className="lg:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  <FiMenu className="hidden" /> {/* Placeholder for consistency */}
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
+                  {signingOut ? (
+                    <Loader size="sm" className="text-gray-600" />
+                  ) : (
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                  )}
                 </button>
               </>
             )}
@@ -296,9 +347,17 @@ const Header = ({ showSignOut = false }) => {
                     <span>Install App</span>
                   </button>
                 )}
-                <button onClick={signout} className="flex w-full items-center gap-3 px-4 py-3 rounded-xl bg-red-50 text-red-600 font-bold text-sm">
-                  <FiChevronRight className="rotate-180 h-4 w-4" />
-                  <span>Logout Account</span>
+                <button 
+                  onClick={handleSignOut} 
+                  disabled={signingOut}
+                  className="flex w-full items-center gap-3 px-4 py-3 rounded-xl bg-red-50 text-red-600 font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {signingOut ? (
+                    <Loader size="sm" className="text-red-600" />
+                  ) : (
+                    <FiChevronRight className="rotate-180 h-4 w-4" />
+                  )}
+                  <span>{signingOut ? 'Signing Out...' : 'Logout Account'}</span>
                 </button>
               </div>
             </div>

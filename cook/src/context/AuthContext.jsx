@@ -35,9 +35,9 @@ export const AuthProvider = ({ children }) => {
         const data = await getCurrentCookAPI()
         setCook(data.cook)
         setIsAuthenticated(true)
-        setIsAuthenticated(true)
         // Initialize socket and push when authenticated
         initializeSocket()
+        // No gesture here — only subscribes if permission already granted
         subscribeUserToPush()
       } catch (error) {
         // Retry once after a short delay — handles browser session restore
@@ -99,16 +99,13 @@ export const AuthProvider = ({ children }) => {
   }, [])
 
   const signin = useCallback(async (credentials) => {
-    // Request permission immediately while gesture is valid
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
     const data = await signinAPI(credentials)
     setCook(data?.cook ?? { email: credentials.email })
     setIsAuthenticated(true)
-    setIsAuthenticated(true)
-    // Initialize socket and push after login
     initializeSocket()
+
+    // Subscribe if permission already granted (from a previous session)
+    // First-time permission is handled by NotificationPermissionModal
     subscribeUserToPush()
     return data
   }, [])
@@ -147,7 +144,7 @@ export const AuthProvider = ({ children }) => {
       resetState()
       navigate('/login', { replace: true })
       if (wasAuthenticated) {
-        toast.success('Signed out')
+        toast.success('Signed out', { duration: 1500 })
       }
       isLoggingOut.current = false
     }

@@ -22,15 +22,56 @@ try {
 }
 
 export const sendPushNotification = async (subscription, payload) => {
-  if (!subscription) {
-    return;
+  if (!subscription || !subscription.endpoint) {
+    return { sent: false, expired: false };
   }
   
   try {
     await webpush.sendNotification(subscription, JSON.stringify(payload));
+    return { sent: true, expired: false };
   } catch (error) {
-    console.error("Error sending push notification:", error);
-    // If the subscription is no longer valid (e.g. user unsubscribed in browser)
-    // we should ideally remove it from the DB. Handled per-call usually or ignored
+    // 410 Gone or 404 = subscription is no longer valid (user unsubscribed/reinstalled)
+    if (error.statusCode === 410 || error.statusCode === 404) {
+      console.warn("⚠️  Push subscription expired (410/404), should be removed from DB");
+      return { sent: false, expired: true };
+    }
+    console.error("Error sending push notification:", error.statusCode || error.message);
+    return { sent: false, expired: false };
+  }
+};
+
+/**
+ * Send push notification to a user and auto-clean expired subscriptions.
+ * @param {Object} userDoc - Mongoose document (Customer or Cook) with pushSubscription field
+ * @param {Object} payload - { title, body, url, actions }
+ */
+export const sendPushToUser = async (userDoc, payload) => {
+  if (!userDoc) {
+    console.log("🔕 [Push] sendPushToUser: userDoc is null/undefined");
+    return;
+  }
+  
+  if (!userDoc.pushSubscription) {
+    console.log(`🔕 [Push] sendPushToUser: No pushSubscription for user ${userDoc._id} (${userDoc.name || 'unknown'})`);
+    return;
+  }
+  
+  console.log(`📨 [Push] Sending notification to ${userDoc.name || userDoc._id}: "${payload.title}"`);
+  
+  const result = await sendPushNotification(userDoc.pushSubscription, payload);
+  
+  if (result.sent) {
+    console.log(`✅ [Push] Notification sent successfully to ${userDoc.name || userDoc._id}`);
+  }
+  
+  // Auto-clean expired subscriptions from DB
+  if (result.expired) {
+    try {
+      userDoc.pushSubscription = null;
+      await userDoc.save();
+      console.log(`🧹 Cleared expired push subscription for user ${userDoc._id}`);
+    } catch (e) {
+      console.error("Failed to clear expired push subscription:", e.message);
+    }
   }
 };

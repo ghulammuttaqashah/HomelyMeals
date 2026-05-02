@@ -197,6 +197,7 @@ export const getCurrentCustomer = async (req, res) => {
         contact: customer.contact,
         addresses: customer.addresses,
         status: customer.status,
+        hasPushSubscription: !!customer.pushSubscription, // Add this flag for frontend
       },
     });
   } catch (err) {
@@ -685,21 +686,34 @@ export const setDefaultAddress = async (req, res) => {
 export const subscribeToPush = async (req, res) => {
   try {
     const { subscription } = req.body;
+    
+    console.log('[Customer Push Subscribe] Request received from user:', req.user._id);
+    console.log('[Customer Push Subscribe] Subscription data:', JSON.stringify(subscription, null, 2));
+    
     if (!subscription) {
+      console.error('[Customer Push Subscribe] No subscription object provided');
       return res.status(400).json({ message: "Subscription object is required" });
+    }
+
+    if (!subscription.endpoint) {
+      console.error('[Customer Push Subscribe] Subscription missing endpoint');
+      return res.status(400).json({ message: "Subscription must have an endpoint" });
     }
 
     const customer = await Customer.findById(req.user._id);
     if (!customer) {
+      console.error('[Customer Push Subscribe] Customer not found:', req.user._id);
       return res.status(404).json({ message: "Customer not found" });
     }
 
     customer.pushSubscription = subscription;
     await customer.save();
+    
+    console.log('[Customer Push Subscribe] ✅ Successfully saved subscription for customer:', customer.name, customer._id);
 
     return res.status(200).json({ message: "Subscribed successfully" });
   } catch (error) {
-    console.error("Subscribe to push error:", error);
+    console.error("[Customer Push Subscribe] Error:", error);
     return res.status(500).json({ message: "Server error" });
   }
 };

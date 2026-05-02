@@ -24,11 +24,11 @@ const CookCard = ({ cook }) => {
         {/* Cook Banner Image */}
         <div className="aspect-[4/3] w-full overflow-hidden bg-gray-100 relative">
           <img 
-            src={cook.profilePicture || '/default-profile.jpg'} 
+            src={cook.profilePicture || 'https://via.placeholder.com/400x300?text=No+Image'} 
             alt={cook.name} 
             className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
             onError={(e) => {
-              e.target.src = '/default-profile.jpg'
+              e.target.src = 'https://via.placeholder.com/400x300?text=Image+Not+Found'
             }}
           />
           {/* Badge for Meal Count */}

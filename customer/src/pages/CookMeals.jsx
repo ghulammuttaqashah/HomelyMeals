@@ -265,7 +265,7 @@ const CookMeals = () => {
                       alt={cook.name}
                       className="h-full w-full object-cover"
                       onError={(e) => {
-                        e.target.src = '/default-profile.jpg'
+                        e.target.src = 'https://via.placeholder.com/400x300?text=Image+Not+Found'
                       }}
                     />
                   ) : (

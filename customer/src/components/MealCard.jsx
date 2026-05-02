@@ -82,8 +82,8 @@ const MealCard = ({ meal, cook, cookServesArea = true }) => {
       (t) => (
         <div className="flex items-center gap-3">
           <FiShoppingCart className="w-5 h-5 text-orange-500 flex-shrink-0" />
-          <span className="text-sm font-medium text-gray-800 flex-1">
-            <span className="font-semibold text-orange-600">{meal.name}</span> added to cart
+          <span className="text-sm font-medium text-white flex-1">
+            <span className="font-semibold text-orange-400">{meal.name}</span> added to cart
           </span>
           <button
             onClick={() => {
@@ -98,8 +98,13 @@ const MealCard = ({ meal, cook, cookServesArea = true }) => {
         </div>
       ),
       {
-        duration: 5000,
-        style: { padding: '12px 16px', maxWidth: '380px' },
+        duration: 1500,
+        style: { 
+          padding: '12px 16px', 
+          maxWidth: '380px',
+          background: '#363636',
+          color: '#fff',
+        },
         icon: null,
       }
     )

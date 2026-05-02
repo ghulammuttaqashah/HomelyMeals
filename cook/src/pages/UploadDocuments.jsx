@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { submitDocuments } from '../api/documents'
 import { uploadToCloudinary } from '../utils/cloudinary'
+import axios from 'axios'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import Loader from '../components/Loader'
@@ -12,6 +13,8 @@ const UploadDocuments = () => {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [useDefaultProfile, setUseDefaultProfile] = useState(false)
+  const [defaultImageUrl, setDefaultImageUrl] = useState(null)
+  const [loadingDefaultImage, setLoadingDefaultImage] = useState(true)
   const [files, setFiles] = useState({
     cnicFront: null,
     cnicBack: null,
@@ -28,6 +31,23 @@ const UploadDocuments = () => {
     sfaLicense: null,
     other: null,
   })
+
+  // Fetch default profile image from admin settings
+  useEffect(() => {
+    const fetchDefaultImage = async () => {
+      try {
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+        const response = await axios.get(`${API_URL}/admin/settings/default-profile-image`)
+        setDefaultImageUrl(response.data.defaultImageUrl)
+      } catch (error) {
+        console.log('No default image set by admin')
+        setDefaultImageUrl(null)
+      } finally {
+        setLoadingDefaultImage(false)
+      }
+    }
+    fetchDefaultImage()
+  }, [])
 
   const handleFileChange = (event, fieldName) => {
     const selectedFiles = Array.from(event.target.files)
@@ -82,44 +102,62 @@ const UploadDocuments = () => {
     }
 
     setLoading(true)
-    const loadingToast = toast.loading('Uploading documents to Cloudinary...', { duration: Infinity })
+    const loadingToast = toast(
+      (t) => (
+        <div className="flex items-center gap-3">
+          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-900"></div>
+          <span>Uploading documents to Cloudinary...</span>
+          <button
+            onClick={() => toast.dismiss(t.id)}
+            className="ml-2 text-gray-400 hover:text-gray-600"
+          >
+            ✕
+          </button>
+        </div>
+      ),
+      { duration: Infinity }
+    )
 
     try {
       // Step 1: Upload files to Cloudinary and get URLs
       toast.loading('Uploading CNIC Front...', { id: loadingToast })
-      const cnicFrontUrl = await uploadToCloudinary(files.cnicFront)
+      const cnicFrontUrl = await uploadToCloudinary(files.cnicFront, 'cook-documents/cnic')
       
       toast.loading('Uploading CNIC Back...', { id: loadingToast })
-      const cnicBackUrl = await uploadToCloudinary(files.cnicBack)
+      const cnicBackUrl = await uploadToCloudinary(files.cnicBack, 'cook-documents/cnic')
 
       // Handle profile picture - use default or uploaded
       let profilePictureUrl
       if (useDefaultProfile) {
-        // Use the default image from public folder
-        profilePictureUrl = '/default-profile.jpg'
+        // Use the default image URL from admin settings
+        if (!defaultImageUrl) {
+          toast.error('Default profile image not available. Please upload a custom image.', { id: loadingToast })
+          return
+        }
+        profilePictureUrl = defaultImageUrl
         toast.loading('Using default profile image...', { id: loadingToast })
       } else {
         toast.loading('Uploading Profile Picture...', { id: loadingToast })
-        profilePictureUrl = await uploadToCloudinary(files.profilePicture)
+        profilePictureUrl = await uploadToCloudinary(files.profilePicture, 'cook-profiles')
       }
       
       toast.loading('Uploading Kitchen Photos...', { id: loadingToast })
       const kitchenPhotosUrls = []
       for (let i = 0; i < files.kitchenPhotos.length; i++) {
-        const url = await uploadToCloudinary(files.kitchenPhotos[i])
+        const url = await uploadToCloudinary(files.kitchenPhotos[i], 'cook-documents/kitchen')
         kitchenPhotosUrls.push(url)
       }
 
       let sfaLicenseUrl = null
       if (files.sfaLicense) {
         toast.loading('Uploading SFA License...', { id: loadingToast })
-        sfaLicenseUrl = await uploadToCloudinary(files.sfaLicense)
+        sfaLicenseUrl = await uploadToCloudinary(files.sfaLicense, 'cook-documents/licenses')
       }
 
       let otherUrl = null
       if (files.other) {
         toast.loading('Uploading Other Document...', { id: loadingToast })
-        otherUrl = await uploadToCloudinary(files.other)
+        otherUrl = await uploadToCloudinary(files.other, 'cook-documents/other')
       }
 
       // Step 2: Send URLs to backend
@@ -216,17 +254,24 @@ const UploadDocuments = () => {
                     <button
                       type="button"
                       onClick={() => {
+                        if (!defaultImageUrl) {
+                          toast.error('Default image not available. Please upload a custom image.')
+                          return
+                        }
                         setUseDefaultProfile(true)
                         setFiles(prev => ({ ...prev, profilePicture: null }))
-                        setPreviews(prev => ({ ...prev, profilePicture: '/default-profile.jpg' }))
+                        setPreviews(prev => ({ ...prev, profilePicture: defaultImageUrl }))
                       }}
+                      disabled={loadingDefaultImage || !defaultImageUrl}
                       className={`flex-1 px-4 py-2.5 rounded-lg border-2 font-medium text-sm transition-all ${
                         useDefaultProfile
                           ? 'border-orange-500 bg-orange-50 text-orange-700'
-                          : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                          : loadingDefaultImage || !defaultImageUrl
+                            ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
+                            : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
                       }`}
                     >
-                      Use Default Image
+                      {loadingDefaultImage ? 'Loading...' : !defaultImageUrl ? 'Default Not Available' : 'Use Default Image'}
                     </button>
                   </div>
 
@@ -246,19 +291,32 @@ const UploadDocuments = () => {
                     />
                   ) : (
                     <div className="space-y-3">
-                      <div className="relative w-full aspect-video rounded-lg overflow-hidden border-2 border-dashed border-orange-300 bg-white">
-                        <img
-                          src="/default-profile.jpg"
-                          alt="Default Profile"
-                          className="w-full h-full object-contain"
-                        />
-                        <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-medium">
-                          ✓ Default Selected
+                      {defaultImageUrl ? (
+                        <>
+                          <div className="relative w-full aspect-video rounded-lg overflow-hidden border-2 border-dashed border-orange-300 bg-white">
+                            <img
+                              src={defaultImageUrl}
+                              alt="Default Profile"
+                              className="w-full h-full object-contain"
+                              onError={(e) => {
+                                e.target.src = "https://via.placeholder.com/400x300?text=Image+Not+Found"
+                              }}
+                            />
+                            <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-medium">
+                              ✓ Default Selected
+                            </div>
+                          </div>
+                          <p className="text-sm text-gray-600">
+                            Using default profile image set by admin. You can change this later from your profile settings.
+                          </p>
+                        </>
+                      ) : (
+                        <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                          <p className="text-sm text-yellow-800">
+                            Default image is not available. Please upload a custom profile picture.
+                          </p>
                         </div>
-                      </div>
-                      <p className="text-sm text-gray-600">
-                        Using default profile image. You can change this later from your profile settings.
-                      </p>
+                      )}
                     </div>
                   )}
                 </div>
