@@ -160,25 +160,11 @@ const ReviewModal = ({ isOpen, onClose, orderId, cookId, cookName, onReviewSubmi
                             </Button>
                             <Button
                                 type="submit"
-<<<<<<< HEAD
-                                disabled={submitting || rating === 0 || reviewText.trim().length < 10}
-                                className="flex-1 flex items-center justify-center gap-2"
-                            >
-                                {submitting ? (
-                                    <>
-                                        <FiLoader className="w-4 h-4 animate-spin" />
-                                        Analyzing...
-                                    </>
-                                ) : (
-                                    'Submit Review'
-                                )}
-=======
                                 disabled={submitting || rating === 0 || !reviewText || reviewText.trim().length < 10}
                                 className="flex-1 flex items-center justify-center gap-2"
                             >
                                 {submitting && <Loader size="sm" className="text-white" />}
                                 {submitting ? 'Submitting...' : 'Submit Review'}
->>>>>>> 58d3cb01200fe4c28f4d5177cbe66809b574078d
                             </Button>
                         </div>
                     </form>
