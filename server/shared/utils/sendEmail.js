@@ -12,17 +12,20 @@ export const sendEmail = async (to, subject, text) => {
     console.log(`[sendEmail] EMAIL_PASS: ${process.env.EMAIL_PASS ? '✓ SET' : '✗ MISSING'}`);
     console.log(`[sendEmail] Environment: ${process.env.NODE_ENV || 'development'}`);
     
-    console.log(`[sendEmail] Creating transporter...`);
+    console.log(`[sendEmail] Creating transporter with IPv4 enforcement...`);
     const transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
-      family: 4,
+      port: 587,
+      secure: false,
+      family: 4, // ⭐ FORCE IPv4 ONLY - prevents IPv6 attempts
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
       },
-      debug: true, logger: true
+      debug: true, 
+      logger: true
     });
-    console.log(`[sendEmail] ✓ Transporter created successfully`);
+    console.log(`[sendEmail] ✓ Transporter created with IPv4 enforcement`);
 
     console.log(`[sendEmail] Attempting to send email...`);
     const info = await transporter.sendMail({
