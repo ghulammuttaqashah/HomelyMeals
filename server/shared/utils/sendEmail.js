@@ -6,10 +6,8 @@ export const sendEmail = async (to, subject, text) => {
     console.log(`[sendEmail] init -> to=${to} subject="${subject}"`);
     console.log(`[sendEmail] using EMAIL_USER=${process.env.EMAIL_USER ? "set" : "missing"} EMAIL_PASS=${process.env.EMAIL_PASS ? "set" : "missing"}`);
     const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com", // Explicitly setting host can help
-  port: 587,  
-  family: 4,              // Use 465 for SSL or 587 for TLS
-  secure: false,           // true for 465, false for 587
+  service:"gmail",
+  family: 4,              // true for 465, false for 587
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
