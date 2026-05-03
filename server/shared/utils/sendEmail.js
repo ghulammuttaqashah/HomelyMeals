@@ -15,21 +15,12 @@ export const sendEmail = async (to, subject, text) => {
     console.log(`[sendEmail] Creating transporter...`);
     const transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
-      port: 587,
-      secure: false, // Must be false for port 587
-      family: 4,     // Force IPv4
+      family: 4,
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
       },
-      tls: {
-        // This is crucial: it prevents the connection from hanging 
-        // if the certificate handshake is slow or weird
-        rejectUnauthorized: false,
-        minVersion: "TLSv1.2"
-      },
-      debug: true,
-      logger: true
+      debug: true, logger: true
     });
     console.log(`[sendEmail] ✓ Transporter created successfully`);
 
