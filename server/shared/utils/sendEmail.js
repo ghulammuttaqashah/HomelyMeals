@@ -6,12 +6,19 @@ export const sendEmail = async (to, subject, text) => {
     console.log(`[sendEmail] init -> to=${to} subject="${subject}"`);
     console.log(`[sendEmail] using EMAIL_USER=${process.env.EMAIL_USER ? "set" : "missing"} EMAIL_PASS=${process.env.EMAIL_PASS ? "set" : "missing"}`);
     const transporter = nodemailer.createTransport({
-     service:"gmail", // or your provider
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-      }
-    });
+  service: "gmail",
+  host: "smtp.gmail.com", // Explicitly setting host can help
+  port: 465,              // Use 465 for SSL or 587 for TLS
+  secure: true,           // true for 465, false for 587
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  },
+  tls: {
+    // This forces the connection to use IPv4
+    family: 4 
+  }
+});
 
     console.log("[sendEmail] transport config", {
       service: transporter.options?.service,
