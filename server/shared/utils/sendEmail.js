@@ -13,8 +13,7 @@ export const sendEmail = async (to, subject, text) => {
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
-  },
-  connectionTimeout: 10000, // Stop waiting after 10 seconds
+  }, // Stop waiting after 10 seconds
   greetingTimeout: 10000,
   socketTimeout: 10000
 
