@@ -6,6 +6,8 @@ export const sendEmail = async (to, subject, text) => {
     console.log(`[sendEmail] init -> to=${to} subject="${subject}"`);
     console.log(`[sendEmail] using EMAIL_USER=${process.env.EMAIL_USER ? "set" : "missing"} EMAIL_PASS=${process.env.EMAIL_PASS ? "set" : "missing"}`);
     const transporter = nodemailer.createTransport({
+        port: 465,
+        secure: true,
       service: "gmail", // or your provider
       auth: {
         user: process.env.EMAIL_USER,
