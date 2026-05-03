@@ -6,20 +6,19 @@ export const sendEmail = async (to, subject, text) => {
     console.log(`[sendEmail] init -> to=${to} subject="${subject}"`);
     console.log(`[sendEmail] using EMAIL_USER=${process.env.EMAIL_USER ? "set" : "missing"} EMAIL_PASS=${process.env.EMAIL_PASS ? "set" : "missing"}`);
     const transporter = nodemailer.createTransport({
-  // Direct IPv4 address for smtp.gmail.com
-  host: "74.125.136.108", 
-  port: 465,
-  secure: true,
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false, // Must be false for 587
+  requireTLS: true,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
-  // This tells the SSL certificate it's still talking to Gmail
   tls: {
     servername: "smtp.gmail.com",
-    family: 4
-  },
-  connectionTimeout: 15000, // 15 seconds
+    family: 4,
+    rejectUnauthorized: false // Helps bypass some handshake blocks
+  }
 });
 
     console.log("[sendEmail] transport config", {
