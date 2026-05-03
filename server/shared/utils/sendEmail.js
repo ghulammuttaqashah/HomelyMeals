@@ -6,7 +6,6 @@ export const sendEmail = async (to, subject, text) => {
     console.log(`[sendEmail] init -> to=${to} subject="${subject}"`);
     console.log(`[sendEmail] using EMAIL_USER=${process.env.EMAIL_USER ? "set" : "missing"} EMAIL_PASS=${process.env.EMAIL_PASS ? "set" : "missing"}`);
     const transporter = nodemailer.createTransport({
-  service:"gmail",
   host: "smtp.gmail.com",
   port: 587,
   secure: false, // true for 465, false for other ports
@@ -15,6 +14,9 @@ export const sendEmail = async (to, subject, text) => {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
   },
+  connectionTimeout: 10000, // Stop waiting after 10 seconds
+  greetingTimeout: 10000,
+  socketTimeout: 10000
 
 });
 
