@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { getCookReviews } from '../api/review'
+import { getCookAnalytics } from '../api/analytics'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import Loader from '../components/Loader'
 import StarRating from '../components/StarRating'
-import { FiStar, FiFilter, FiArrowLeft } from 'react-icons/fi'
+import AnalyticsOverview from '../components/AnalyticsOverview'
+import { FiStar, FiArrowLeft, FiBarChart2 } from 'react-icons/fi'
 
 const Reviews = () => {
     const navigate = useNavigate()
@@ -14,6 +16,9 @@ const Reviews = () => {
     const [stats, setStats] = useState(null)
     const [loading, setLoading] = useState(true)
     const [filter, setFilter] = useState('all')
+    const [showAnalyticsMenu, setShowAnalyticsMenu] = useState(false)
+    const [showCookAnalytics, setShowCookAnalytics] = useState(false)
+    const [cookAnalytics, setCookAnalytics] = useState(null)
 
     useEffect(() => {
         fetchReviews()
@@ -46,6 +51,26 @@ const Reviews = () => {
         return reviewDate.toLocaleDateString()
     }
 
+    const handleViewCookAnalytics = async () => {
+        try {
+            setLoading(true)
+            const data = await getCookAnalytics()
+            setCookAnalytics(data)
+            setShowCookAnalytics(true)
+            setShowAnalyticsMenu(false)
+        } catch (error) {
+            console.error('Fetch cook analytics error:', error)
+            toast.error('Failed to load analytics')
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleViewMealsAnalytics = () => {
+        navigate('/menu')
+        setShowAnalyticsMenu(false)
+    }
+
     return (
         <div className="flex min-h-screen flex-col bg-gray-50">
             <Header showSignOut={true} />
@@ -60,7 +85,18 @@ const Reviews = () => {
                             <FiArrowLeft className="w-4 h-4" />
                             Back to Dashboard
                         </button>
-                        <h1 className="text-2xl font-bold text-gray-900">My Reviews</h1>
+                        <h1 className="text-2xl font-bold text-gray-900 text-center">My Reviews</h1>
+                    </div>
+
+                    {/* View Analytics Button - Centered */}
+                    <div className="flex justify-center mb-6">
+                        <button
+                            onClick={() => setShowAnalyticsMenu(true)}
+                            className="inline-flex items-center gap-2 px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-medium text-sm shadow-md"
+                        >
+                            <FiBarChart2 className="w-5 h-5" />
+                            View Analytics
+                        </button>
                     </div>
 
                     {loading ? (
@@ -115,21 +151,7 @@ const Reviews = () => {
                             </div>
                         )}
 
-                        {/* Filter */}
-                        <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
-                            <div className="flex items-center gap-3">
-                                <FiFilter className="w-5 h-5 text-gray-600" />
-                                <select
-                                    value={filter}
-                                    onChange={(e) => setFilter(e.target.value)}
-                                    className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                                >
-                                    <option value="all">All Reviews</option>
-                                    <option value="cook">Cook Reviews</option>
-                                    <option value="meal">Meal Reviews</option>
-                                </select>
-                            </div>
-                        </div>                        {/* Reviews List */}
+                        {/* Reviews List */}
                         {reviews.length > 0 ? (
                             <div className="space-y-4">
                                 {reviews.map((review) => (
@@ -193,6 +215,60 @@ const Reviews = () => {
                     )}
                 </div>
             </main>
+
+            {/* Analytics Menu Modal */}
+            {showAnalyticsMenu && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+                        <h2 className="text-xl font-bold text-gray-900 mb-4">View Analytics</h2>
+                        <p className="text-sm text-gray-600 mb-6">Choose which analytics you want to view:</p>
+                        
+                        <div className="space-y-3">
+                            <button
+                                onClick={handleViewCookAnalytics}
+                                className="w-full flex items-center gap-3 p-4 border-2 border-gray-200 rounded-xl hover:border-orange-500 hover:bg-orange-50 transition-all"
+                            >
+                                <div className="flex-shrink-0 w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                                    <span className="text-2xl">👨‍🍳</span>
+                                </div>
+                                <div className="text-left">
+                                    <h3 className="font-semibold text-gray-900">Cook's Analytics</h3>
+                                    <p className="text-xs text-gray-600">View your overall performance</p>
+                                </div>
+                            </button>
+
+                            <button
+                                onClick={handleViewMealsAnalytics}
+                                className="w-full flex items-center gap-3 p-4 border-2 border-gray-200 rounded-xl hover:border-orange-500 hover:bg-orange-50 transition-all"
+                            >
+                                <div className="flex-shrink-0 w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                                    <span className="text-2xl">🍽️</span>
+                                </div>
+                                <div className="text-left">
+                                    <h3 className="font-semibold text-gray-900">Meals Analytics</h3>
+                                    <p className="text-xs text-gray-600">View individual meal performance</p>
+                                </div>
+                            </button>
+                        </div>
+
+                        <button
+                            onClick={() => setShowAnalyticsMenu(false)}
+                            className="w-full mt-4 px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Cook Analytics Modal */}
+            {showCookAnalytics && cookAnalytics && (
+                <AnalyticsOverview
+                    analytics={cookAnalytics}
+                    type="cook"
+                    onClose={() => setShowCookAnalytics(false)}
+                />
+            )}
 
             <Footer />
         </div>

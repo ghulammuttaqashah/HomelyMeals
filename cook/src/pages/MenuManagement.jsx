@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
 import { addMeal, getMeals, updateMeal, deleteMeal } from '../api/meals'
+import { getMealAnalytics } from '../api/analytics'
 import { uploadToCloudinary } from '../utils/cloudinary'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import Loader from '../components/Loader'
 import MealCard from '../components/MealCard'
+import AnalyticsOverview from '../components/AnalyticsOverview'
 import { FiArrowLeft } from 'react-icons/fi'
 
 const MenuManagement = () => {
@@ -48,6 +50,11 @@ const MenuManagement = () => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [deletingMeal, setDeletingMeal] = useState(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
+
+  // Analytics state
+  const [showMealAnalytics, setShowMealAnalytics] = useState(false)
+  const [selectedMealAnalytics, setSelectedMealAnalytics] = useState(null)
+  const [analyticsLoading, setAnalyticsLoading] = useState(false)
 
   const categories = ['main course', 'beverages', 'starter', 'other']
   const availabilityOptions = ['Available', 'OutOfStock']
@@ -97,6 +104,20 @@ const MenuManagement = () => {
     setEditImagePreview(meal.itemImage || null)
     setEditImageFile(null)
     setEditModalOpen(true)
+  }
+
+  const handleViewAnalytics = async (meal) => {
+    try {
+      setAnalyticsLoading(true)
+      const data = await getMealAnalytics(meal._id)
+      setSelectedMealAnalytics(data)
+      setShowMealAnalytics(true)
+    } catch (error) {
+      console.error('Fetch meal analytics error:', error)
+      toast.error('Failed to load analytics')
+    } finally {
+      setAnalyticsLoading(false)
+    }
   }
 
   const openAddModal = () => {
@@ -381,6 +402,7 @@ const MenuManagement = () => {
                   showActions={true}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
+                  onViewAnalytics={handleViewAnalytics}
                 />
               ))}
             </div>
@@ -783,6 +805,15 @@ const MenuManagement = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Meal Analytics Modal */}
+      {showMealAnalytics && selectedMealAnalytics && (
+        <AnalyticsOverview
+          analytics={selectedMealAnalytics}
+          type="meal"
+          onClose={() => setShowMealAnalytics(false)}
+        />
       )}
     </div>
   )

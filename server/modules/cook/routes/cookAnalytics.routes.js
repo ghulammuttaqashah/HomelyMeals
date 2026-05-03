@@ -38,22 +38,38 @@ router.get('/meal/:mealId', protect, async (req, res) => {
         const cookId = req.user._id;
         const { days } = req.query;
 
-        // For new unified reviews, filter by cookId; for legacy, filter by mealId
-        const query = {
-            cookId,
-            $or: [
-                { reviewType: 'order' },
-                { reviewType: 'meal', mealId }
-            ]
-        };
+        // Import Order model
+        const { Order } = await import('../../../shared/models/order.model.js');
 
+        // Step 1: Find all delivered orders that contained this specific meal
+        const orderQuery = { 'items.mealId': mealId, status: 'delivered', cookId };
         if (days) {
             const daysAgo = new Date();
             daysAgo.setDate(daysAgo.getDate() - parseInt(days));
-            query.createdAt = { $gte: daysAgo };
+            orderQuery.createdAt = { $gte: daysAgo };
+        }
+        const orders = await Order.find(orderQuery).select('_id').lean();
+        const orderIds = orders.map(o => o._id);
+
+        if (orderIds.length === 0) {
+            // No orders for this meal — return empty analytics
+            return res.json({
+                totalReviews: 0,
+                averageRating: 0,
+                sentiments: { positive: 0, negative: 0 },
+                categories: { positive: [], negative: [] },
+                aspects: [],
+                keywords: []
+            });
         }
 
-        const reviews = await Review.find(query);
+        // Step 2: Find reviews for those specific orders
+        const reviews = await Review.find({
+            orderId: { $in: orderIds },
+            reviewType: { $in: ['order', 'meal'] }
+        });
+
+        // Step 3: Calculate analytics filtered to meal-target aspects only
         const analytics = calculateAnalytics(reviews, 'meal');
 
         res.json(analytics);
