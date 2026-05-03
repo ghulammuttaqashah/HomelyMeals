@@ -156,10 +156,13 @@ const FileComplaint = () => {
       let proofUrls = [];
       if (images.length > 0) {
         setUploading(true);
-        proofUrls = await Promise.all(
-          images.map((img) => uploadToCloudinary(img.file, "complaints"))
-        );
-        setUploading(false);
+        try {
+          proofUrls = await Promise.all(
+            images.map((img) => uploadToCloudinary(img.file, "complaints"))
+          );
+        } finally {
+          setUploading(false);
+        }
       }
       await createComplaint({ orderId: selectedOrder, type, description: description.trim(), proofUrls });
       toast.success("Complaint submitted successfully!");
@@ -169,7 +172,6 @@ const FileComplaint = () => {
       toast.error(msg);
     } finally {
       setSubmitting(false);
-      setUploading(false);
     }
   };
 

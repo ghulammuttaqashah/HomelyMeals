@@ -152,10 +152,13 @@ const FileComplaint = () => {
       let proofUrls = [];
       if (images.length > 0) {
         setUploading(true);
-        proofUrls = await Promise.all(
-          images.map((img) => uploadToCloudinary(img.file))
-        );
-        setUploading(false);
+        try {
+          proofUrls = await Promise.all(
+            images.map((img) => uploadToCloudinary(img.file))
+          );
+        } finally {
+          setUploading(false);
+        }
       }
       
       // Use custom text if "Other" is selected
@@ -175,7 +178,6 @@ const FileComplaint = () => {
       toast.error(msg);
     } finally {
       setSubmitting(false);
-      setUploading(false);
     }
   };
 
