@@ -44,8 +44,10 @@ export const createAdmin = async (req, res) => {
 
 export const adminSignInRequest = async (req, res) => {
   const { email, password } = req.body;
+  const requestStart = Date.now();
 
   try {
+    console.log(`[adminSignInRequest] Start for ${email}`);
     const admin = await Admin.findOne({ email });
     if (!admin) return res.status(404).json({ message: "Account not found with this email" });
 
@@ -65,9 +67,12 @@ export const adminSignInRequest = async (req, res) => {
       expiryTime
     });
     await otpEntry.save();
+    console.log(`[adminSignInRequest] OTP saved for ${email} (expires ${expiryTime.toISOString()})`);
 
     // Send OTP via email
+    console.log(`[adminSignInRequest] Sending OTP email to ${email}`);
     await sendEmail(email, "Admin Sign-In OTP", `Your OTP is: ${otpCode}`);
+    console.log(`[adminSignInRequest] OTP email sent to ${email} in ${Date.now() - requestStart}ms`);
 
     return res
       .status(200)
@@ -143,8 +148,10 @@ export const verifyAdminSignInOtp = async (req, res) => {
  */
 export const resendAdminOtp = async (req, res) => {
   const { email } = req.body;
+  const requestStart = Date.now();
 
   try {
+    console.log(`[resendAdminOtp] Start for ${email}`);
     // Check if admin exists
     const admin = await Admin.findOne({ email });
     if (!admin) return res.status(400).json({ message: "Admin not found" });
@@ -173,9 +180,12 @@ export const resendAdminOtp = async (req, res) => {
     }
 
     await otpEntry.save();
+    console.log(`[resendAdminOtp] OTP updated for ${email} (expires ${expiryTime.toISOString()})`);
 
     // Send OTP email
+    console.log(`[resendAdminOtp] Sending OTP email to ${email}`);
     await sendEmail(email, "Admin Sign-In OTP (Resent)", `Your new OTP is: ${otpCode}`);
+    console.log(`[resendAdminOtp] OTP email sent to ${email} in ${Date.now() - requestStart}ms`);
 
     return res.status(200).json({
       message: "New OTP sent successfully to admin email."
