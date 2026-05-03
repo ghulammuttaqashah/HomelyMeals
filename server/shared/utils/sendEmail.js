@@ -6,13 +6,20 @@ export const sendEmail = async (to, subject, text) => {
     console.log(`[sendEmail] init -> to=${to} subject="${subject}"`);
     console.log(`[sendEmail] using EMAIL_USER=${process.env.EMAIL_USER ? "set" : "missing"} EMAIL_PASS=${process.env.EMAIL_PASS ? "set" : "missing"}`);
     const transporter = nodemailer.createTransport({
-        port: 465,
-        secure: true,
       service: "gmail", // or your provider
+      port: 465,
+      secure: true,
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
       }
+    });
+
+    console.log("[sendEmail] transport config", {
+      service: transporter.options?.service,
+      host: transporter.options?.host,
+      port: transporter.options?.port,
+      secure: transporter.options?.secure
     });
 
     const mailOptions = {
@@ -27,6 +34,19 @@ export const sendEmail = async (to, subject, text) => {
     return true; // success
   } catch (error) {
     console.error("Email send failed:", error.message);
+    console.error("[sendEmail] error details", {
+      code: error.code,
+      errno: error.errno,
+      syscall: error.syscall,
+      address: error.address,
+      port: error.port,
+      command: error.command,
+      responseCode: error.responseCode,
+      response: error.response
+    });
+    if (error.stack) {
+      console.error("[sendEmail] stack", error.stack);
+    }
     console.error(`[sendEmail] failed -> to=${to} in ${Date.now() - startTime}ms`);
     throw new Error("Failed to send email. Please check the address or try again later.");
   }
