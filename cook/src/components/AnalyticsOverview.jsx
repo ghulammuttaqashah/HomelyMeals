@@ -370,7 +370,7 @@ const AnalyticsOverview = ({ analytics, type, onClose }) => {
                                                                 </p>
                                                                 {aspect.texts.map((t, ti) => (
                                                                     <p key={ti} className="italic text-gray-100 mb-1.5 leading-relaxed border-l-2 border-orange-400 pl-2">
-                                                                        "{highlightAspect(t, aspect.name)}"
+                                                                        "{t}"
                                                                     </p>
                                                                 ))}
                                                                 <div className="absolute top-full left-5 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900" />
