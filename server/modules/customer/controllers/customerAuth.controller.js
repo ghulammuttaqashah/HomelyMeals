@@ -13,8 +13,10 @@ import { verifyEmailAPI } from "../../../shared/utils/verifyEmailAPI.js";
  */
 export const signupRequest = async (req, res) => {
   const { name, email, contact, password, address } = req.body;
+  const requestStart = Date.now();
 
   try {
+    console.log(`[customerSignupRequest] Start for ${email}`);
     // 1️⃣ Validate email format first (basic regex)
     if (!isValidEmail(email)) {
       return res.status(400).json({ message: "Invalid email format" });
@@ -50,11 +52,15 @@ export const signupRequest = async (req, res) => {
       tempData: { name, contact, password: hashedPassword, address }
     });
     await otpEntry.save();
+    console.log(`[customerSignupRequest] OTP saved for ${email} (expires ${expiryTime.toISOString()})`);
 
     // 7️⃣ Send email safely
     try {
+      console.log(`[customerSignupRequest] Sending OTP email to ${email}`);
       await sendEmail(email, "Your OTP Code", `Your OTP for customer account signup is ${otpCode}`);
+      console.log(`[customerSignupRequest] OTP email sent to ${email} in ${Date.now() - requestStart}ms`);
     } catch (emailError) {
+      console.error(`[customerSignupRequest] OTP email failed for ${email}:`, emailError.message || emailError);
       await OTPVerification.deleteOne({ email, purpose: "signup" });
       return res.status(400).json({
         message: "Failed to send OTP. Please check your email address."
@@ -230,8 +236,10 @@ export const signOut = async (req, res) => {
  */
 export const resendSignupOtp = async (req, res) => {
   const { email } = req.body;
+  const requestStart = Date.now();
 
   try {
+    console.log(`[customerSignupResendOtp] Start for ${email}`);
     if (!email) {
       return res.status(400).json({ message: "Email is required" });
     }
@@ -257,11 +265,15 @@ export const resendSignupOtp = async (req, res) => {
     existingOtp.otpCode = otpCode;
     existingOtp.expiryTime = expiryTime;
     await existingOtp.save();
+    console.log(`[customerSignupResendOtp] OTP updated for ${email} (expires ${expiryTime.toISOString()})`);
 
     // Send email
     try {
+      console.log(`[customerSignupResendOtp] Sending OTP email to ${email}`);
       await sendEmail(email, "Your OTP Code (Resent)", `Your new OTP for signup is ${otpCode}`);
+      console.log(`[customerSignupResendOtp] OTP email sent to ${email} in ${Date.now() - requestStart}ms`);
     } catch (emailError) {
+      console.error(`[customerSignupResendOtp] OTP email failed for ${email}:`, emailError.message || emailError);
       return res.status(400).json({
         message: "Failed to send OTP. Please try again."
       });

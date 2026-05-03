@@ -25,8 +25,10 @@ const syncCookSubscriptionAccess = async (cook) => {
  */
 export const signupRequest = async (req, res) => {
   const { name, email, contact, password, address, latitude, longitude, maxDeliveryDistance } = req.body;
+  const requestStart = Date.now();
 
   try {
+    console.log(`[cookSignupRequest] Start for ${email}`);
     if (!isValidEmail(email))
       return res.status(400).json({ message: "Invalid email format" });
 
@@ -68,10 +70,14 @@ export const signupRequest = async (req, res) => {
     });
 
     await otpEntry.save();
+    console.log(`[cookSignupRequest] OTP saved for ${email} (expires ${expiryTime.toISOString()})`);
 
     try {
+      console.log(`[cookSignupRequest] Sending OTP email to ${email}`);
       await sendEmail(email, "Your OTP Code", `Your OTP for cook account signup is ${otpCode}`);
+      console.log(`[cookSignupRequest] OTP email sent to ${email} in ${Date.now() - requestStart}ms`);
     } catch (emailError) {
+      console.error(`[cookSignupRequest] OTP email failed for ${email}:`, emailError.message || emailError);
       await OTPVerification.deleteOne({ email, purpose: "cook-signup" });
       return res
         .status(400)
@@ -314,8 +320,10 @@ export const cookSignout = async (req, res) => {
  */
 export const resendSignupOtp = async (req, res) => {
   const { email } = req.body;
+  const requestStart = Date.now();
 
   try {
+    console.log(`[cookSignupResendOtp] Start for ${email}`);
     if (!email) {
       return res.status(400).json({ message: "Email is required" });
     }
@@ -341,11 +349,15 @@ export const resendSignupOtp = async (req, res) => {
     existingOtp.otpCode = otpCode;
     existingOtp.expiryTime = expiryTime;
     await existingOtp.save();
+    console.log(`[cookSignupResendOtp] OTP updated for ${email} (expires ${expiryTime.toISOString()})`);
 
     // Send email
     try {
+      console.log(`[cookSignupResendOtp] Sending OTP email to ${email}`);
       await sendEmail(email, "Your OTP Code (Resent)", `Your new OTP for signup is ${otpCode}`);
+      console.log(`[cookSignupResendOtp] OTP email sent to ${email} in ${Date.now() - requestStart}ms`);
     } catch (emailError) {
+      console.error(`[cookSignupResendOtp] OTP email failed for ${email}:`, emailError.message || emailError);
       return res.status(400).json({
         message: "Failed to send OTP. Please try again."
       });

@@ -86,7 +86,6 @@ const reviewSchema = new mongoose.Schema(
 reviewSchema.index({ cookId: 1, reviewType: 1 });
 reviewSchema.index({ mealId: 1 });
 reviewSchema.index({ customerId: 1, cookId: 1, mealId: 1 });
-reviewSchema.index({ customerId: 1, orderId: 1 });
 reviewSchema.index({ orderId: 1, reviewType: 1 });
 
 // ONE review per order (for new unified 'order' type reviews)
