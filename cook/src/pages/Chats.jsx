@@ -31,6 +31,7 @@ const Chats = () => {
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
   const searchRef = useRef(null)
+  const fetchingRef = useRef(false) // Track if we're currently fetching
 
   // Scroll to bottom of messages
   const scrollToBottom = useCallback(() => {
@@ -51,8 +52,21 @@ const Chats = () => {
   }, [])
 
   const fetchMessages = useCallback(async (customerIdToFetch) => {
+    if (!customerIdToFetch) {
+      setLoadingMessages(false)
+      return
+    }
+    
+    // Prevent duplicate fetches
+    if (fetchingRef.current) {
+      console.log('Already fetching messages, skipping...')
+      return
+    }
+    
+    fetchingRef.current = true
+    setLoadingMessages(true)
+    
     try {
-      setLoadingMessages(true)
       const res = await getChatMessages(customerIdToFetch)
       setMessages(res.messages || [])
       // Clear unread badge for this chat in the local state (server already marked as read)
@@ -64,9 +78,19 @@ const Chats = () => {
       // Notify header that a chat's unread status successfully cleared
       window.dispatchEvent(new Event('unread_cleared'))
     } catch (error) {
-      toast.error('Failed to load messages')
+      console.error('Fetch messages error:', error)
+      // If it's a 404 or no chat exists yet, just set empty messages (new conversation)
+      if (error.response?.status === 404 || error.response?.data?.message?.includes('not found')) {
+        setMessages([])
+      } else {
+        // For other errors, still set empty messages but show toast
+        setMessages([])
+        toast.error('Failed to load messages')
+      }
     } finally {
+      // Ensure loading state is always cleared
       setLoadingMessages(false)
+      fetchingRef.current = false
     }
   }, [])
 
@@ -110,16 +134,24 @@ const Chats = () => {
           name: location.state.customerName || 'Customer',
           email: location.state.customerEmail || ''
         })
+      } else {
+        // Customer ID in URL but no state - might be a direct link or refresh
+        // Try to fetch anyway, the API will handle it
+        setSelectedCustomer({
+          _id: customerId,
+          name: 'Customer',
+          email: ''
+        })
       }
     }
-  }, [customerId, chats, loading])
+  }, [customerId, chats, loading, location.state])
 
   // Fetch messages when customer is selected
   useEffect(() => {
-    if (selectedCustomer) {
+    if (selectedCustomer?._id) {
       fetchMessages(selectedCustomer._id)
     }
-  }, [selectedCustomer, fetchMessages])
+  }, [selectedCustomer?._id]) // Only depend on the ID, not the whole object or fetchMessages
 
   // Scroll to bottom when messages change
   useEffect(() => {
